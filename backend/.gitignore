@@ -1,0 +1,5 @@
+data/
+*.sqlite
+dist/
+data/
+*.log

@@ -1,0 +1,28 @@
+# dependencies
+node_modules/
+
+# builds
+dist/
+build/
+
+# env secrets (commit .env.example only)
+.env
+.env.local
+.env.*.local
+
+# local databases
+*.sqlite
+*.sqlite3
+*.db
+data/
+
+# logs
+*.log
+npm-debug.log*
+
+# Freebuff (agent scratch files)
+.freebuff/
+
+# OS
+.DS_Store
+Thumbs.db

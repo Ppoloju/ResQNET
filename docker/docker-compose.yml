@@ -1,0 +1,26 @@
+services:
+  backend:
+    build:
+      context: ..
+      dockerfile: docker/backend.Dockerfile
+    environment:
+      NODE_ENV: production
+      PORT: 4000
+      DATABASE_PATH: /app/data/iqoo.sqlite
+      JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
+      MSG_SIGNING_PEPPER: ${MSG_SIGNING_PEPPER:-change-me-in-production}
+      FRONTEND_ORIGIN: ${FRONTEND_ORIGIN:-http://localhost:5173}
+      DEMO_MODE: ${DEMO_MODE:-true}
+    ports:
+      - "4000:4000"
+    volumes:
+      - iqoo-data:/app/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:4000/healthz').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+volumes:
+  iqoo-data:

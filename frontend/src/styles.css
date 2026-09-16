@@ -1,0 +1,80 @@
+/* ---------- Phase 7/12 additions: network, responders, demo, history ---------- */
+
+/* Status pills (used across pages) */
+.pill.on { background: #1d3b2a; color: #8fe6b0; border: 1px solid #2fae66; }
+.pill.warn { background: #3d2f14; color: #f2cd7e; border: 1px solid #e0a12b; }
+.pill.off { background: #3b1d22; color: #ff9aa8; border: 1px solid #d21f3c; }
+.pill.dim { opacity: 0.6; }
+.pill.small { font-size: 0.72rem; padding: 2px 8px; }
+
+/* Secondary button (used on Network/Demo/Responders) */
+.btn-secondary {
+  background: var(--surface-2, #1a2330); color: var(--text, #e8edf2);
+  border: 1px solid #2e3b4d; border-radius: 12px; padding: 12px 18px;
+  font-size: 0.95rem; min-height: 48px; cursor: pointer;
+}
+.btn-secondary:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn-secondary:not(:disabled):hover { border-color: #3d4f68; }
+.btn-primary.big, .btn-secondary.big { font-size: 1.1rem; padding: 16px 26px; min-height: 56px; width: 100%; }
+
+/* Relay readiness meter */
+.readiness-row { display: flex; align-items: center; gap: 12px; }
+.readiness-bar {
+  flex: 1; height: 14px; background: #0e1420; border: 1px solid #263140;
+  border-radius: 8px; overflow: hidden;
+}
+.readiness-fill { height: 100%; transition: width 0.4s ease; }
+.readiness-fill.tier-high { background: linear-gradient(90deg, #2fae66, #6fd694); }
+.readiness-fill.tier-medium { background: linear-gradient(90deg, #e0a12b, #f2cd7e); }
+.readiness-fill.tier-low { background: linear-gradient(90deg, #d2691e, #e8964f); }
+.readiness-fill.tier-off { background: #d21f3c; }
+
+/* Demo mode */
+.demo-progress { display: flex; align-items: center; gap: 12px; margin: 14px 0; }
+.demo-steps { list-style: none; margin: 16px 0; padding: 0; display: grid; gap: 8px; }
+.demo-steps li {
+  display: flex; align-items: baseline; gap: 10px; padding: 10px 12px;
+  background: var(--surface-2, #131a22); border: 1px solid #263140; border-radius: 10px;
+  flex-wrap: wrap;
+}
+.demo-steps li.done { border-color: #2fae66; background: rgba(47, 174, 102, 0.08); }
+.step-check { color: #8fe6b0; font-weight: 700; }
+.demo-steps li:not(.done) .step-check { color: #4a5a6e; }
+.step-label { font-weight: 600; }
+.step-hint { flex-basis: 100%; }
+.banner { border-radius: 12px; padding: 12px 14px; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.demo-banner { background: #14243d; border: 1px solid #2e5d9e; color: #b9d7f7; }
+.warn-banner { background: #3d2f14; border: 1px solid #e0a12b; color: #f2cd7e; }
+.danger-banner { background: #3b1d22; border: 1px solid #d21f3c; color: #ffb3bd; }
+
+/* Mesh / network page */
+.mesh-icon { font-size: 1.1rem; }
+.mesh-tree { display: grid; gap: 6px; }
+.mesh-node { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 8px; background: var(--surface-2, #131a22); }
+.mesh-alias { font-weight: 600; }
+.legend { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 10px; }
+
+/* Shared list rendering */
+.event-list { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 6px; }
+.event-list li { padding: 6px 8px; background: var(--surface-2, #131a22); border-radius: 8px; overflow-wrap: anywhere; }
+
+/* Responder dashboard */
+.emergency-item { border-left: 4px solid #d21f3c; }
+.emergency-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.emergency-msg { margin: 8px 0; font-size: 1.02rem; }
+.emergency-meta { display: grid; grid-template-columns: auto 1fr; gap: 2px 12px; margin: 8px 0; }
+.emergency-meta dt { color: var(--text-dim, #93a1b0); }
+.emergency-meta dd { margin: 0; }
+.btn.link { background: none; border: none; color: var(--text, #e8edf2); cursor: pointer; padding: 0; font-size: inherit; }
+.timeline-box { border-top: 1px dashed #263140; margin-top: 10px; padding-top: 8px; }
+
+/* Buttons referenced by pages without dedicated style */
+button.btn { min-height: 48px; border-radius: 12px; padding: 10px 16px; cursor: pointer; }
+
+/* History queued section */
+.queued-pill { display: inline-block; }
+
+/* Reduced motion (§45) */
+@media (prefers-reduced-motion: reduce) {
+  .readiness-fill { transition: none; }
+}
