@@ -1,6 +1,6 @@
-# IQOO Implementation Tracker
+# ResQNET Implementation Tracker
 
-**Project:** IQOO — Offline AI Emergency Network
+**Project:** ResQNET — Offline AI Emergency Network
 **Constraint:** 100% free/open-source stack. No paid APIs, hosting, models, or SDKs.
 **Working mode:** feature-by-feature; this file is updated after every feature.
 
@@ -210,6 +210,18 @@ The frontend is a web PWA. Browser Bluetooth cannot do background BLE mesh; iOS/
 - [x] Settings page (§29/§37: relay consent, low-power mode, scan interval, battery thresholds, transport status + pairing, reset)
 - [x] Final README (refreshed with full feature set, 65-test count, verified Docker path)
 - [x] Docker image build verification — **DONE 2026-09-15**: image builds (node:24-alpine), compose stack boots healthy, live E2E inside the container: register → topology → inject → 3-hop flood → gateway → `IQ-DOCKERE1` row with `received_via: mesh:3-hops` in the persisted volume. Fixed Dockerfile bug found during verification: `shared/dist` was not shipped to the runtime layer (ERR_MODULE_NOT_FOUND) and WORKDIR did not match the schema path.
+
+# Phase 13 — 3-Mode Architecture
+
+- [ ] Normal Mode: Standard app usage with minimal resource consumption, background monitoring of sensors (low power), family circle and emergency profile stored securely
+- [ ] Emergency Mode: Triggered by SOS button or AI detection (fall, accident, distress signals), device-to-device Bluetooth mesh for multi-hop alerts, shares emergency profile + location with trusted contacts, prioritizes critical alerts using local AI classification
+- [ ] Disaster Mode: Activated when multiple emergencies are detected in a region or disaster signals (earthquake, flood, fire) are identified
+- [ ] Disaster Mode - Community mesh expansion: Devices form a larger ad-hoc network for group coordination
+- [ ] Disaster Mode - Resource mapping: AI identifies safe zones, shelters, medical aid points from local data
+- [ ] Disaster Mode - Crowdsourced situational awareness: Each device contributes sensor data (smoke, noise, GPS movement) to build a disaster map
+- [ ] Disaster Mode - Priority routing: Critical alerts (injuries, trapped individuals) are given bandwidth priority
+- [ ] Disaster Mode - Offline disaster bulletin: Updates propagate through mesh (e.g., “Bridge collapsed ahead”, “Shelter open at school”)
+- [ ] Disaster Mode - AI assistant: Guides basic first aid, evacuation steps, or connects survivors to nearest responders
 
 ---
 
