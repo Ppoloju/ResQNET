@@ -172,6 +172,43 @@ ResQNET is designed to leverage iQOO hardware capabilities:
 - **Vapour cooling**: prevents thermal throttling during sustained emergency mesh operations
 - **5G + Bluetooth**: dual connectivity for gateway sync and device-to-device mesh
 
+## 🤝 Contributing (For First-Timers)
+
+We welcome contributions! If this is your first time contributing to an open-source project, follow these steps:
+
+### 1. Create a Branch
+Always create a new branch for your work. Don't commit directly to `main`.
+```bash
+# Make sure you have the latest code
+git pull origin main
+
+# Create and switch to a new branch (name it after what you're doing)
+git checkout -b feature/disaster-mode
+# or for a bug fix:
+git checkout -b fix/login-crash
+```
+
+### 2. Write Good Commit Messages
+We follow **Conventional Commits**. This means your commit messages should start with a specific keyword:
+- `feat`: A new feature (e.g., `feat: add AI first-aid assistant`)
+- `fix`: A bug fix (e.g., `fix: resolve crash when offline`)
+- `docs`: Documentation updates (e.g., `docs: update readme instructions`)
+- `style`: Formatting, missing semi-colons, etc.
+- `refactor`: Code changes that don't add features or fix bugs
+
+**Example of a good commit:**
+```bash
+git commit -m "feat(mesh): add disaster mode routing logic"
+```
+
+### 3. Create a Pull Request (PR)
+Once you're done coding and testing:
+```bash
+# Push your branch to GitHub
+git push origin your-branch-name
+```
+Then, go to the GitHub repository in your browser. You'll see a green **"Compare & pull request"** button. Click it, describe what you changed, and submit your PR!
+
 ---
 
 *Built for [iQOO Hackathon 2026](https://iqoo.reskilll.com/) — because when the network dies, the people around you are the network.*
