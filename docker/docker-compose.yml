@@ -22,5 +22,16 @@ services:
       timeout: 5s
       retries: 3
 
+  frontend:
+    build:
+      context: ..
+      dockerfile: docker/frontend.Dockerfile
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "8080:80"
+    restart: unless-stopped
+
 volumes:
   iqoo-data:

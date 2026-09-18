@@ -4,7 +4,7 @@
 // physical BLE hardware. Real radios plug into the same interface later.
 
 import type { EmergencyPacket, Priority } from '@iqoo/shared';
-import { isExpired, validatePacket } from '@iqoo/shared';
+import { isExpired, priorityForMode, validatePacket } from '@iqoo/shared';
 
 export interface LinkDef { a: string; b: string; lossRate?: number }
 
@@ -67,6 +67,16 @@ function priorityRetries(p: Priority): number {
   }
 }
 
+/** Priority rank for disaster-mode queueing (§13): lower sends first. */
+function priorityRank(p: Priority): number {
+  switch (p) {
+    case 'CRITICAL': return 0;
+    case 'HIGH': return 1;
+    case 'MEDIUM': return 2;
+    default: return 3;
+  }
+}
+
 function sleep(ms: number): Promise<void> {
   return new Promise((r) => setTimeout(r, ms));
 }
@@ -77,6 +87,14 @@ export class MeshEngine {
   private deliveries = new Map<string, DeliveryRecord>(); // key packetId:nodeId
   readonly timeline: TimelineEvent[] = [];
   private pending = 0;
+  private heroNodeId: string | null = null; // Relay Hero (§29 iQOO enhancement)
+  /** Disaster mode (§13): priority queueing + one-notch traffic promotion. */
+  disasterMode = false;
+
+  /** §13: enter/leave disaster mode — outbox drains CRITICAL-first while active. */
+  setDisasterMode(on: boolean): void {
+    this.disasterMode = on;
+  }
   private readonly opts: EngineOptions;
 
   constructor(opts: EngineOptions) {
@@ -101,6 +119,27 @@ export class MeshEngine {
 
   setRole(nodeId: string, role: SimNode['role']): void {
     this.ensureNode(nodeId).role = role;
+  }
+
+  /**
+   * Relay Hero (§29 iQOO enhancement): nominate one node to relay at full
+   * strength regardless of battery. Models an iQOO-class device whose large
+   * cell + bypass charging let it volunteer as the mesh's backbone node: it
+   * receives everything as usual, but forwards with its REAL reserves while
+   * everyone else conserves. Setting null releases the nomination.
+   */
+  setRelayHero(nodeId: string | null): void {
+    this.heroNodeId = nodeId;
+    this.log(nodeId ?? 'ENGINE', nodeId ? 'RELAY_HERO_ACTIVATED' : 'RELAY_HERO_RELEASED',
+      nodeId ? { nodeId } : {});
+  }
+
+  getRelayHero(): string | null {
+    return this.heroNodeId;
+  }
+
+  hasNode(nodeId: string): boolean {
+    return this.nodes.has(nodeId);
   }
 
   addLink(a: string, b: string, lossRate = this.opts.lossRate): void {
@@ -174,8 +213,12 @@ export class MeshEngine {
     // §29 battery tiers gate the SENDING node's onward relay — a low-battery
     // device still RECEIVES packets (so SOS always gets through) but does not
     // spend its remaining battery forwarding traffic it cannot afford to.
-    if (!relayAllows(node.battery, packet.priority)) {
-      this.log(node.id, 'RELAY_SUPPRESSED_LOW_BATTERY', { packetId: packet.id, battery: node.battery, priority: packet.priority });
+    // Disaster mode (§13) promotes life-safety traffic one notch first.
+    // Relay Hero: the nominated backbone node relays with full reserves (§29 iQOO).
+    const batteryForRelay = this.heroNodeId === node.id ? Math.max(node.battery, 60) : node.battery;
+    const effectivePriority = this.disasterMode ? priorityForMode(packet.priority, 'DISASTER') : packet.priority;
+    if (!relayAllows(batteryForRelay, effectivePriority)) {
+      this.log(node.id, 'RELAY_SUPPRESSED_LOW_BATTERY', { packetId: packet.id, battery: node.battery, priority: packet.priority, effectivePriority });
       return;
     }
     for (const { node: neighbor, link } of this.neighborsOf(node.id)) {
@@ -202,7 +245,7 @@ export class MeshEngine {
       if (link.down) {
         // Store-and-forward: keep at sender, flush when link returns (§13/§42).
         if (!from.outbox.some((p) => p.id === packet.id)) {
-          from.outbox.push(packet);
+          this.enqueue(from, packet);
           this.record(packet.id, from.id, 'QUEUED', null);
           this.log(from.id, 'STORED_FOR_FORWARD', { packetId: packet.id, toNeighbor: to.id });
         }
@@ -219,7 +262,7 @@ export class MeshEngine {
           await sleep(backoff);
           await this.transmit(from, to, link, packet, attempt + 1);
         } else {
-          from.outbox.push(packet); // give up live retry → store for later
+          this.enqueue(from, packet); // give up live retry → store for later
           this.record(packet.id, from.id, 'QUEUED', null);
           this.log(from.id, 'STORED_AFTER_RETRY_EXHAUSTED', { packetId: packet.id, toNeighbor: to.id });
         }
@@ -244,6 +287,14 @@ export class MeshEngine {
       packetId: packet.id, emergencyId: packet.emergencyId,
       hopCount: packet.hopCount, from: from.id,
     });
+    // Disaster mode activation (§13): a disaster broadcast or region-scale
+    // hazard packet flips the whole network into priority-queueing.
+    if (packet.type === 'DISASTER_BROADCAST' || packet.ai?.category === 'NATURAL_DISASTER' || packet.ai?.category === 'FIRE') {
+      if (!this.disasterMode) {
+        this.disasterMode = true;
+        this.log(to.id, 'DISASTER_MODE_ACTIVATED', { packetId: packet.id, trigger: packet.type });
+      }
+    }
     this.opts.onDeliver?.(packet, to.id, 'simulated-bluetooth');
     void this.sendAck(from, to, packet);
     this.forwardFrom(to, packet);
@@ -271,16 +322,30 @@ export class MeshEngine {
   private flushOutbox(nodeId: string): void {
     const node = this.ensureNode(nodeId);
     if (node.outbox.length === 0) return;
-    const queued = [...node.outbox];
+    // Disaster mode drains the queue by priority: life-safety first (§13).
+    const queued = [...node.outbox].sort(
+      (a, b) => priorityRank(a.priority) - priorityRank(b.priority),
+    );
     node.outbox = [];
     for (const packet of queued) {
       if (isExpired(packet)) {
         this.expire(packet.id, node.id);
         continue;
       }
-      this.log(node.id, 'OUTBOX_FLUSH', { packetId: packet.id });
+      this.log(node.id, 'OUTBOX_FLUSH', { packetId: packet.id, priority: packet.priority });
       this.forwardFrom(node, packet);
     }
+  }
+
+  /** Priority-aware enqueue (§13): in disaster mode, the outbox drains CRITICAL-first. */
+  private enqueue(node: SimNode, packet: EmergencyPacket): void {
+    if (!this.disasterMode) {
+      node.outbox.push(packet);
+      return;
+    }
+    const idx = node.outbox.findIndex((p) => priorityRank(p.priority) > priorityRank(packet.priority));
+    if (idx === -1) node.outbox.push(packet);
+    else node.outbox.splice(idx, 0, packet);
   }
 
   /** Periodic maintenance: expire queued packets past TTL. */
@@ -350,6 +415,8 @@ export class MeshEngine {
       })),
       deliveries: [...this.deliveries.values()],
       timeline: [...this.timeline].sort((a, b) => a.ts - b.ts),
+      disasterMode: this.disasterMode,
+      relayHero: this.heroNodeId,
       stats: {
         totalNodes: this.nodes.size,
         totalLinks: this.links.length,
@@ -371,6 +438,8 @@ export class MeshEngine {
     this.deliveries.clear();
     this.timeline.length = 0;
     this.pending = 0;
+    this.disasterMode = false;
+    this.heroNodeId = null;
     for (const n of this.nodes.values()) n.degree = 0;
   }
 }

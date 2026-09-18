@@ -37,6 +37,12 @@ export interface RelayReadinessInput {
   foreground: boolean;
   /** Roles are ranked; relay readiness favors relay-capable roles. */
   role?: 'NORMAL' | 'RELAY' | 'RESPONDER' | 'GATEWAY';
+  /**
+   * Hardware radio endurance class (iQOO enhancement, §29): a bigger cell +
+   * bypass charging mean the device can afford far more relay work per %
+   * of battery. Self-reported, never fabricated by the app.
+   */
+  hardwareTier?: 'standard' | 'large_cell' | 'large_cell_bypass';
 }
 
 export interface RelayReadiness {
@@ -56,10 +62,20 @@ export function relayReadiness(input: RelayReadinessInput): RelayReadiness {
     return { score: 0, tier: 'OFF', reason: 'Relaying turned off in settings' };
   }
   if (!input.foreground) {
-    return { score: 0, tier: 'OFF', reason: 'App in background (browser limitation)' };
+    return { score:0, tier: 'OFF', reason: 'App in background (browser limitation)' };
   }
-  if (input.batteryPercent !== null && input.batteryPercent < 20) {
-    return { score: 10, tier: 'LOW', reason: 'Battery below 20% — CRITICAL packets only' };
+  // Hardware endurance class (iQOO enhancement): a 6000 mAh-class cell with
+  // bypass charging can sustain relay duty far below the standard 20% floor
+  // before it must conserve for self-preservation.
+  const hwTier = input.hardwareTier ?? 'standard';
+  const enduranceFloor = hwTier === 'large_cell_bypass' ? 10 : hwTier === 'large_cell' ? 15 : 20;
+  if (input.batteryPercent !== null && input.batteryPercent < enduranceFloor) {
+    return {
+      score: 10,
+      tier: 'LOW',
+      reason: `Battery below ${enduranceFloor}% — CRITICAL packets only` +
+        (hwTier !== 'standard' ? ` (${hwTier === 'large_cell_bypass' ? 'large cell + bypass' : 'large cell'} endurance)` : ''),
+    };
   }
   let score = 50;
   const reasons: string[] = [];
@@ -69,6 +85,10 @@ export function relayReadiness(input: RelayReadinessInput): RelayReadiness {
     else { score += 0; reasons.push('moderate battery'); }
   } else {
     reasons.push('battery unknown');
+  }
+  if (hwTier !== 'standard') {
+    score = Math.min(100, score + (hwTier === 'large_cell_bypass' ? 15 : 10));
+    reasons.push(hwTier === 'large_cell_bypass' ? 'large-cell + bypass-charging endurance' : 'large-cell endurance');
   }
   if (input.connected) { score += 15; reasons.push('gateway reachable'); }
   if (input.role === 'GATEWAY' || input.role === 'RESPONDER') { score = Math.min(100, score + 20); reasons.push('responder role'); }

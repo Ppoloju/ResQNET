@@ -132,6 +132,7 @@ Reception is never blocked.
 - Medical fields: **AES-256-GCM** encrypted at rest, consent-gated
 - Public device IDs (`IQOO_NODE_XXXX`) carry zero personal data
 - Ed25519 device keys as upgrade path from HMAC
+- Light / dark / system theme; phone-first UI with burger nav + 48 px touch targets
 - Audit log: append-only, structured, with secret/medical redaction
 - Spam protection: duplicate checks, expiry, hop limits, rate limits
 
@@ -141,22 +142,27 @@ Reception is never blocked.
 |---|---|
 | SOS core, profile, family, offline queue, sync, packet crypto | **Implemented** |
 | Mesh routing logic (dedupe/TTL/ACK/retry/battery) | **Implemented + tested (simulation)** |
-| Normal + Emergency modes | **Implemented** |
-| Disaster Mode (community mesh, resource mapping, AI assistant) | **Designed — implementation in progress** |
+| Normal + Emergency modes (derived mode + banner + reason) | **Implemented** |
+| Disaster Mode (derivation, priority routing, sitreps, resource map, AI guidance) | **Implemented** |
 | Mesh over real radios | **Prototype** — Web Bluetooth foreground only |
 | Background BLE, Wi-Fi Direct/Near | **Requires native mobile client** |
 | Direct police/hospital integration | **Requires Production Integration** |
 | Responder dashboard, demo mode, network map, AI assist | **Implemented** |
+| Situations page (community bulletins + nearby resources) | **Implemented** |
+| Relay Hero ⚡ (iQOO backbone relay + hardware endurance tiers) | **Implemented [P]** — engine + Settings + Network UI |
 
 ## 🐳 Docker (Verified End-to-End)
 
 ```bash
 docker compose -f docker/docker-compose.yml up -d --build
-# → http://localhost:4000/healthz  {"ok":true,...}
+# → frontend app:  http://localhost:8080   (nginx: SPA + /api proxy + SSE + /healthz)
+# → backend API:   http://localhost:4000/healthz
 ```
 
-Verified: image builds on node:24-alpine, stack boots healthy, full demo path runs
-inside the container.
+Verified: images build on node:24-alpine, stack boots healthy, full demo path runs
+inside the container, and the API is reachable same-origin through the frontend
+(register → sitrep post → resources nearby all smoke-tested through nginx).
+See **docs/deployment.md** for the full guide (env, secrets, production boundary).
 
 ## 🛠️ Tech Stack (Free/Open-Source Only)
 

@@ -3,7 +3,7 @@
 // readiness meter, low-power mode forces CRITICAL-only, scan interval is a
 // documented prototype knob.
 
-import { useSettings } from '../state/SettingsContext';
+import { useSettings, type ThemePreference } from '../state/SettingsContext';
 import { useTransports } from '../state/TransportContext';
 import { useStatus } from '../state/StatusContext';
 
@@ -16,6 +16,7 @@ const AV_LABEL: Record<string, string> = {
 
 function tierFor(battery: number | null, s: ReturnType<typeof useSettings>): 'CRITICAL-ONLY' | 'REDUCED' | 'NORMAL' | 'OFF' {
   if (!s.relayConsent) return 'OFF';
+  if (s.relayHeroMode) return 'NORMAL'; // Relay Hero relays at full strength (§29 iQOO)
   if (s.lowPowerMode) return 'CRITICAL-ONLY';
   if (battery === null) return 'NORMAL';
   if (battery < s.criticalThresholdPct) return 'CRITICAL-ONLY';
@@ -30,9 +31,36 @@ export default function Settings() {
 
   const currentTier = tierFor(battery, s);
 
+  const THEMES: Array<{ value: ThemePreference; label: string; icon: string }> = [
+    { value: 'system', label: 'System', icon: '🖥' },
+    { value: 'light', label: 'Light', icon: '☀️' },
+    { value: 'dark', label: 'Dark', icon: '🌙' },
+  ];
+
   return (
     <div>
       <h1>Settings</h1>
+
+      <div className="card">
+        <h2>Appearance</h2>
+        <label htmlFor="theme-select">Color theme</label>
+        <div className="row wrap" role="radiogroup" aria-label="Color theme">
+          {THEMES.map((t) => (
+            <button
+              key={t.value}
+              className="chip"
+              style={s.theme === t.value ? { borderColor: 'var(--red)', color: 'var(--red-soft)', fontWeight: 700 } : undefined}
+              onClick={() => s.update({ theme: t.value })}
+              aria-pressed={s.theme === t.value}
+            >
+              {t.icon} {t.label}
+            </button>
+          ))}
+        </div>
+        <p className="muted small" style={{ marginBottom: 0 }}>
+          Light mode helps screen readability in bright sun; dark saves OLED battery at night.
+        </p>
+      </div>
 
       <div className="card">
         <h2>Relaying</h2>
@@ -45,6 +73,17 @@ export default function Settings() {
           <span>Low-power mode (relay only CRITICAL alerts)</span>
           <input type="checkbox" style={{ width: 24, height: 24 }} checked={s.lowPowerMode}
             onChange={(e) => s.update({ lowPowerMode: e.target.checked })} aria-label="Low power mode" />
+        </label>
+        <label className="row spread" style={{ alignItems: 'center', gap: 8, minHeight: 48 }}>
+          <span>
+            ⚡ Relay Hero mode <span className="muted small">(iQOO flagships [P])</span><br />
+            <span className="muted" style={{ fontSize: '0.8rem', fontWeight: 400 }}>
+              Volunteer as the mesh backbone: relay everything even on low battery —
+              built for large-cell + bypass-charging hardware.
+            </span>
+          </span>
+          <input type="checkbox" style={{ width: 24, height: 24 }} checked={s.relayHeroMode}
+            onChange={(e) => s.update({ relayHeroMode: e.target.checked })} aria-label="Relay Hero mode" />
         </label>
 
         <label htmlFor="scan-interval">Discovery scan interval: {s.scanIntervalSec}s <span className="muted">(prototype knob [P])</span></label>

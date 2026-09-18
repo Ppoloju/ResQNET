@@ -8,6 +8,7 @@ import { SettingsProvider } from './state/SettingsContext';
 import { TransportProvider } from './state/TransportContext';
 import { MeshProvider } from './state/MeshContext';
 import { AIProvider } from './state/AIContext';
+import { ModeProvider } from './state/ModeContext';
 import Home from './pages/Home';
 import Login from './pages/Login';
 import Profile from './pages/Profile';
@@ -19,6 +20,7 @@ import Demo from './pages/Demo';
 import More from './pages/More';
 import Missing from './pages/Missing';
 import Settings from './pages/Settings';
+import Situations from './pages/Situations';
 import './styles.css';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
@@ -28,8 +30,8 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
         <StatusProvider>
           <SettingsProvider>
             <TransportProvider>
-              <AIProvider>
-                <MeshProvider>
+              <AIProvider>              <MeshProvider>
+                <ModeProvider>
                   <App>
                     <Routes>
                       <Route path="/" element={<Home />} />
@@ -43,9 +45,11 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
                       <Route path="/more" element={<More />} />
                       <Route path="/missing" element={<Missing />} />
                       <Route path="/settings" element={<Settings />} />
+                      <Route path="/situations" element={<Situations />} />
                     </Routes>
                   </App>
-                </MeshProvider>
+                </ModeProvider>
+              </MeshProvider>
               </AIProvider>
             </TransportProvider>
           </SettingsProvider>

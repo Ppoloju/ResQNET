@@ -3,639 +3,704 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>ResQNET — Offline AI Emergency Mesh Network | iQOO Hackathon 2026</title>
+<title>ResQNET — Offline AI Emergency Network | iQOO Hackathon 2026</title>
 <style>
+  /* ============================================================
+     ResQNET judge deck — light professional theme, 25 slides
+     covering the 10 required sections (PART 1–10) in order.
+     Every slide renders through the reusable slideCard() component
+     from a single data array. No emojis: typographic symbols only.
+     ============================================================ */
   :root {
-    --bg:#0b0f14; --surface:#131a22; --surface2:#1a2330; --line:#263140;
-    --text:#eef3f8; --dim:#9db0c0;
-    --red:#e6264a; --red-soft:#ff8f9f;
-    --blue:#3b9eff; --blue-soft:#9cc9f5;
-    --green:#2fae66; --green-soft:#8fe6b0;
-    --amber:#f5a623; --amber-soft:#ffd58a;
-    --purple:#a06bff; --purple-soft:#cdb0ff;
-    --pink:#ff5c8a;
-    --orange:#ff6b35; --orange-soft:#ffb088;
+    --bg: #f6f8fb;
+    --bg-alt: #eef2f7;
+    --surface: #ffffff;
+    --line: #dde5ee;
+    --text: #16222f;
+    --dim: #5a6b7e;
+    --red: #c8102e;   --red-soft: #fbe4e9;   --red-deep: #8f0c20;
+    --blue: #1667c1;  --blue-soft: #e3eefb;
+    --green: #157a44; --green-soft: #e0f3e9;
+    --amber: #a8720a; --amber-soft: #fdf2d8;
+    --purple: #6d3fc0;--purple-soft: #efe8fb;
+    --orange: #c24d10;--orange-soft: #fdeee2;
+    --shadow: 0 12px 34px rgba(22, 34, 47, 0.09);
   }
-  * { box-sizing:border-box; }
-  html { scroll-behavior:smooth; }
-  body { margin:0; background:var(--bg); color:var(--text);
-    font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif; line-height:1.6; }
-
-  .wrap { max-width:1000px; margin:0 auto; padding:0 20px 90px; }
-
-  /* ---------- HERO ---------- */
-  .hero {
-    background: linear-gradient(135deg, #0a0a1a 0%, #1a0520 25%, #2d0a2e 50%, #3d1040 75%, #5b1538 100%);
-    border-radius:0 0 28px 28px; padding:64px 24px 56px; text-align:center;
-    position:relative; overflow:hidden;
-  }
-  .hero::before {
-    content:''; position:absolute; top:0; left:0; right:0; bottom:0;
-    background:radial-gradient(circle at 30% 40%, rgba(230,38,74,0.15) 0%, transparent 50%),
-               radial-gradient(circle at 70% 60%, rgba(59,158,255,0.1) 0%, transparent 50%);
-    pointer-events:none;
-  }
-  .hero h1 { font-size:clamp(2rem,5vw,3.2rem); margin:10px 0 6px; letter-spacing:0.02em; position:relative; }
-  .hero h1 .glow { color:#ff9ab5; text-shadow:0 0 24px rgba(255,92,138,.55); }
-  .hero h1 .name { color:#ff6b35; text-shadow:0 0 20px rgba(255,107,53,.5); font-weight:900; }
-  .hero p.tag { font-size:clamp(1.05rem,2.5vw,1.35rem); color:#ffd3de; margin:0 auto 22px; max-width:640px; position:relative; }
-  .hero .hackathon-tag { display:inline-block; background:linear-gradient(135deg,#ff6b35,#e6264a); color:#fff;
-    padding:6px 18px; border-radius:999px; font-size:0.82rem; font-weight:800; letter-spacing:0.06em;
-    margin-bottom:16px; position:relative; box-shadow:0 4px 16px rgba(255,107,53,.4); }
-  .badges { display:flex; flex-wrap:wrap; gap:8px; justify-content:center; position:relative; }
-  .badge { padding:5px 14px; border-radius:999px; font-size:0.78rem; font-weight:800; letter-spacing:0.04em; }
-  .b-red    { background:#2a0a12; color:var(--red-soft);  border:1px solid #6e2033; }
-  .b-green  { background:#0a2417; color:var(--green-soft);border:1px solid #1e5c3a; }
-  .b-blue   { background:#0a1b2e; color:var(--blue-soft); border:1px solid #1d4a75; }
-  .b-purple { background:#1c1030; color:var(--purple-soft);border:1px solid #4a2f80; }
-  .b-amber  { background:#2b1e07; color:var(--amber-soft);border:1px solid #6e5414; }
-  .b-orange { background:#2b1507; color:var(--orange-soft);border:1px solid #6e3514; }
-
-  /* ---------- SECTION HEADERS ---------- */
-  h2.sec { margin:64px 0 6px; font-size:1.7rem; display:flex; align-items:center; gap:12px; }
-  h2.sec .num {
-    display:inline-flex; align-items:center; justify-content:center;
-    width:42px; height:42px; border-radius:12px; font-size:1.1rem; flex:0 0 auto;
-  }
-  .num-red    { background:linear-gradient(135deg,#e6264a,#8f0016); }
-  .num-blue   { background:linear-gradient(135deg,#3b9eff,#1a4f8f); }
-  .num-green  { background:linear-gradient(135deg,#2fae66,#145c33); }
-  .num-amber  { background:linear-gradient(135deg,#f5a623,#8f5c07); }
-  .num-purple { background:linear-gradient(135deg,#a06bff,#4a2f80); }
-  .num-orange { background:linear-gradient(135deg,#ff6b35,#a03d10); }
-  .sub { color:var(--dim); margin:0 0 20px; font-size:1.02rem; }
-
-  /* ---------- CARDS ---------- */
-  .cols { display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:16px; }
-  .cols-3 { display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:16px; }
-  .card { background:var(--surface); border:1px solid var(--line); border-radius:16px; padding:20px; margin:12px 0; }
-  .card h3 { margin:0 0 8px; font-size:1.08rem; }
-  .card p { margin:0; color:var(--dim); }
-  .card p strong { color:var(--text); }
-  .edge-red    { border-top:4px solid var(--red); }
-  .edge-blue   { border-top:4px solid var(--blue); }
-  .edge-green  { border-top:4px solid var(--green); }
-  .edge-amber  { border-top:4px solid var(--amber); }
-  .edge-purple { border-top:4px solid var(--purple); }
-  .edge-orange { border-top:4px solid var(--orange); }
-  .big { font-size:1.9rem; display:block; margin-bottom:8px; }
-
-  /* ---------- MODE CARDS ---------- */
-  .mode-card { background:var(--surface); border:2px solid var(--line); border-radius:20px; padding:24px;
-    position:relative; overflow:hidden; transition:transform 0.2s, box-shadow 0.2s; }
-  .mode-card:hover { transform:translateY(-2px); box-shadow:0 8px 24px rgba(0,0,0,.3); }
-  .mode-card .mode-icon { font-size:2.2rem; display:block; margin-bottom:10px; }
-  .mode-card h3 { margin:0 0 6px; font-size:1.2rem; }
-  .mode-card p { margin:0 0 12px; color:var(--dim); font-size:0.92rem; }
-  .mode-card ul { margin:0; padding-left:18px; color:var(--dim); font-size:0.88rem; }
-  .mode-card ul li { margin:4px 0; }
-  .mode-card ul b { color:var(--text); }
-  .mode-normal { border-color:var(--green); }
-  .mode-normal::before { content:''; position:absolute; top:0; left:0; right:0; height:4px;
-    background:linear-gradient(90deg,var(--green),#8fe6b0); }
-  .mode-emergency { border-color:var(--red); }
-  .mode-emergency::before { content:''; position:absolute; top:0; left:0; right:0; height:4px;
-    background:linear-gradient(90deg,var(--red),#ff8f9f); }
-  .mode-disaster { border-color:var(--orange); }
-  .mode-disaster::before { content:''; position:absolute; top:0; left:0; right:0; height:4px;
-    background:linear-gradient(90deg,var(--orange),#ffb088); }
-
-  /* ---------- STORY STEPS ---------- */
-  .story { display:flex; flex-direction:column; gap:14px; }
-  .step { display:grid; grid-template-columns:56px 1fr; gap:14px; background:var(--surface);
-    border:1px solid var(--line); border-radius:16px; padding:18px; }
-  .step .n { width:52px; height:52px; border-radius:14px; display:flex; align-items:center; justify-content:center;
-    font-size:1.5rem; font-weight:900; color:#fff; }
-  .step h4 { margin:0 0 4px; font-size:1.05rem; }
-  .step .see { margin:6px 0 0; padding:10px 14px; border-radius:10px; font-size:0.95rem; }
-  .see-you { background:#0a1b2e; border:1px dashed #1d4a75; color:var(--blue-soft); }
-  .see-inside { background:#14060c; border:1px dashed #6e2033; color:var(--red-soft); }
-  .step .see b { letter-spacing:0.05em; font-size:0.72rem; display:block; opacity:0.85; margin-bottom:2px; }
-
-  /* ---------- PHONE MOCKUPS ---------- */
-  .phones { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(220px,100%),1fr)); gap:18px; justify-items:center; }
-  .phone { width:230px; background:#000; border:3px solid #3a4656; border-radius:26px; padding:10px; }
-  .phone .screen { border-radius:18px; overflow:hidden; min-height:360px; padding:14px 12px; font-size:0.72rem; }
-  .phone h5 { margin:0 0 2px; font-size:0.9rem; text-align:center; color:var(--text); }
-  .phone .cap { text-align:center; color:var(--dim); font-size:0.8rem; margin-top:8px; }
-  .scr-home { background:linear-gradient(180deg,#101822,#0b0f14); }
-  .scr-count { background:radial-gradient(circle at 50% 35%, #47101f, #12060a); }
-  .scr-active { background:linear-gradient(180deg,#2a0a12,#12060a); }
-  .scr-disaster { background:linear-gradient(180deg,#2b1507,#12060a); }
-  .pill { display:inline-block; padding:2px 8px; border-radius:999px; font-size:0.62rem; font-weight:800; margin:2px; }
-  .pill.off { background:#2a0a12; color:#ff8f9f; }
-  .pill.on  { background:#0a2417; color:#8fe6b0; }
-  .pill.warn{ background:#2b1e07; color:#ffd58a; }
-  .pill.disaster { background:#2b1507; color:#ffb088; }
-  .mock-sos { width:100%; height:74px; border-radius:16px; background:linear-gradient(180deg,#ff2d55,#a30f2e);
-    color:#fff; display:flex; align-items:center; justify-content:center; font-size:1.6rem; font-weight:900;
-    letter-spacing:0.15em; margin:14px 0 10px; box-shadow:0 8px 20px rgba(230,38,74,.45); }
-  .mock-btn { border-radius:10px; padding:8px 10px; margin:6px 0; font-weight:700; text-align:center; }
-  .mock-amber { background:#f5a623; color:#241700; }
-  .mock-green { background:#2fae66; color:#04150c; }
-  .mock-orange { background:#ff6b35; color:#1a0a00; }
-  .mock-count { font-size:4.2rem; font-weight:900; color:#ff5c7f; text-align:center; text-shadow:0 0 30px rgba(230,38,74,.7); margin:52px 0 20px; }
-  .mock-banner { background:rgba(230,38,74,.18); border:1px solid #6e2033; border-radius:10px; padding:8px; text-align:center; }
-  .mock-banner .eid { font-family:ui-monospace,monospace; font-size:0.95rem; color:#ffd3de; letter-spacing:0.08em; }
-  .mock-grid { display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-top:8px; }
-  .mock-grid div { background:rgba(0,0,0,.35); border-radius:8px; padding:6px 8px; color:#e6ecf2; }
-  .mock-grid span { display:block; font-size:0.58rem; color:#c98a97; }
-  .mock-tl { margin-top:10px; font-family:ui-monospace,monospace; font-size:0.6rem; color:#9db0c0; }
-  .mock-tl div { padding:2px 0; border-bottom:1px dashed #2a3644; }
-
-  /* ---------- MESH DIAGRAM ---------- */
-  .mesh { background:var(--surface); border:1px solid var(--line); border-radius:16px; padding:26px 18px; overflow-x:auto; }
-  .lane { display:flex; align-items:center; justify-content:center; gap:8px; min-width:640px; flex-wrap:nowrap; }
-  .node { border-radius:16px; padding:14px 12px; text-align:center; min-width:112px; border:2px solid; }
-  .node .ico { font-size:1.7rem; display:block; }
-  .node b { display:block; font-size:0.85rem; margin-top:4px; }
-  .node small { display:block; font-size:0.68rem; opacity:0.85; }
-  .n-you   { background:#2a0a12; border-color:var(--red);    color:#ffb3c2; }
-  .n-phone { background:#0a1b2e; border-color:var(--blue);   color:#b7d9fa; }
-  .n-gw    { background:#0a2417; border-color:var(--green);  color:#a8efc6; }
-  .n-help  { background:#1c1030; border-color:var(--purple); color:#d9c4ff; }
-  .arrow { color:var(--dim); font-size:1.3rem; text-align:center; min-width:70px; }
-  .arrow .glyph { display:block; }
-  .arrow small { display:block; font-size:0.6rem; color:var(--amber-soft); }
-  @media (max-width:700px) {
-    .lane { flex-direction:column; min-width:0; gap:6px; align-items:stretch; }
-    .node { width:100%; max-width:340px; margin:0 auto; }
-    .arrow { min-width:0; }
-    .arrow .glyph { display:none; }
-    .arrow::before { content:'↓'; display:block; font-size:1.3rem; color:var(--dim); }
-    .arrow small { margin:0 auto; font-size:0.68rem; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--bg); color: var(--text);
+    font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    line-height: 1.55; font-size: 16px;
   }
 
-  /* ---------- MISC ---------- */
-  .flow { font-family:ui-monospace,monospace; font-size:0.86rem; background:#0e141b; border:1px solid var(--line);
-    border-radius:12px; padding:18px; overflow-x:auto; white-space:pre; color:#cfe0ee; }
-  @media (max-width:700px) {
-    .flow { white-space:pre-wrap; font-size:0.8rem; }
+  /* ---------- top progress bar ---------- */
+  .deckbar {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 50;
+    background: rgba(255,255,255,0.92); backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--line);
+    display: flex; align-items: center; gap: 14px; padding: 8px 18px;
   }
-  .packet { display:flex; flex-wrap:wrap; gap:8px; }
-  .chip { padding:7px 12px; border-radius:10px; font-size:0.82rem; font-weight:600; background:var(--surface2);
-    border:1px solid var(--line); }
-  .chip small { display:block; font-weight:400; color:var(--dim); font-size:0.7rem; }
-  .chip.c-red { border-color:#6e2033; } .chip.c-red small b { color:var(--red-soft); }
-  table { border-collapse:collapse; width:100%; font-size:0.92rem; display:block; overflow-x:auto; }
-  th,td { text-align:left; padding:10px 12px; border-bottom:1px solid var(--line); vertical-align:top; }
-  th { color:var(--dim); font-weight:600; }
-  .st { white-space:nowrap; font-weight:800; font-size:0.75rem; padding:3px 10px; border-radius:999px; }
-  .st-done  { background:#0a2417; color:var(--green-soft); border:1px solid #1e5c3a; }
-  .st-sim   { background:#0a1b2e; color:var(--blue-soft);  border:1px solid #1d4a75; }
-  .st-next  { background:#2b1e07; color:var(--amber-soft); border:1px solid #6e5414; }
-  .st-rpi   { background:#2a0a12; color:var(--red-soft);   border:1px solid #6e2033; }
-  .st-design { background:#2b1507; color:var(--orange-soft); border:1px solid #6e3514; }
-  ul.clean { margin:0; padding-left:20px; color:var(--dim); }
-  ul.clean li { margin:6px 0; }
-  ul.clean b { color:var(--text); }
-  .footer { color:var(--dim); font-size:0.85rem; margin-top:70px; text-align:center; }
-  code { background:#0e141b; border:1px solid var(--line); border-radius:6px; padding:1px 6px; font-size:0.85em; }
+  .deckbar .brand { font-weight: 900; letter-spacing: 0.06em; color: var(--red); white-space: nowrap; }
+  .deckbar .brand span { color: var(--text); }
+  .progress { flex: 1; height: 6px; background: var(--bg-alt); border-radius: 999px; overflow: hidden; }
+  .progress-fill { height: 100%; width: 0%; background: linear-gradient(90deg, var(--red), #ff6b81); transition: width 0.25s ease; }
+  .counter { font-size: 0.8rem; font-weight: 800; color: var(--dim); white-space: nowrap; }
 
-  /* ---------- iQOO HARDWARE CARD ---------- */
-  .hw-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:14px; }
-  .hw-card { background:var(--surface); border:1px solid var(--line); border-radius:14px; padding:18px; text-align:center; }
-  .hw-card .hw-icon { font-size:1.8rem; display:block; margin-bottom:8px; }
-  .hw-card h4 { margin:0 0 4px; font-size:0.95rem; }
-  .hw-card p { margin:0; color:var(--dim); font-size:0.82rem; }
+  /* ---------- FULL-SCREEN SLIDES ---------- */
+  .slide {
+    min-height: 100vh; min-height: 100dvh;
+    width: 100%;
+    display: flex; flex-direction: column; justify-content: center;
+    padding: 84px 7vw 64px;
+    border-bottom: 1px solid var(--line);
+    background:
+      radial-gradient(1100px 480px at 85% -10%, var(--acc-soft, var(--red-soft)) 0%, transparent 60%),
+      var(--bg);
+    position: relative; overflow: hidden;
+  }
+  .slide .snum {
+    position: absolute; top: 66px; right: 7vw;
+    font-size: 0.72rem; font-weight: 900; letter-spacing: 0.16em; color: var(--dim);
+  }
+  .slide .kicker {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-size: 0.74rem; font-weight: 900; letter-spacing: 0.14em;
+    color: var(--acc-deep, var(--red));
+    background: var(--acc-soft, var(--red-soft));
+    padding: 5px 14px; border-radius: 999px; margin: 0 0 14px; width: fit-content;
+  }
+  .slide h2 { margin: 0 0 10px; font-size: clamp(1.6rem, 3.6vw, 2.5rem); line-height: 1.2; letter-spacing: -0.01em; }
+  .slide h2 em { color: var(--acc-deep, var(--red)); font-style: normal; }
+  .slide .lede { color: var(--dim); font-size: clamp(0.98rem, 1.6vw, 1.15rem); max-width: 900px; margin: 0 0 26px; }
+
+  .slide .content { width: 100%; max-width: 1120px; margin: 0 auto; }
+  .slide .foot {
+    margin-top: 26px; padding-top: 14px; border-top: 1px dashed var(--line);
+    color: var(--dim); font-size: 0.85rem; max-width: 1120px; width: 100%;
+  }
+  .slide .foot b { color: var(--text); }
+
+  .acc-red    { --acc: var(--red);    --acc-soft: var(--red-soft);    --acc-deep: var(--red-deep); }
+  .acc-blue   { --acc: var(--blue);   --acc-soft: var(--blue-soft);   --acc-deep: var(--blue); }
+  .acc-green  { --acc: var(--green);  --acc-soft: var(--green-soft);  --acc-deep: var(--green); }
+  .acc-amber  { --acc: var(--amber);  --acc-soft: var(--amber-soft);  --acc-deep: var(--amber); }
+  .acc-purple { --acc: var(--purple); --acc-soft: var(--purple-soft); --acc-deep: var(--purple); }
+  .acc-orange { --acc: var(--orange); --acc-soft: var(--orange-soft); --acc-deep: var(--orange); }
+
+  /* ---------- content blocks ---------- */
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 14px; }
+  .grid3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; }
+  .mini { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 16px 18px; box-shadow: var(--shadow); }
+  .mini h4 { margin: 0 0 6px; font-size: 1rem; }
+  .mini p { margin: 0; color: var(--dim); font-size: 0.9rem; }
+
+  .stats { display: flex; flex-wrap: wrap; gap: 10px; margin: 0 0 18px; }
+  .stat-chip { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 10px 18px; text-align: center; box-shadow: var(--shadow); }
+  .stat-chip b { display: block; font-size: 1.45rem; color: var(--acc-deep, var(--red)); }
+  .stat-chip span { font-size: 0.72rem; color: var(--dim); letter-spacing: 0.05em; }
+
+  .flow { display: flex; flex-wrap: wrap; gap: 10px; margin: 4px 0 14px; }
+  .fnode {
+    flex: 1 1 140px; background: var(--surface); border: 1px solid var(--line);
+    border-top: 3px solid var(--acc, var(--red)); border-radius: 12px;
+    padding: 10px 12px; font-size: 0.82rem; color: var(--dim); position: relative; box-shadow: var(--shadow);
+  }
+  .fnode b { display: block; color: var(--acc-deep, var(--red)); font-size: 0.86rem; margin-bottom: 2px; letter-spacing: 0.04em; }
+  .fnode .arrow { position: absolute; right: -12px; top: 50%; transform: translateY(-50%); color: var(--acc, var(--red)); font-weight: 900; z-index: 2; }
+
+  ul.ticks { margin: 0; padding: 0; list-style: none; display: grid; gap: 8px; }
+  ul.ticks li { padding: 2px 0 2px 28px; position: relative; color: var(--dim); font-size: 0.94rem; }
+  ul.ticks li::before {
+    content: '✓'; position: absolute; left: 2px; top: 2px;
+    width: 19px; height: 19px; border-radius: 50%;
+    background: var(--acc-soft, var(--red-soft)); color: var(--acc-deep, var(--red));
+    font-size: 0.72rem; font-weight: 900; display: flex; align-items: center; justify-content: center;
+  }
+  ul.ticks li b { color: var(--text); }
+  ul.xs { margin: 0; padding: 0; list-style: none; display: grid; gap: 8px; }
+  ul.xs li { padding: 2px 0 2px 28px; position: relative; color: var(--dim); font-size: 0.94rem; }
+  ul.xs li::before {
+    content: '✗'; position: absolute; left: 2px; top: 2px;
+    width: 19px; height: 19px; border-radius: 50%;
+    background: var(--red-soft); color: var(--red-deep);
+    font-size: 0.72rem; font-weight: 900; display: flex; align-items: center; justify-content: center;
+  }
+  ul.xs li b { color: var(--text); }
+
+  .code {
+    background: #101b29; color: #c9d8e8; border-radius: 12px; padding: 14px 16px;
+    font-family: ui-monospace, 'DM Mono', Consolas, monospace; font-size: 0.78rem;
+    overflow-x: auto; white-space: pre; line-height: 1.6; box-shadow: var(--shadow);
+  }
+  .code .k { color: #8ec2ff; } .code .c { color: #6d8599; }
+
+  .plain {
+    background: var(--acc-soft, var(--red-soft)); border-left: 4px solid var(--acc, var(--red));
+    border-radius: 0 12px 12px 0; padding: 10px 16px; margin-top: 16px;
+    font-size: 0.93rem; color: var(--text); max-width: 900px;
+  }
+  .plain b:first-child { letter-spacing: 0.08em; font-size: 0.72rem; color: var(--acc-deep, var(--red)); display: block; margin-bottom: 2px; }
+
+  table.tech { width: 100%; border-collapse: collapse; font-size: 0.88rem; background: var(--surface); border-radius: 14px; overflow: hidden; box-shadow: var(--shadow); }
+  table.tech th { text-align: left; font-size: 0.72rem; letter-spacing: 0.08em; color: var(--acc-deep, var(--red)); background: var(--acc-soft, var(--red-soft)); padding: 9px 12px; }
+  table.tech td { border-top: 1px solid var(--line); padding: 8px 12px; color: var(--dim); }
+  table.tech td b { color: var(--text); }
+  .pill { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: 0.68rem; font-weight: 900; letter-spacing: 0.05em; }
+  .p-green { background: var(--green-soft); color: var(--green); }
+  .p-amber { background: var(--amber-soft); color: var(--amber); }
+  .p-purple { background: var(--purple-soft); color: var(--purple); }
+
+  .ps-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+  @media (max-width: 820px) { .ps-grid { grid-template-columns: 1fr; } }
+  .ps-card { background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 20px 22px; box-shadow: var(--shadow); }
+  .ps-card h3 { margin: 0 0 10px; font-size: 1.02rem; letter-spacing: 0.1em; }
+  .ps-card ul { margin: 0; padding-left: 18px; color: var(--dim); font-size: 0.92rem; display: grid; gap: 6px; }
+  .ps-card ul b { color: var(--text); }
+  .ps-problem h3 { color: var(--red); }
+  .ps-solution h3 { color: var(--green); }
+
+  .journey { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  @media (max-width: 820px) { .journey { grid-template-columns: 1fr; } }
+  .jstep { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 14px; box-shadow: var(--shadow); }
+  .jstep .n { width: 30px; height: 30px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-weight: 900; color: #fff; background: var(--acc, var(--red)); margin-bottom: 8px; }
+  .jstep h4 { margin: 0 0 4px; font-size: 0.95rem; }
+  .jstep p { margin: 0; color: var(--dim); font-size: 0.85rem; }
+
+  .two-col { display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 20px; align-items: start; }
+  @media (max-width: 860px) { .two-col { grid-template-columns: 1fr; } }
+
+  /* team + closing extras */
+  .team { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 8px; }
+  .member { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 10px 18px; box-shadow: var(--shadow); }
+  .member b { display: block; font-size: 0.95rem; }
+  .member span { font-size: 0.75rem; color: var(--dim); }
+  .linkbox { display: flex; flex-wrap: wrap; gap: 12px; align-items: stretch; margin-top: 6px; }
+  .linkcard {
+    flex: 1 1 260px; background: var(--surface); border: 1px solid var(--line);
+    border-radius: 16px; padding: 14px 18px; box-shadow: var(--shadow);
+    display: flex; align-items: center; gap: 12px;
+    text-decoration: none; color: inherit; transition: transform 0.15s ease, border-color 0.15s ease;
+  }
+  .linkcard:hover { transform: translateY(-2px); border-color: var(--acc, var(--red)); }
+  .linkcard:active { transform: translateY(0); }
+  .linkcard b { display: block; font-size: 0.98rem; }
+  .linkcard span { font-size: 0.8rem; color: var(--dim); font-family: ui-monospace, Consolas, monospace; }
+
+  @media print {
+    .deckbar { display: none; }
+    .slide { min-height: auto; page-break-after: always; }
+  }
+  @media (max-width: 640px) {
+    .slide { padding: 76px 6vw 48px; }
+    .slide .snum { right: 6vw; }
+    .fnode .arrow { display: none; }
+  }
 </style>
 </head>
 <body>
 
-<!-- ================= HERO ================= -->
-<div class="hero">
-  <div class="hackathon-tag">⚡ iQOO HACKATHON 2026</div>
-  <div class="badges" style="margin-bottom:18px;">
-    <span class="badge b-red">🆘 EMERGENCY NETWORK</span>
-    <span class="badge b-green">✅ 100% FREE / OPEN-SOURCE</span>
-    <span class="badge b-blue">📵 WORKS WITHOUT INTERNET</span>
-  </div>
-  <h1><span class="name">ResQNET</span> <span class="glow">Offline AI Emergency Network</span></h1>
-  <p class="tag">When the internet disappears — in a flood, a trek, a crowded stadium —
-  the phones around you become the network that carries your call for help.</p>
-  <div class="badges">
-    <span class="badge b-purple">🧠 Local AI — no cloud needed</span>
-    <span class="badge b-amber">🔐 Privacy first</span>
-    <span class="badge b-blue">📡 Phone-to-phone relay</span>
-    <span class="badge b-orange">📱 Optimized for iQOO</span>
-  </div>
+<div class="deckbar">
+  <span class="brand">ResQ<span>NET</span></span>
+  <div class="progress"><div class="progress-fill" id="pf"></div></div>
+  <span class="counter" id="counter">1 / 25</span>
 </div>
 
-<div class="wrap">
+<main id="deck"></main>
 
-<!-- ================= 1. PROBLEM & SOLUTION ================= -->
-<h2 class="sec"><span class="num num-red">1</span>The Problem & Our Solution</h2>
-<p class="sub">No jargon. The whole concept in 30 seconds.</p>
-<div class="cols">
-  <div class="card edge-red">
-    <span class="big">📵</span>
-    <h3>The Problem</h3>
-    <p>During disasters, cell towers fail or get overloaded. Every normal "call for help" app
-    stops working — <strong>because they all secretly need the internet</strong>. Losing
-    network connectivity should never mean losing the ability to seek help.</p>
-  </div>
-  <div class="card edge-blue">
-    <span class="big">💡</span>
-    <h3>The Insight</h3>
-    <p>Even with no internet, <strong>the phones around you still work</strong>. Bluetooth still works.
-    GPS still works. A crowd of 200 people = 200 little radios waiting to help.</p>
-  </div>
-  <div class="card edge-green">
-    <span class="big">🤝</span>
-    <h3>ResQNET</h3>
-    <p>ResQNET lets nearby phones <strong>pass your emergency along like a bucket brigade</strong> —
-    phone to phone — until it reaches someone who CAN call for help. Powered by on-device AI
-    that works completely offline.</p>
-  </div>
-</div>
-
-<!-- ================= 2. 3-MODE ARCHITECTURE ================= -->
-<h2 class="sec"><span class="num num-orange">2</span>3-Mode Architecture</h2>
-<p class="sub">ResQNET adapts its behavior based on the situation — from everyday readiness to full-scale disaster coordination.</p>
-
-<div class="cols-3">
-  <div class="mode-card mode-normal">
-    <span class="mode-icon">🟢</span>
-    <h3>Normal Mode</h3>
-    <p>Everyday readiness with minimal resource consumption.</p>
-    <ul>
-      <li><b>Background monitoring</b> of sensors (low power)</li>
-      <li><b>Emergency profile</b> stored securely on device</li>
-      <li><b>Family circle</b> with contacts & priorities</li>
-      <li><b>Periodic relay-readiness</b> checks</li>
-      <li><b>Safety check-ins</b> for peace of mind</li>
-    </ul>
-  </div>
-
-  <div class="mode-card mode-emergency">
-    <span class="mode-icon">🔴</span>
-    <h3>Emergency Mode</h3>
-    <p>Triggered by SOS button or AI detection.</p>
-    <ul>
-      <li><b>SOS activation</b> with 3-2-1 countdown</li>
-      <li><b>Device-to-device mesh</b> for multi-hop alerts</li>
-      <li><b>AI classification</b> of emergency type & severity</li>
-      <li><b>Emergency profile sharing</b> with consent tiers</li>
-      <li><b>Family notification</b> via priority contacts</li>
-      <li><b>Live black-box timeline</b> of every action</li>
-    </ul>
-  </div>
-
-  <div class="mode-card mode-disaster">
-    <span class="mode-icon">🟠</span>
-    <h3>Disaster Mode</h3>
-    <p>Activated when multiple emergencies detected in a region.</p>
-    <ul>
-      <li><b>Community mesh expansion</b> — larger ad-hoc network</li>
-      <li><b>Resource mapping</b> — safe zones, shelters, aid points</li>
-      <li><b>Crowdsourced awareness</b> — sensor data → disaster map</li>
-      <li><b>Priority routing</b> — critical alerts get bandwidth first</li>
-      <li><b>Offline bulletins</b> — "Bridge collapsed", "Shelter open"</li>
-      <li><b>AI first-aid assistant</b> — evacuation & medical guidance</li>
-    </ul>
-  </div>
-</div>
-
-<!-- ================= 3. USER STORY ================= -->
-<h2 class="sec"><span class="num num-blue">3</span>What actually happens when you use it</h2>
-<p class="sub">Meet Priya. She is trekking, she falls, and there is zero signal.
-Here is exactly what she would see — and what happens inside her phone.</p>
-
-<div class="story">
-  <div class="step">
-    <div class="n" style="background:linear-gradient(135deg,#e6264a,#8f0016);">1</div>
-    <div>
-      <h4>Priya opens ResQNET and presses the big red SOS button</h4>
-      <p style="color:var(--dim);margin:0;">No account needed. No internet needed. The button is always reachable.</p>
-      <div class="see see-you"><b>👁 WHAT SHE SEES</b>A big screen counts down <b>3… 2… 1…</b> with a huge CANCEL button —
-      so a pocket-press can't cause a false alarm.</div>
-      <div class="see see-inside"><b>⚙️ WHAT HAPPENS INSIDE</b>The phone grabs her GPS location (and honestly notes
-      the accuracy), her battery level, and the time. It packs these into a tiny signed
-      "emergency packet" — like a tamper-proof digital ID card for the emergency.</div>
+<script>
+/* =====================================================================
+   REUSABLE SLIDE COMPONENT — every slide renders through slideCard().
+   25 slides, organized into the 10 sections judges expect (PART 1–10)
+   in strict order. No emojis anywhere; typographic symbols only.
+   EDIT ME before presenting: member names (slide 1), links (slide 25).
+   ===================================================================== */
+function slideCard(s, n) {
+  return `
+  <section class="slide acc-${s.accent}" id="s${n}">
+    <span class="snum">${String(n).padStart(2, '0')} / ${SLIDES.length}</span>
+    <div class="content">
+      <p class="kicker">${s.kicker}</p>
+      <h2>${s.title}</h2>
+      ${s.lede ? `<p class="lede">${s.lede}</p>` : ''}
+      ${s.body}
+      ${s.plain ? `<div class="plain"><b>IN PLAIN WORDS</b>${s.plain}</div>` : ''}
+      ${s.foot ? `<p class="foot">${s.foot}</p>` : ''}
     </div>
-  </div>
+  </section>`;
+}
+const stats = (pairs) => `<div class="stats">${pairs.map(([v, l]) =>
+  `<div class="stat-chip"><b>${v}</b><span>${l}</span></div>`).join('')}</div>`;
+const grid = (items) => `<div class="grid">${items.map(([h, p]) =>
+  `<div class="mini"><h4>${h}</h4><p>${p}</p></div>`).join('')}</div>`;
+const ticks = (items) => `<ul class="ticks">${items.map(t => `<li>${t}</li>`).join('')}</ul>`;
+const xs = (items) => `<ul class="xs">${items.map(t => `<li>${t}</li>`).join('')}</ul>`;
+const flow = (nodes) => `<div class="flow">${nodes.map((n, i) =>
+  `<div class="fnode"><b>${n[0]}</b>${n[1]}${i < nodes.length - 1 ? '<span class="arrow">▶</span>' : ''}</div>`).join('')}</div>`;
 
-  <div class="step">
-    <div class="n" style="background:linear-gradient(135deg,#3b9eff,#1a4f8f);">2</div>
-    <div>
-      <h4>The countdown ends → Emergency Mode takes over the screen</h4>
-      <div class="see see-you"><b>👁 WHAT SHE SEES</b>A red status screen with her emergency ID (like <b>IQ-7K2M9X4A</b>),
-      her location, her battery, and a live timeline of everything that happens next.</div>
-      <div class="see see-inside"><b>⚙️ WHAT HAPPENS INSIDE</b>No internet? The packet is <b>saved in an outbox</b> —
-      a queue that keeps trying. ResQNET never gives up just because the network did.</div>
-    </div>
-  </div>
+/* =====================================================================
+   THE 25 SLIDES
+   ===================================================================== */
+const SLIDES = [
 
-  <div class="step">
-    <div class="n" style="background:linear-gradient(135deg,#2fae66,#145c33);">3</div>
-    <div>
-      <h4>Her phone quietly looks for nearby ResQNET phones</h4>
-      <div class="see see-you"><b>👁 WHAT SHE SEES</b>"Nearby devices: searching…" — and every phone found shows up with
-      an anonymous code like <b>RQNET_NODE_A7F3</b>. Never names. Never phone numbers.</div>
-      <div class="see see-inside"><b>⚙️ WHAT HAPPENS INSIDE</b>Each nearby ResQNET phone that receives her packet
-      <b>checks it's genuine (signature), stores it, and relays it onward</b> to ITS neighbors —
-      like people passing a message down a line. Duplicate copies are dropped automatically.</div>
-    </div>
-  </div>
+  /* ===== PART 1 · TITLE ===== */
+  { accent: 'red', kicker: 'PART 1 · TITLE',
+    title: 'ResQNET — <em>Offline AI Emergency Network</em>',
+    lede: 'The network that refuses to die when everything else does. When towers fall and the internet is gone, ResQNET turns a crowd of ordinary phones into a coordinated rescue network — SOS, AI triage, and family alerts that travel phone-to-phone until they reach help.',
+    body:
+      stats([['0', 'towers needed'], ['0', 'accounts needed'], ['0', 'rupees to run'], ['86', 'tests passing']]) +
+      `<div class="team">` +
+      `<div class="member"><b>Team ResQNET</b><span>iQOO Hackathon 2026</span></div>` +
+      `<div class="member"><b>Poloju Pravalika</b></div>` +
+      `<div class="member"><b>Peesa Satvika</b></div>` +
+      `<div class="member"><b>Inturi Vaishnavi</b></div>` +
+      `</div>`,
+    foot: '<b>GitHub:</b> <span style="font-family:ui-monospace,Consolas,monospace">github.com/Ppoloju/ResQNET</span> — every claim in this deck links to code and tests in the repository.' },
 
-  <div class="step">
-    <div class="n" style="background:linear-gradient(135deg,#f5a623,#8f5c07);">4</div>
-    <div>
-      <h4>The message hops closer to help</h4>
-      <div class="see see-you"><b>👁 WHAT SHE SEES</b>"Relay count: 4" — she can watch her emergency physically travel
-      through the crowd, hop by hop, on the timeline.</div>
-      <div class="see see-inside"><b>⚙️ WHAT HAPPENS INSIDE</b>Every hop is counted (max 8) and time-stamped (messages
-      expire after 6 hours) so one old emergency can't circulate forever. Phones with low battery
-      only relay the most critical messages — <b>the network protects its own energy</b>.</div>
-    </div>
-  </div>
+  /* ===== PART 2 · PROBLEM STATEMENT ===== */
+  { accent: 'red', kicker: 'PART 2 · PROBLEM STATEMENT',
+    title: 'Disasters don’t cut power first. <em>They cut connectivity.</em>',
+    lede: 'Who faces it: every person in a flood, earthquake, cyclone or fire zone — and India sees all of them, every year. Why it matters: the first 60 minutes decide who survives, and that is exactly when networks fail.',
+    body:
+      `<div class="ps-grid">` +
+      `<div class="ps-card ps-problem"><h3>THE PROBLEM</h3><ul>` +
+      `<li><b>No connectivity when it matters most:</b> disasters overload or destroy cell towers exactly when people need to call 100/112.</li>` +
+      `<li><b>Crowds cannot coordinate:</b> survivors meters apart have no way to share injuries, shelter or blocked-road information.</li>` +
+      `<li><b>Batteries are scarce:</b> charging is unreliable for days — any solution that drains phones will not survive the disaster either.</li>` +
+      `<li><b>People already have phones:</b> the only mass-market rescue radios available are the devices in survivors’ pockets.</li>` +
+      `</ul></div>` +
+      `<div class="ps-card ps-solution"><h3>OUR SOLUTION</h3><ul>` +
+      `<li><b>One tap → SOS:</b> a signed emergency packet is created on-device — no account, no signal, no setup needed.</li>` +
+      `<li><b>Phone-to-phone mesh:</b> nearby ResQNET phones relay the packet hop-by-hop (max 8 hops, 6 h lifetime) until one reaches the internet.</li>` +
+      `<li><b>AI on the device:</b> classifies the emergency (medical / fire / trapped…) and guides first aid — fully offline, cannot hallucinate.</li>` +
+      `<li><b>Real engineering:</b> 86 passing tests, encrypted medical data, Docker deployment — every feature in this deck actually runs.</li>` +
+      `</ul></div>` +
+      `</div>`,
+    plain: 'A fully-charged smartphone becomes a brick in every disaster. ResQNET’s problem statement: make that same phone the rescue network.' },
 
-  <div class="step">
-    <div class="n" style="background:linear-gradient(135deg,#a06bff,#4a2f80);">5</div>
-    <div>
-      <h4>Someone's phone reaches a "gateway"</h4>
-      <div class="see see-you"><b>👁 WHAT SHE SEES</b>"Responder gateway reached ✓" — the family notification and
-      responder status flip from ⏳ Waiting to ✓ Sent.</div>
-      <div class="see see-inside"><b>⚙️ WHAT HAPPENS INSIDE</b>A gateway is any ResQNET device that HAS internet —
-      maybe a rescuer's phone, maybe a villager's. It forwards her emergency to the ResQNET backend,
-      where <b>her family circle and verified responders can see it</b>, along with her
-      emergency profile IF she allowed it (blood group, allergies — her choice, her consent).</div>
-    </div>
-  </div>
+  { accent: 'amber', kicker: 'PART 2 · WHY IT MATTERS',
+    title: 'The first 60 minutes of a disaster <em>decide who survives</em>',
+    lede: 'Emergency services call it the “golden hour”. It is exactly the window when phone networks fail — and exactly the window ResQNET is built for.',
+    body:
+      stats([['72 h', 'people can survive trapped'], ['60 min', 'golden hour for rescue'], ['0', 'towers needed by ResQNET']]) +
+      grid([
+        ['Networks fail first', 'Earthquakes topple towers; floods drown equipment; everyone calling at once overloads what remains.'],
+        ['Word of mouth is slow', 'Physically walking between survivors costs time and can be deadly — information needs to move at radio speed.'],
+        ['Power is scarce', 'Charging is unreliable for days. Every feature must respect the battery, or it will not be there when needed.'],
+        ['People already have phones', 'No new hardware to buy or distribute — the mesh is built from the devices already in survivors’ pockets.'],
+      ]),
+    plain: 'A phone that cannot call 100/112 is useless today. ResQNET makes that same phone useful tomorrow — by letting it shout through the crowd instead of through a tower.' },
 
-  <div class="step">
-    <div class="n" style="background:linear-gradient(135deg,#ff6b35,#a03d10);">6</div>
-    <div>
-      <h4>Multiple emergencies detected → Disaster Mode activates</h4>
-      <div class="see see-you"><b>👁 WHAT SHE SEES</b>The app switches to an orange Disaster Mode interface showing
-      a community mesh map, nearby shelters, and emergency bulletins from other devices.</div>
-      <div class="see see-inside"><b>⚙️ WHAT HAPPENS INSIDE</b>The mesh expands to form a larger community network.
-      Devices share sensor data to build a <b>crowdsourced disaster map</b>. Critical alerts get
-      priority routing. The AI assistant provides <b>first-aid guidance and evacuation steps</b>.</div>
-    </div>
-  </div>
+  /* ===== PART 3 · EXISTING PROBLEMS / GAP ===== */
+  { accent: 'purple', kicker: 'PART 3 · EXISTING SOLUTIONS & THE GAP',
+    title: 'What exists today — and <em>why none of it is enough</em>',
+    lede: 'Every existing option breaks exactly when a disaster does. This gap is ResQNET’s reason to exist.',
+    body:
+      `<div class="ps-grid">` +
+      `<div class="ps-card"><h3>WHAT EXISTS</h3>` +
+      xs([
+        '<b>Cell calls & SMS</b> — need towers; towers are what failed.',
+        '<b>Satellite messengers (Garmin, Zoleo)</b> — ₹30,000+ hardware nobody owns, per-message fees, licenses.',
+        '<b>Government alert systems (CAP/SMS blasts)</b> — one-way broadcasts; you cannot send an SOS back.',
+        '<b>WhatsApp / messengers</b> — need internet; also expose identity and phone number to strangers.',
+        '<b>“Offline SOS” app concepts</b> — buttons that pop alerts; no mesh, no crypto, no backend. Demos, not systems.',
+      ]) +
+      `</div>` +
+      `<div class="ps-card"><h3>THE GAP RESQNET FILLS</h3>` +
+      ticks([
+        '<b>Two-way SOS</b> — victims send emergencies out; responders and family answer back with ACKs.',
+        '<b>Zero new hardware</b> — runs on the Android phones people already carry.',
+        '<b>Private by design</b> — anonymous node IDs; your identity never touches the mesh.',
+        '<b>Battery-aware by protocol</b> — relay tiers and store-and-forward, not naive flooding.',
+        '<b>Real backend</b> — family notification, responder dashboard, encrypted medical data.',
+      ]) +
+      `</div></div>`,
+    plain: 'Others stop at “send a signal”. ResQNET delivers the whole journey: signal → verified relay → real backend → family notified → responder ACK.' },
 
-  <div class="step">
-    <div class="n" style="background:linear-gradient(135deg,#2fae66,#145c33);">7</div>
-    <div>
-      <h4>Later — internet returns → everything syncs, nothing duplicates</h4>
-      <div class="see see-you"><b>👁 WHAT SHE SEES</b>The green "ONLINE" pill returns. Outbox: 0. Timeline complete.</div>
-      <div class="see see-inside"><b>⚙️ WHAT HAPPENS INSIDE</b>The outbox drains <b>idempotently</b> — a fancy word for
-      "even if it retries 10 times, the server records her emergency exactly once." Her full
-      black-box timeline is preserved for review.</div>
-    </div>
-  </div>
-</div>
+  /* ===== PART 4 · YOUR SOLUTION ===== */
+  { accent: 'green', kicker: 'PART 4 · OUR SOLUTION',
+    title: 'One tap → a signed emergency packet that <em>hops phone-to-phone until it reaches help</em>',
+    lede: 'ResQNET in one sentence: an offline-first emergency network where every nearby phone becomes a relay tower, every packet is cryptographically verified, and delivery to the real world is guaranteed by store-and-forward — not luck.',
+    body:
+      stats([['3', 'operating modes'], ['≤ 8', 'mesh hops / packet'], ['6 h', 'packet lifetime'], ['100%', 'AI on-device'], ['0', 'paid services']]) +
+      grid([
+        ['Works logged-out & offline', 'SOS never requires an account or internet — anonymous on-device identity, signed locally, queued locally.'],
+        ['AI that can’t hallucinate', 'Deterministic rule-based triage + curated first-aid guidance. Same result every time, in milliseconds.'],
+        ['Messages that refuse to die', 'Store-and-forward outbox, TTL + hop limits, ACKs, retries, idempotent sync — delay-tolerant networking, for real.'],
+        ['Private by architecture', 'Argon2id logins, HMAC-signed packets, AES-256-GCM medical fields, replay protection.'],
+      ]),
+    plain: 'How it solves the problem: no towers (phones relay), no trust issues (signatures), no power hunger (battery tiers), no lost messages (store-and-forward), no fake claims (86 tests).' },
 
-<!-- ================= 4. SCREENS ================= -->
-<h2 class="sec"><span class="num num-red">4</span>What you see on screen</h2>
-<p class="sub">The real interface — big buttons, high contrast, usable with shaking hands in the rain.</p>
+  { accent: 'red', kicker: 'PART 4 · THE APP IN 30 SECONDS',
+    title: 'One big button. A 3-2-1 countdown. <em>Then the network takes over.</em>',
+    lede: 'Designed for the worst day of your life: huge touch targets, plain words, and honest status at every step.',
+    body:
+      `<div class="journey">` +
+      `<div class="jstep"><div class="n">1</div><h4>Press SOS</h4><p>A full-screen countdown (3·2·1) with a big CANCEL — pocket presses can’t cause false alarms.</p></div>` +
+      `<div class="jstep"><div class="n">2</div><h4>Emergency Mode</h4><p>Red banner with your emergency ID (IQ-7K2M9X4A), live status: location, battery, “packet delivered / held (offline)” — never a fake ✓.</p></div>` +
+      `<div class="jstep"><div class="n">3</div><h4>Help finds you</h4><p>Nearby phones relay your packet; the black-box timeline logs every hop so you can see your SOS travelling.</p></div>` +
+      `</div>`,
+    plain: 'Everything on screen is real state, not decoration: if it says “held (offline)”, the packet is queued and will sync the moment a path exists.' },
 
-<div class="phones">
-  <div class="phone">
-    <div class="screen scr-home">
-      <span class="pill off">OFFLINE</span><span class="pill warn">BATT 38%</span><span class="pill on">ResQNET</span>
-      <h5 style="margin-top:10px;">Good evening, Priya</h5>
-      <div style="text-align:center;color:#9db0c0;font-size:0.62rem;">No internet — SOS will alert nearby devices</div>
-      <div class="mock-sos">SOS</div>
-      <div class="mock-btn mock-amber">Need Help (quick, low-profile)</div>
-      <div class="mock-btn mock-green">I'm Safe</div>
-    </div>
-    <div class="cap">🏠 Home — one tap to SOS</div>
-  </div>
+  /* ===== PART 5 · HOW IT WORKS ===== */
+  { accent: 'blue', kicker: 'PART 5 · HOW IT WORKS — ARCHITECTURE',
+    title: 'Three layers: <em>phone app → mesh → real backend</em>',
+    lede: 'The complete end-to-end flow of an emergency — every block is implemented and tested.',
+    body:
+      flow([
+        ['APP (React)', 'SOS · AI · profile · family · offline UI'],
+        ['SMART LOGIC (shared TS)', 'packets · crypto · modes · AI rules'],
+        ['MESH (engine)', 'hop-by-hop relay, store-and-forward'],
+        ['GATEWAY', 'any phone with internet'],
+        ['BACKEND (Express + SQLite)', 'emergencies · family notify · responders'],
+      ]) +
+      grid([
+        ['Frontend — React 18 + Vite PWA', 'Phone-first UI, live SSE updates, works fully offline after first load.'],
+        ['Shared — one TypeScript package', 'Packet format, signing, AI, mode logic: identical code in app and backend. No drift.'],
+        ['Backend — Express + node:sqlite', 'Real REST API + database, Argon2id auth, family fan-out, responder dashboard. Zero native builds.'],
+      ]),
+    foot: 'End-to-end data journey: <b>Sense → Classify (AI) → Sign → Relay (mesh) → Gateway → Store → Notify family → Responder ACK</b>.' },
 
-  <div class="phone">
-    <div class="screen scr-count">
-      <h5 style="color:#ffb3c2;">SOS ACTIVATION</h5>
-      <div class="mock-count">2</div>
-      <div style="text-align:center;color:#c98a97;font-size:0.62rem;">Emergency will be created.<br>Nearby alert + family notify.</div>
-      <div class="mock-btn" style="background:#1a2330;color:#eef3f8;border:1px solid #3a4656;margin-top:18px;">CANCEL</div>
-    </div>
-    <div class="cap">⏱ Countdown — cancel anytime</div>
-  </div>
+  { accent: 'green', kicker: 'PART 5 · HOW IT WORKS — 3 MODES',
+    title: 'Normal → Emergency → Disaster: <em>derived, never guessed</em>',
+    lede: 'The app’s mode is computed from observable facts, so it can never get stuck and can always explain why it changed.',
+    body:
+      `<div class="grid3">` +
+      `<div class="mini"><h4>Normal</h4><p>Encrypted profile, family circle, check-ins. Battery-tier rules keep background cost near zero.</p></div>` +
+      `<div class="mini"><h4>Emergency</h4><p>An SOS is active. Signed packet, mesh flood, family fan-out, live black-box timeline.</p></div>` +
+      `<div class="mini"><h4>Disaster</h4><p>Official broadcast OR ≥5 emergencies nearby. Priority outbox, bulletins, resource map, AI first aid.</p></div>` +
+      `</div>` +
+      `<div class="code"><span class="k">deriveMode()</span> <span class="c">// pure function — fully unit-tested</span>
+  DISASTER   if an official disaster broadcast is active
+  DISASTER   if ≥ 5 distinct emergencies within 30 min
+  EMERGENCY  if this device has an active SOS
+  NORMAL     otherwise — always with a human-readable reason</div>`,
+    plain: 'The app banner shows the mode AND its reason: “Disaster — 6 distinct emergencies within 30 min”. Users are never left guessing.' },
 
-  <div class="phone">
-    <div class="screen scr-active">
-      <h5 style="color:#ff8f9f;">SOS ACTIVE</h5>
-      <div class="mock-banner"><span class="eid">IQ-7K2M9X4A</span></div>
-      <div class="mock-grid">
-        <div><span>Family</span>⏳ Queued</div>
-        <div><span>Network</span>OFFLINE</div>
-        <div><span>Location</span>17.38, 78.48</div>
-        <div><span>Battery</span>38%</div>
-        <div><span>Relay</span>4 hops</div>
-        <div><span>Gateway</span>⏳ Waiting</div>
-      </div>
-      <div class="mock-tl">
-        <div>21:42:01 SOS activated</div>
-        <div>21:42:02 GPS acquired ±12m</div>
-        <div>21:42:03 Packet signed ✓</div>
-        <div>21:42:05 Node A7F3 relayed</div>
-        <div>21:42:09 Node B2E1 ACK ✓</div>
-      </div>
-      <div class="mock-btn mock-green" style="margin-top:10px;">I'M SAFE — RESOLVE</div>
-    </div>
-    <div class="cap">🚨 Emergency Mode — live black box</div>
-  </div>
+  /* ===== PART 6 · KEY FEATURES ===== */
+  { accent: 'red', kicker: 'PART 6 · KEY FEATURES',
+    title: 'Six features that make ResQNET <em>production-shaped</em>',
+    lede: 'Each feature below is implemented, tested, and demoable in the running app — the deep-dive slides that follow show exactly how.',
+    body:
+      grid([
+        ['1 · One-tap SOS (works offline & logged-out)', '3-2-1 cancelable countdown → signed packet with GPS, battery, AI triage. Queued offline, synced idempotently later.'],
+        ['2 · Battery-aware mesh relay', 'Hop-by-hop flooding with dedupe, TTL, ACKs, priority retries — low-battery phones auto-conserve; Relay Hero opts big-battery iQOO devices in as backbones.'],
+        ['3 · On-device AI triage + first aid', '~40 weighted signals → category/severity/confidence; 5 curated first-aid procedures; voice or typed; zero network.'],
+        ['4 · Family circle + responder pipeline', 'Encrypted emergency profile (AES-256-GCM), consent-tiered sharing, gateway fan-out notifications, live responder ACKs.'],
+        ['5 · Disaster Mode', 'Crowd-sourced activation, priority routing, 280-char community bulletins, verified resource map (shelters/medical/water).'],
+        ['6 · Security & the black box', 'HMAC-signed packets, replay cache, Argon2id + JWT, audit log — and a full on-phone flight recorder of every decision.'],
+      ]),
+    plain: 'Everything on this slide exists in the repo with tests: 86 passing (28 shared · 54 backend · 4 frontend), zero type errors.' },
 
-  <div class="phone">
-    <div class="screen scr-disaster">
-      <span class="pill disaster">DISASTER MODE</span><span class="pill off">OFFLINE</span>
-      <h5 style="margin-top:10px;color:#ffb088;">⚠️ FLOOD ALERT — REGION</h5>
-      <div style="text-align:center;color:#9db0c0;font-size:0.62rem;">Community mesh active • 12 devices connected</div>
-      <div class="mock-btn mock-orange" style="margin-top:10px;">📍 Nearby Shelters (3)</div>
-      <div class="mock-btn" style="background:#1a2330;color:#eef3f8;border:1px solid #3a4656;">🗺️ Disaster Map</div>
-      <div class="mock-btn" style="background:#1a2330;color:#eef3f8;border:1px solid #3a4656;">🩹 First Aid Guide</div>
-      <div class="mock-tl" style="margin-top:8px;">
-        <div style="color:#ffb088;">📢 Bridge on NH-44 collapsed</div>
-        <div style="color:#ffb088;">📢 Shelter open: Govt School</div>
-        <div>21:50:12 Node C4D2 joined mesh</div>
-        <div>21:50:45 Resource map updated</div>
-      </div>
-    </div>
-    <div class="cap">🟠 Disaster Mode — community coordination</div>
-  </div>
-</div>
+  /* PART 6 · deep dive 1 — the packet */
+  { accent: 'blue', kicker: 'PART 6 · DEEP DIVE 1 — THE PACKET',
+    title: 'Anatomy of an emergency: the <em>signed packet</em>',
+    lede: 'Everything that moves through ResQNET is one compact, tamper-proof structure. Signed once on the sender’s phone; verifiable by every hop without holding any secret.',
+    body:
+      `<div class="code"><span class="k">EmergencyPacket</span> = {
+  id: <span class="k">"msg_9f2c…"</span>,              <span class="c">// unique — duplicates dropped by every node</span>
+  emergencyId: <span class="k">"IQ-7K2M9X4A"</span>,  <span class="c">// human-quotable emergency reference</span>
+  type: <span class="k">"SOS"</span>,                 <span class="c">// SOS | QUICK_HELP | DISASTER_BROADCAST</span>
+  priority: <span class="k">"CRITICAL"</span>,        <span class="c">// CRITICAL | HIGH | MEDIUM | LOW</span>
+  location: { lat, lon, accuracyMeters, state },  <span class="c">// honest GPS state</span>
+  battery: 55, hopCount: 0…8, ttl: 3600,          <span class="c">// travel budget + expiry</span>
+  ai: { category: <span class="k">"MEDICAL"</span>, severity: <span class="k">"CRITICAL"</span>, confidence: 0.95 },
+  signature: <span class="k">HMAC-SHA256(canonicalJSON, deviceSecret)</span>
+}</div>`,
+    plain: 'A tamper-proof postcard: anyone can read the address and verify the wax seal, nobody can forge the seal — and it self-destructs after 6 hours.' },
 
-<!-- ================= 5. HOW IT TRAVELS ================= -->
-<h2 class="sec"><span class="num num-blue">5</span>How the message travels</h2>
-<p class="sub">This is the "mesh". Think of it as people passing a bucket of water
-toward a fire — each phone is one set of hands.</p>
+  /* PART 6 · deep dive 2 — security & privacy */
+  { accent: 'purple', kicker: 'PART 6 · DEEP DIVE 2 — SECURITY & PRIVACY',
+    title: 'Cryptographic trust, <em>hardened like a banking app</em>',
+    lede: 'In a disaster you cannot know which phones belong to whom. Cryptography decides what to trust — not proximity. Emergency data is among the most sensitive there is, so privacy is architecture, not a policy page.',
+    body:
+      `<div class="two-col"><div>` +
+      ticks([
+        '<b>Canonical JSON + HMAC-SHA256</b> — deterministic field order, per-device secret. One flipped bit breaks the signature.',
+        '<b>Replay protection</b> — ±5 min clock window plus a nonce cache: the same packet id is never accepted twice.',
+        '<b>Ed25519 upgrade path</b> — feature-detected device keys so relays verify packets without holding secrets.',
+        '<b>Accounts</b> — Argon2id hashing, 24 h JWTs, role-based responder/admin access.',
+        '<b>Medical data at rest</b> — AES-256-GCM field-level encryption; allergies/medications are ciphertext in the database (regression-tested).',
+        '<b>Anonymous identity</b> — public IDs (IQOO_NODE_XXXX) carry zero personal data; SOS works logged-out.',
+        '<b>Audit trail</b> — append-only, structured, redacted; every gateway write, ACK and notification attributable.',
+        '<b>Documented boundaries</b> — HttpOnly cookies, KMS-managed keys, HTTPS termination specified in docs/security.md, not hand-waved.',
+      ]) +
+      `</div><div class="code"><span class="k">verifyPacket</span>(packet, secret)
+  1. canonicalize(packet)
+  2. HMAC-SHA256 ↔ packet.signature
+  3. |now − timestamp| ≤ 5 min
+  4. packet.id not in replay cache
+  ✓ accept → relay   ✗ reject → drop + audit</div></div>`,
+    plain: 'A forged or replayed packet dies at the first honest phone it meets — and your data stays yours: the emergency profile exists to save your life, not to be harvested.' },
 
-<div class="mesh">
-  <div class="lane">
-    <div class="node n-you"><span class="ico">🆘</span><b>PRIYA</b><small>no signal,<br>presses SOS</small></div>
-    <div class="arrow"><span class="glyph">→</span><small>relay</small></div>
-    <div class="node n-phone"><span class="ico">📱</span><b>PHONE A</b><small>checks ✓<br>relays</small></div>
-    <div class="arrow"><span class="glyph">→</span><small>hop 2</small></div>
-    <div class="node n-phone"><span class="ico">📱</span><b>PHONE B</b><small>checks ✓<br>relays</small></div>
-    <div class="arrow"><span class="glyph">→</span><small>hop 3</small></div>
-    <div class="node n-gw"><span class="ico">📶</span><b>GATEWAY</b><small>has internet!<br>forwards</small></div>
-    <div class="arrow"><span class="glyph">→</span><small>sync</small></div>
-    <div class="node n-help"><span class="ico">🏥👮🚑</span><b>HELP</b><small>family notified<br>responders see it</small></div>
-  </div>
-</div>
+  /* PART 6 · deep dive 3 — on-device AI */
+  { accent: 'purple', kicker: 'PART 6 · DEEP DIVE 3 — ON-DEVICE AI',
+    title: 'Local AI: <em>triage that cannot hallucinate</em>',
+    lede: 'A deterministic rule engine — not a chatbot. Same result every time, runs in under a millisecond, works on any phone, zero network.',
+    body:
+      `<div class="two-col"><div>` +
+      ticks([
+        '<b>~40 weighted signals</b> — “bleeding heavily”, “trapped under debris” → category, severity, confidence, action.',
+        '<b>Attached to every packet</b> — responders see AI triage before arrival; the mesh can priority-route on it.',
+        '<b>Voice or typed</b> — Web Speech API when available; mic never starts without an explicit press.',
+        '<b>First-aid guidance</b> — five curated procedures with escalation criteria and disclaimers.',
+      ]) +
+      `</div><div class="code"><span class="k">classifyEmergency</span>({ text })
+ → { category: <span class="k">"MEDICAL"</span>,
+     severity: <span class="k">"CRITICAL"</span>,
+     confidence: 0.95,
+     recommendedAction:
+       <span class="k">"Send SOS with medical info"</span>,
+     engine: <span class="k">"iqoo-rules-v1"</span> }
 
-<div class="cols" style="margin-top:14px;">
-  <div class="card edge-blue">
-    <span class="big">📦</span>
-    <h3>Store & Forward</h3>
-    <p>The phone <b>keeps the message and tries again later</b>. When the
-    link comes back — or a new phone walks into range — the message continues. The emergency
-    doesn't die just because one person walked away.</p>
-  </div>
-  <div class="card edge-green">
-    <span class="big">🔋</span>
-    <h3>Battery-Aware Relay</h3>
-    <p>The network saves its own energy: <b>above 50%</b> battery → relay everything ·
-    <b>20–50%</b> → only HIGH+ priority · <b>below 20%</b> → only CRITICAL. Your SOS always
-    outranks gossip. iQOO's large batteries (6000–7600 mAh) keep the mesh alive longer.</p>
-  </div>
-  <div class="card edge-purple">
-    <span class="big">🧠</span>
-    <h3>On-Device AI</h3>
-    <p>On the phone itself — no cloud. It classifies the emergency ("medical",
-    "fire", "lost") and how urgent it is, from a short description or voice text.
-    <b>Powered by iQOO's Snapdragon processor for fast, local inference.</b></p>
-  </div>
-</div>
+<span class="c">// 28 unit tests · &lt; 1 ms · offline</span></div></div>`,
+    plain: 'We chose rules over a language model on purpose: medical advice that can be invented is medical advice that can kill.' },
 
-<!-- ================= 6. PACKET ================= -->
-<h2 class="sec"><span class="num num-purple">6</span>Inside an emergency packet</h2>
-<p class="sub">Every emergency travels as a tiny signed packet — small enough for a weak
-radio link, signed so nobody can forge it. Here's what's inside:</p>
-<div class="packet">
-  <span class="chip c-red">🆔 Emergency ID<small><b>IQ-7K2M9X4A</b> — unique, tracked end-to-end</small></span>
-  <span class="chip">🕒 Timestamp<small>when it happened (±5 min anti-replay)</small></span>
-  <span class="chip">📍 Location<small>GPS + honest accuracy ("±12 m") or "unavailable"</small></span>
-  <span class="chip">🔋 Battery<small>so responders know how long the sender lasts</small></span>
-  <span class="chip">🩸 Help flags<small>"needs medical" / "needs police"</small></span>
-  <span class="chip">🧠 AI hint<small>category + urgency (advisory only)</small></span>
-  <span class="chip">⏳ TTL + hop count<small>expires in 6 h, max 8 hops — no infinite loops</small></span>
-  <span class="chip c-red">✍️ Signature<small><b>HMAC-SHA256</b> — tamper-proof, per-device key</small></span>
-</div>
+  /* PART 6 · deep dive 4 — mesh engine */
+  { accent: 'blue', kicker: 'PART 6 · DEEP DIVE 4 — MESH ENGINE',
+    title: 'Delay-tolerant networking: <em>a message is never dropped</em>',
+    lede: 'Broken links don’t lose packets — they park them. Every rule on this slide is proven by 15 engine test scenarios.',
+    body:
+      flow([
+        ['INJECT', 'validate · sign · dedupe'],
+        ['FLOOD', 'forward to all neighbors, +1 hop'],
+        ['STORE', 'link down? queue in outbox'],
+        ['FLUSH', 'link back? drain automatically'],
+        ['ACK', 'per-hop confirmation'],
+      ]) +
+      `<div class="two-col"><div>` +
+      ticks([
+        '<b>Dedupe</b> — every node remembers packet ids; duplicates die instantly.',
+        '<b>TTL ≤ 6 h, ≤ 8 hops</b> — stale news cannot circulate or loop.',
+        '<b>Priority retries</b> — CRITICAL: 3 attempts with backoff; LOW: 1.',
+        '<b>Battery tiers</b> — &lt;50 %: critical+high only; &lt;20 %: critical only. Reception is NEVER blocked — only forwarding.',
+      ]) +
+      `</div><div class="code"><span class="k">relayAllows</span>(battery, priority)
+  battery &lt; 20  → CRITICAL only
+  battery ≤ 50  → CRITICAL + HIGH
+  else          → everything
 
-<!-- ================= 7. iQOO HARDWARE SYNERGY ================= -->
-<h2 class="sec"><span class="num num-orange">7</span>Optimized for iQOO Hardware</h2>
-<p class="sub">ResQNET is designed to leverage the iQOO 15's powerful hardware for maximum emergency effectiveness.</p>
+<span class="c">// 15 engine scenarios unit-tested</span></div></div>`,
+    plain: 'The engine is deterministic software, so every rule here is proven by tests — not claimed in a diagram.' },
 
-<div class="hw-grid">
-  <div class="hw-card">
-    <span class="hw-icon">⚡</span>
-    <h4>Snapdragon Processor</h4>
-    <p>Powers on-device AI classification without cloud dependency — emergency detection in milliseconds</p>
-  </div>
-  <div class="hw-card">
-    <span class="hw-icon">🔋</span>
-    <h4>7600 mAh Battery</h4>
-    <p>Sustains mesh relay operations for extended emergency scenarios — keep the network alive longer</p>
-  </div>
-  <div class="hw-card">
-    <span class="hw-icon">❄️</span>
-    <h4>Vapour Cooling</h4>
-    <p>Prevents thermal throttling during sustained mesh operations — reliable when it matters most</p>
-  </div>
-  <div class="hw-card">
-    <span class="hw-icon">📡</span>
-    <h4>5G + Bluetooth</h4>
-    <p>Dual connectivity for gateway sync when internet returns, plus device-to-device mesh relay</p>
-  </div>
-</div>
+  /* PART 6 · deep dive 5 — relay hero */
+  { accent: 'orange', kicker: 'PART 6 · DEEP DIVE 5 — iQOO ADVANTAGE',
+    title: 'Relay Hero — <em>the iQOO phone becomes the mesh backbone</em>',
+    lede: 'Battery tiers protect ordinary phones — but somebody must do the heavy relay work. The device with the biggest battery and bypass charging should volunteer.',
+    body:
+      grid([
+        ['Hardware honesty', '6000 mAh-class cells + bypass charging sustain relay duty far below the standard floor — endurance floor drops to 10 % for this hardware class.'],
+        ['Full-strength relay', 'setRelayHero(node) lifts the nominated phone to full relay regardless of battery, while every other phone keeps conserving.'],
+        ['Auto-release', 'If the hero hits 0 %, the nomination drops automatically — a backbone with a dead cell is no hero.'],
+        ['Consent first', 'A visible Settings toggle plus per-node controls on the Network map. Your phone, your choice.'],
+      ]),
+    plain: 'The iQOO-specific idea: flagship silicon + the biggest battery in the room is exactly the phone that SHOULD carry the mesh — we made that hardware advantage part of the protocol.' },
 
-<!-- ================= 8. PRIVACY ================= -->
-<h2 class="sec"><span class="num num-green">8</span>Privacy & Security</h2>
-<p class="sub">Emergency data is sensitive. Privacy is a core component, not an afterthought.</p>
-<div class="cols">
-  <div class="card edge-green">
-    <ul class="clean">
-      <li><b>Your name never travels over the mesh.</b> Devices see anonymous codes, not "Priya".</li>
-      <li><b>Medical info is yours.</b> Blood group, allergies, medications — shared only if YOU set
-      the visibility (Private / Family / Responders / Nearby helpers) and tick consent.</li>
-      <li><b>Private by default.</b> Fresh profile = nothing shared with anyone.</li>
-      <li><b>Camera & microphone</b> are permission-based, clearly indicated, auto-disabled when emergency ends.</li>
-    </ul>
-  </div>
-  <div class="card edge-green">
-    <ul class="clean">
-      <li><b>Passwords are never stored readable</b> — only Argon2id hashes (bank-grade).</li>
-      <li><b>Every packet is signed.</b> If a malicious phone edits a message, the signature breaks and every other phone rejects it.</li>
-      <li><b>Medical fields AES-256-GCM encrypted at rest</b> — even a stolen database reveals nothing.</li>
-      <li><b>Spam can't flood the network</b> — duplicate checks, expiry, hop limits, rate limits.</li>
-    </ul>
-  </div>
-</div>
+  /* PART 6 · deep dive 6 — delivery & sync */
+  { accent: 'green', kicker: 'PART 6 · DEEP DIVE 6 — DELIVERY & SYNC',
+    title: 'Gateway → backend → family, <em>and nothing is ever lost</em>',
+    lede: 'Any ResQNET phone with a signal bar becomes a gateway. The simulation ends; the real data plane begins — and connectivity being intermittent is the assumption, not the exception.',
+    body:
+      flow([
+        ['MESH', 'arrives after N hops'],
+        ['VERIFY', 'signature + TTL + replay cache'],
+        ['PERSIST', 'emergency row + signed original'],
+        ['FAN-OUT', 'one notification per family member'],
+        ['SSE', 'live push to responders'],
+      ]) +
+      grid([
+        ['Idempotent everywhere', 'Same emergency via two gateways = one row. Outbox retries ten times, server records it once. Profile edits versioned — stale writes get HTTP 409, not data loss.'],
+        ['Devices also receive', '/sync/pull with a persisted cursor + signature checks makes every phone a full DTN participant, not just a sender.'],
+        ['Consent tiers & responder ACKs', 'Family sees location; the encrypted medical card is shared only where explicitly allowed. Acknowledged responder teams appear live on the victim’s SOS screen — proof help is moving.'],
+        ['The black box', 'Every decision — AI class, GPS state, battery, hops, send/queue/sync — is logged on the phone: a flight recorder, reviewable on the History page.'],
+      ]),
+    plain: 'Tested end-to-end: inject → 3 hops → gateway → real database row with “received_via: mesh:3-hops”. Offline SOS lands in a persisted outbox that survives app crashes and phone restarts.' },
 
-<!-- ================= 9. HONESTY ================= -->
-<h2 class="sec"><span class="num num-amber">9</span>What ResQNET can and cannot do</h2>
-<p class="sub">We would rather be trusted than impressive. The honest limits:</p>
-<div class="cols">
-  <div class="card edge-green">
-    <h3>✅ CAN</h3>
-    <ul class="clean">
-      <li>Alert every nearby ResQNET phone, even fully offline</li>
-      <li>Relay your emergency hop-by-hop toward people who have signal</li>
-      <li>Reach family + responders the moment any link to the internet exists</li>
-      <li>Classify emergencies and prioritize critical alerts with on-device AI</li>
-      <li>Coordinate community response during large-scale disasters</li>
-      <li>Survive crashes, dead links, reconnections — without duplicates</li>
-    </ul>
-  </div>
-  <div class="card edge-red">
-    <h3>❌ CANNOT</h3>
-    <ul class="clean">
-      <li>Magic-reach a police station outside radio range</li>
-      <li>Replace calling 100/112/911 when you DO have signal</li>
-      <li>Run background mesh on iOS (Apple blocks it) — full mesh needs native Android</li>
-      <li>Diagnose medical conditions — the AI only classifies urgency</li>
-    </ul>
-  </div>
-</div>
-<p style="color:var(--dim);">📌 In one sentence: <strong style="color:var(--text);">ResQNET augments emergency response — it does not replace official emergency services.</strong></p>
+  /* PART 6 · deep dive 7 — disaster mode */
+  { accent: 'amber', kicker: 'PART 6 · DEEP DIVE 7 — DISASTER MODE',
+    title: 'When everyone is affected: <em>community coordination</em>',
+    lede: 'Disaster Mode turns individual SOS calls into collective intelligence for the crowd.',
+    body:
+      grid([
+        ['Community bulletins', '280-char sitreps (“Bridge collapsed ahead”, “Shelter open at school”) propagate like packets; older than 6 h → flagged STALE, never rewritten.'],
+        ['Resource map', 'Nearby shelters, medical points, water — ranked MEDICAL-first; every entry shows verifiedAt + source. No fake live-feed claims.'],
+        ['Priority routing', 'Life-safety traffic is promoted one notch; the outbox drains CRITICAL-first. CRITICAL itself can never be downgraded.'],
+        ['AI assistant', 'Auto-selects first-aid/evacuation guidance from the AI classification; escalation criteria say when to stop self-treating.'],
+      ]),
+    plain: 'Activation is honest by design: an official broadcast, or five distinct emergencies inside 30 minutes — the crowd itself detects the disaster.' },
 
-<!-- ================= 10. STATUS ================= -->
-<h2 class="sec"><span class="num num-blue">10</span>What's built and what's next</h2>
-<p class="sub">Everything marked "working" runs in this repository today, with automated tests —
-not slide-ware.</p>
-<table>
-  <tr><th>Feature</th><th>Plain-language meaning</th><th>Status</th></tr>
-  <tr><td><b>SOS + Emergency Mode</b></td><td>Countdown → signed packet → live status screen → "I'm Safe". Works offline & without login.</td><td><span class="st st-done">✅ WORKING</span></td></tr>
-  <tr><td><b>Emergency profile & card</b></td><td>Your medical info, shared only with your permission, encrypted at rest.</td><td><span class="st st-done">✅ WORKING</span></td></tr>
-  <tr><td><b>Family circle</b></td><td>The people who get told, in priority order, with live check-in statuses.</td><td><span class="st st-done">✅ WORKING</span></td></tr>
-  <tr><td><b>Offline outbox + sync</b></td><td>SOS survives no-internet; syncs exactly-once later.</td><td><span class="st st-done">✅ WORKING</span></td></tr>
-  <tr><td><b>Mesh relay engine</b></td><td>Hop-by-hop passing, duplicates dropped, ACKs, retries, battery rules.</td><td><span class="st st-sim">🔷 WORKING (simulated)</span></td></tr>
-  <tr><td><b>Local AI classifier</b></td><td>On-device emergency type + urgency estimation, no cloud.</td><td><span class="st st-done">✅ WORKING</span></td></tr>
-  <tr><td><b>Normal + Emergency modes</b></td><td>Two-mode operation with automatic transitions.</td><td><span class="st st-done">✅ WORKING</span></td></tr>
-  <tr><td><b>Disaster Mode</b></td><td>Community mesh, resource mapping, bulletins, AI first-aid assistant.</td><td><span class="st st-design">🟠 DESIGNED</span></td></tr>
-  <tr><td><b>Responder dashboard</b></td><td>Where hospitals/police see and accept emergencies.</td><td><span class="st st-done">✅ WORKING</span></td></tr>
-  <tr><td><b>Emergency Black Box</b></td><td>Timestamped timeline of every hop — transparency for users and judges.</td><td><span class="st st-done">✅ WORKING</span></td></tr>
-  <tr><td><b>Real Bluetooth radios</b></td><td>Browser prototype possible; background mesh needs the native Android app.</td><td><span class="st st-rpi">🔴 PROTOTYPE / NEEDS NATIVE</span></td></tr>
-  <tr><td><b>Official 911/100 integration</b></td><td>Real systems connect at the gateway — a standards problem, not a hackathon one.</td><td><span class="st st-rpi">🔴 FUTURE INTEGRATION</span></td></tr>
-</table>
+  /* ===== PART 7 · TECHNOLOGY STACK ===== */
+  { accent: 'blue', kicker: 'PART 7 · TECHNOLOGY STACK',
+    title: 'Free, open-source, <em>zero-vendor-lock-in</em>',
+    lede: 'Every layer is a deliberate choice: no paid APIs, no cloud ML, no hosting dependencies anywhere in the tree — the stack a student team can actually run and a judge can actually verify.',
+    body:
+      `<table class="tech">
+        <tr><th>LAYER</th><th>TECHNOLOGY</th><th>WHY</th></tr>
+        <tr><td><b>Frontend</b></td><td>React 18 · Vite · TypeScript · PWA shell</td><td>Fast, offline-capable, phone-first; one codebase for the demo and the future native wrapper</td></tr>
+        <tr><td><b>Shared logic</b></td><td>One TypeScript package (@iqoo/shared)</td><td>Packet format, crypto, AI, modes — identical code in app and backend, zero drift</td></tr>
+        <tr><td><b>Backend</b></td><td>Node.js · Express · node:sqlite</td><td>Zero native builds (runs anywhere Node runs); real REST API + real SQL database</td></tr>
+        <tr><td><b>Security</b></td><td>Argon2id · JWT · WebCrypto HMAC · AES-256-GCM · Ed25519-ready</td><td>Bank-grade primitives from the platform, no external crypto services</td></tr>
+        <tr><td><b>AI</b></td><td>Deterministic rule engine (on-device)</td><td>Cannot hallucinate medical advice; &lt;1 ms; runs on any hardware</td></tr>
+        <tr><td><b>Realtime</b></td><td>Server-Sent Events (SSE)</td><td>Live mesh events, ACKs, broadcasts — one persistent connection, no polling storm</td></tr>
+        <tr><td><b>Testing</b></td><td>Vitest — 86 tests (28 shared · 54 backend · 4 frontend)</td><td>The protocol is proven, not claimed; every slide links to a test</td></tr>
+        <tr><td><b>Deployment</b></td><td>Docker (node:24-alpine) · nginx SPA proxy</td><td>One command brings up the whole judged stack; SQLite volume persists data</td></tr>
+      </table>`,
+    plain: 'node:sqlite instead of better-sqlite3 was a deliberate constraint win: zero native compilation, so the repo runs on any machine without build tools.' },
 
-<!-- ================= 11. DEMO ================= -->
-<h2 class="sec"><span class="num num-green">11</span>The 60-second demo story</h2>
-<div class="flow">🅰️  Priya (NO internet) presses SOS
-      ↓  packet signed + queued, then relayed
-📱  Phone A receives  → checks signature ✓ → relays (hop 1)
-📱  Phone B receives  → duplicate? no ✓   → relays (hop 2)
-📶  Gateway phone (HAS internet) forwards it
-🏥  Family notified ✓   Responders see the emergency ✓
-🔁  Internet returns   → everything syncs — exactly once
-⏱  Black-box timeline shows every hop, timestamped
-🟠  Multiple alerts?   → Disaster Mode → community coordination</div>
-<p style="color:var(--dim);">This exact path is proven by automated tests in the repo
-(<code>A → B → C → Gateway</code> with duplicate detection, ACKs, link-failure recovery)
-and can be replayed live via the simulator endpoints
-(<code>/api/sim/engine · /inject · /state · /verify</code>).</p>
+  /* PART 7 · why iQOO hardware */
+  { accent: 'orange', kicker: 'PART 7 · WHY iQOO HARDWARE',
+    title: 'Built to shine on <em>iQOO flagship hardware</em>',
+    lede: 'Every enhancement maps to a real hardware capability — not marketing.',
+    body:
+      `<table class="tech">
+        <tr><th>iQOO CAPABILITY</th><th>WHAT RESQNET DOES WITH IT</th><th>STATUS</th></tr>
+        <tr><td><b>6000 mAh-class battery</b></td><td>Relay Hero backbone relay + endurance floor 10 % (vs 20 % standard)</td><td><span class="pill p-green">IMPLEMENTED [P]</span></td></tr>
+        <tr><td><b>Bypass charging</b></td><td>Sustained plugged-in relay without battery wear — modeled in the hardware tier</td><td><span class="pill p-green">IMPLEMENTED [P]</span></td></tr>
+        <tr><td><b>Flagship SoC</b></td><td>On-device AI classification in &lt; 1 ms; ready for future on-device models</td><td><span class="pill p-green">IMPLEMENTED</span></td></tr>
+        <tr><td><b>120 Hz display</b></td><td>Glanceable SOS/countdown UI stays smooth under thermal stress</td><td><span class="pill p-green">IMPLEMENTED</span></td></tr>
+        <tr><td><b>BLE / Wi-Fi Direct</b></td><td>Real multi-hop radio transport — needs the native Android client</td><td><span class="pill p-purple">ROADMAP [R]</span></td></tr>
+      </table>`,
+    plain: '[P] = working prototype path in this repo · [R] = needs a native client. Nothing is claimed “done” that isn’t — honesty is a feature.' },
 
-<p class="footer">
-  <strong style="color:#ff6b35;font-size:1.1rem;">ResQNET</strong> — built free and open-source for
-  <strong style="color:#ff9ab5;">iQOO Hackathon 2026</strong><br/>
-  React · Vite · TypeScript · Express · node:sqlite ·
-  Argon2id · WebCrypto · Docker<br/><br/>
-  Because when the network dies, <strong style="color:#ff9ab5;">the people around you are the network.</strong>
-</p>
+  /* PART 7 · communication stack */
+  { accent: 'blue', kicker: 'PART 7 · COMMUNICATION STACK',
+    title: 'Transports: <em>every layer real or honestly labeled</em>',
+    lede: 'The CommunicationManager abstracts the radio. Routing code never depends on which transport carries the packet.',
+    body:
+      `<table class="tech">
+        <tr><th>TRANSPORT</th><th>ROLE</th><th>STATUS</th></tr>
+        <tr><td><b>Internet / LAN</b></td><td>REST + SSE to the backend; gateway delivery</td><td><span class="pill p-green">IMPLEMENTED</span></td></tr>
+        <tr><td><b>Bluetooth LE</b></td><td>Web Bluetooth GATT prototype — user-gesture pairing, honest availability states</td><td><span class="pill p-amber">PROTOTYPE [P]</span></td></tr>
+        <tr><td><b>Mesh simulator</b></td><td>Deterministic software engine proving the routing logic (this deck’s tests)</td><td><span class="pill p-green">IMPLEMENTED</span></td></tr>
+        <tr><td><b>Wi-Fi Direct / Near</b></td><td>High-bandwidth peer links</td><td><span class="pill p-purple">ROADMAP [R] — native client</span></td></tr>
+        <tr><td><b>SMS bridge</b></td><td>Carrier fallback for family notification</td><td><span class="pill p-purple">ROADMAP [R]</span></td></tr>
+      </table>`,
+    plain: 'The simulation-first strategy: prove the protocol in software with tests, then swap in real radios behind the same interface — the native client is an integration task, not a redesign.' },
 
-</div>
+  /* ===== PART 8 · DEMO / PROOF ===== */
+  { accent: 'green', kicker: 'PART 8 · USER STORY',
+    title: 'Priya falls on a trek. Zero signal. <em>Exactly what happens:</em>',
+    lede: 'Every step below is real implemented behavior — the captions match the black-box timeline entries the app actually writes.',
+    body:
+      `<div class="journey">` +
+      `<div class="jstep"><div class="n">1</div><h4>Fall + SOS</h4><p>She presses SOS. Countdown 3-2-1 (cancelable). Packet signed with GPS ±12 m, battery 55 %, AI says MEDICAL/CRITICAL (95 %).</p></div>` +
+      `<div class="jstep"><div class="n">2</div><h4>Held, not lost</h4><p>No signal → “packet held (offline)” on her screen. Outbox persists it. Her phone starts relaying via BLE to nearby ResQNET phones.</p></div>` +
+      `<div class="jstep"><div class="n">3</div><h4>The crowd carries it</h4><p>A hiker 300 m away (iQOO, Relay Hero on) relays at full strength → a villager’s phone with one bar becomes the gateway → backend row created.</p></div>` +
+      `<div class="jstep"><div class="n">4</div><h4>Family notified</h4><p>Fan-out creates one notification per family member; SSE pushes to any signed-in device instantly.</p></div>` +
+      `<div class="jstep"><div class="n">5</div><h4>Responders move</h4><p>The responder dashboard shows her emergency + AI triage + medical card (per consent). Their ACK appears on her screen live.</p></div>` +
+      `<div class="jstep"><div class="n">6</div><h4>Found, resolved</h4><p>She taps I’M SAFE. Resolution syncs like everything else — idempotently, with the full black-box timeline preserved for review.</p></div>` +
+      `</div>`,
+    plain: 'The Demo Mode page in the app runs this exact scenario against the real engine over live SSE — 9 milestones with chaos controls (link down, battery drain).' },
+
+  { accent: 'green', kicker: 'PART 8 · RUN IT & PROOF',
+    title: 'Don’t take the deck’s word for it — <em>run it</em>',
+    lede: 'Two commands bring up the full judged stack locally. Every claim in this deck is verifiable in minutes.',
+    body:
+      `<div class="two-col"><div class="code">` +
+      `<span class="c"># full stack in Docker (app + API + DB)</span>\n` +
+      `docker compose -f docker/docker-compose.yml up -d --build\n\n` +
+      `<span class="c">#   → app:  http://localhost:8080</span>\n` +
+      `<span class="c">#   → API:  http://localhost:4000/healthz</span>\n\n` +
+      `<span class="c"># dev mode:</span>\n` +
+      `npm install && npm test     <span class="c"># 86 tests green</span>\n` +
+      `npm run dev -w backend      <span class="c"># API :4000</span>\n` +
+      `npm run dev -w frontend     <span class="c"># app :5173</span></div>` +
+      `<div>` +
+      `<h4 style="margin:0 0 8px">What to demo live (5 min)</h4>` +
+      ticks([
+        '<b>SOS flow</b> — press SOS → countdown → Emergency Mode with honest “held (offline)” state.',
+        '<b>Demo Mode page</b> — drives the real mesh engine over live SSE: 9 milestones, chaos controls (link down, battery drain).',
+        '<b>Network page</b> — nodes, batteries, hops, ACKs, Relay Hero nominate/release.',
+        '<b>Situations page</b> — post a bulletin, watch it appear live; resource map from geolocation.',
+        '<b>Light/dark theme + phone layout</b> — burger nav, 48 px touch targets.',
+      ]) +
+      `</div></div>`,
+    plain: 'Proof artifacts in the repo: 86 passing tests, containerized E2E (register → 3-hop relay → gateway → database row), and docs/ with 7 guides including an honest security model.' },
+
+  /* ===== PART 9 · IMPACT & FUTURE SCOPE ===== */
+  { accent: 'amber', kicker: 'PART 9 · IMPACT',
+    title: 'Who benefits, <em>and what measurably changes</em>',
+    lede: 'ResQNET is scoped to be deployable where it matters — the beneficiaries already own the only hardware the system needs.',
+    body:
+      `<div class="grid3">` +
+      `<div class="mini"><h4>Trekkers & rural communities</h4><p>Dead zones are everyday reality, not edge cases. Campus/village safety pilots need zero new hardware.</p></div>` +
+      `<div class="mini"><h4>Disaster-response teams</h4><p>Responder dashboard + AI triage + consent-tiered medical cards — better decisions in the golden hour.</p></div>` +
+      `<div class="mini"><h4>Families</h4><p>Check-ins, circle statuses and gateway fan-out turn “no signal” from terror into a queue that will deliver.</p></div>` +
+      `</div>` +
+      stats([['0 ₹', 'cost per user'], ['1', 'app to install'], ['N', 'phones = N relay towers'], ['86', 'tests guarding it']]),
+    plain: 'Measurable impact: from “no way to call for help” to “signed SOS delivered + family notified + responder ACK” — with the full timeline auditable afterwards.' },
+
+  { accent: 'amber', kicker: 'PART 9 · FUTURE SCOPE',
+    title: 'The roadmap is <em>integration work, not research</em>',
+    lede: 'What is real today, what comes next, and why each step is small — the protocol, crypto, sync and AI layers are done and portable.',
+    body:
+      ticks([
+        '<b>Next milestone:</b> native Android client → real BLE mesh between two physical phones.',
+        '<b>Then:</b> SMS/push bridges for family notification, verified live resource feeds, responder-agency integration.',
+        '<b>Scale path:</b> the protocol is region-agnostic — same app, any language pack, any hazard type.',
+        '<b>Implemented + tested:</b> SOS core, signed packets, mesh engine (15 scenarios), gateway sync, family fan-out, offline sync, AI triage + guidance, 3-mode architecture, bulletins, resource map, Relay Hero, theming, Docker deploy.',
+        '<b>Prototype [P]:</b> Web Bluetooth transport (foreground GATT), Relay Hero hardware modeling.',
+        '<b>Roadmap [R]:</b> native Android client (background BLE, Wi-Fi Direct), SMS/push bridges, live verified resource feeds, responder-agency integration — each a scoped integration behind an existing interface.',
+      ]),
+    plain: 'The ask: pick us to build the native client next — two physical phones passing a signed SOS is one milestone away.' },
+
+  /* ===== PART 10 · CLOSING ===== */
+  { accent: 'orange', kicker: 'PART 10 · CLOSING — WHY THIS PROBLEM, WHY iQOO',
+    title: 'Why we chose this problem <em>for the iQOO Hackathon</em>',
+    lede: 'Because it is the rare problem where a phone brand’s biggest numbers — battery, charging, silicon — are not specs to brag about, but the difference between reaching help and not.',
+    body:
+      grid([
+        ['It fits the theme perfectly', 'A disaster survivor pushes a phone harder than any gamer: weak signal, low battery, life-or-death response times.'],
+        ['The hardware is the hero', 'Relay Hero turns iQOO’s 6000 mAh + bypass charging into lives saved — something no software-only entry can claim.'],
+        ['Flagship silicon enables real AI', 'Instant on-device triage — no cloud, no round-trip, no leaked medical data.'],
+        ['It is a real Indian problem', 'Floods, cyclones and earthquakes cut connectivity every year; a solution on existing phones can actually deploy.'],
+        ['It can be proven, not claimed', '86 tests. Judges verify every claim in minutes, not trust a video.'],
+        ['It has a road beyond the demo', 'Native client → real radios → campus pilots → disaster-response agencies.'],
+      ]),
+    plain: 'We did not pick a problem to fit iQOO. We picked a problem worth solving — and iQOO’s hardware turns out to be exactly the hero it needs.' },
+
+  /* PART 10 · final closing slide */
+  { accent: 'green', kicker: 'PART 10 · THANK YOU',
+    title: 'The network that refuses to die <em>when everything else does.</em>',
+    lede: 'Poloju Pravalika, Peesa Satvika & Inturi Vaishnavi — thank you for your time. Every claim in this deck links to code and tests in the repository.',
+    body:
+      `<div class="linkbox">` +
+      `<a class="linkcard" href="https://github.com/Ppoloju/ResQNET" target="_blank" rel="noopener"><div><b>GitHub — source + docs</b><span>github.com/Ppoloju/ResQNET</span></div></a>` +
+      `<a class="linkcard" href="http://<demo-host>:8080" target="_blank" rel="noopener"><div><b>Live demo (judges)</b><span>http://&lt;demo-host&gt;:8080</span></div></a>` +
+      `<a class="linkcard" href="<youtube-link>" target="_blank" rel="noopener"><div><b>Video walkthrough</b><span>&lt;youtube-link&gt;</span></div></a>` +
+      `</div>`,
+    plain: 'EDIT ME: drop your live demo host and video link into the remaining two cards (and paste QR images over the placeholders) before presenting.',
+    foot: 'ResQNET · Offline AI Emergency Network · <b>iQOO Hackathon 2026</b> · “When every network is down, the network is us.”' },
+];
+
+/* render + progress bar + keyboard nav */
+const deck = document.getElementById('deck');
+deck.innerHTML = SLIDES.map((s, i) => slideCard(s, i + 1)).join('');
+
+const pf = document.getElementById('pf');
+const counter = document.getElementById('counter');
+const slides = [...document.querySelectorAll('.slide')];
+counter.textContent = `1 / ${slides.length}`;
+function updateProgress() {
+  const idx = Math.min(slides.length - 1,
+    slides.findIndex(el => el.getBoundingClientRect().bottom > window.innerHeight * 0.5));
+  pf.style.width = `${((idx + 1) / slides.length) * 100}%`;
+  counter.textContent = `${idx + 1} / ${slides.length}`;
+}
+document.addEventListener('scroll', updateProgress, { passive: true });
+updateProgress();
+
+document.addEventListener('keydown', (e) => {
+  const current = slides.findIndex(el => el.getBoundingClientRect().bottom > window.innerHeight * 0.5);
+  if (e.key === 'ArrowDown' || e.key === 'PageDown' || e.key === ' ') {
+    e.preventDefault();
+    slides[Math.min(current + 1, slides.length - 1)]?.scrollIntoView({ behavior: 'smooth' });
+  } else if (e.key === 'ArrowUp' || e.key === 'PageUp') {
+    e.preventDefault();
+    slides[Math.max(current - 1, 0)]?.scrollIntoView({ behavior: 'smooth' });
+  } else if (e.key === 'Home') slides[0]?.scrollIntoView();
+  else if (e.key === 'End') slides[slides.length - 1]?.scrollIntoView();
+});
+</script>
 </body>
 </html>

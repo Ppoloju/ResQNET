@@ -2,7 +2,9 @@
 // Relay thresholds mirror the engine tiers but remain user-configurable per
 // §29 ("Make this configurable"); they feed Relay Readiness and the Network UI.
 
-import { createContext, useContext, useMemo, useState, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+
+export type ThemePreference = 'system' | 'light' | 'dark';
 
 export interface IqooSettings {
   /** Consent to relay other people's emergency packets (§37). */
@@ -15,6 +17,14 @@ export interface IqooSettings {
   criticalThresholdPct: number;
   /** Battery at/above this → normal relay. Between → reduced. */
   normalThresholdPct: number;
+  /**
+   * Relay Hero (§29 iQOO enhancement): volunteer this device as the mesh's
+   * backbone relay. Honest on iQOO-class hardware (large cell + bypass
+   * charging can sustain it); other devices should keep this OFF.
+   */
+  relayHeroMode: boolean;
+  /** UI color scheme; 'system' follows the OS preference. */
+  theme: ThemePreference;
 }
 
 const DEFAULTS: IqooSettings = {
@@ -23,6 +33,8 @@ const DEFAULTS: IqooSettings = {
   scanIntervalSec: 30,
   criticalThresholdPct: 20,
   normalThresholdPct: 50,
+  relayHeroMode: false,
+  theme: 'system',
 };
 
 const KEY = 'iqoo.settings';
@@ -46,6 +58,20 @@ const SettingsContext = createContext<SettingsState>(null as unknown as Settings
 
 export function SettingsProvider({ children }: { children: ReactNode }) {
   const [settings, setSettings] = useState<IqooSettings>(load);
+
+  // Apply the theme to <html data-theme="…"> and follow OS changes while on 'system'.
+  useEffect(() => {
+    const mq = typeof window.matchMedia === 'function' ? window.matchMedia('(prefers-color-scheme: light)') : null;
+    const apply = () => {
+      const resolved = settings.theme === 'system'
+        ? (mq?.matches ? 'light' : 'dark')
+        : settings.theme;
+      document.documentElement.dataset.theme = resolved;
+    };
+    apply();
+    mq?.addEventListener?.('change', apply);
+    return () => mq?.removeEventListener?.('change', apply);
+  }, [settings.theme]);
 
   const value = useMemo<SettingsState>(() => ({
     ...settings,

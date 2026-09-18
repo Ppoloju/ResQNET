@@ -158,6 +158,36 @@ describe('mesh engine — store-and-forward scenarios', () => {
     expect(snap.timeline.some((e) => e.event === 'RELAY_SUPPRESSED_LOW_BATTERY')).toBe(true);
   });
 
+  it('Relay Hero relays full-strength at low battery; others stay tiered (§29 iQOO)', async () => {
+    const eng = new MeshEngine({ nodeId: 'HH', secret: SECRET, defaultTtlSeconds: 3600, maxHops: 8, linkDelayMs: 5, lossRate: 0 });
+    // Hero at 12% battery would normally be CRITICAL-only; nomination lifts it.
+    eng.addLink('SRC', 'HERO');
+    eng.addLink('HERO', 'GATEWAY');
+    eng.addLink('SRC2', 'OTHER');
+    eng.addLink('OTHER', 'GATEWAY');
+    eng.setBattery('HERO', 12);
+    eng.setBattery('OTHER', 12);
+    eng.setRelayHero('HERO');
+    const crit = await makePacket({ id: 'msg_hero_crit', emergencyId: 'IQ-HEROC001', priority: 'CRITICAL' });
+    await eng.inject('SRC', crit);
+    // Same battery on a non-hero node still gates MEDIUM onward relay.
+    const medium = await makePacket({ id: 'msg_hero_med', emergencyId: 'IQ-HEROM001', priority: 'MEDIUM' });
+    await eng.inject('SRC2', medium);
+    await eng.settle();
+    const snap = eng.getSnapshot();
+    expect(snap.relayHero).toBe('HERO');
+    // Hero relayed CRITICAL onward despite 12% battery — GATEWAY received via HERO
+    // (status ends ACKED once the hop ACK round-trip completes).
+    const heroRelayed = snap.deliveries.some((d) => d.nodeId === 'GATEWAY' && d.via === 'HERO'
+      && (d.status === 'DELIVERED' || d.status === 'ACKED'));
+    const otherSuppressed = snap.timeline.some((e) => e.nodeId === 'OTHER' && e.event === 'RELAY_SUPPRESSED_LOW_BATTERY');
+    expect(heroRelayed).toBe(true);
+    expect(otherSuppressed).toBe(true);
+    // Release restores normal tiers.
+    eng.setRelayHero(null);
+    expect(eng.getRelayHero()).toBeNull();
+  });
+
   it('applies hop limit (§11)', async () => {
     const eng = new MeshEngine({ nodeId: 'Z', secret: SECRET, defaultTtlSeconds: 3600, maxHops: 8, linkDelayMs: 5, lossRate: 0 });
     const ids = Array.from({ length: 12 }, (_, i) => `N${i}`);

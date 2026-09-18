@@ -251,8 +251,21 @@ CREATE TABLE IF NOT EXISTS notifications (
   user_id       TEXT NOT NULL,
   emergency_id  TEXT NOT NULL REFERENCES emergency_events(id) ON DELETE CASCADE,
   family_member_id TEXT REFERENCES family_members(id) ON DELETE SET NULL,
-  channel       TEXT NOT NULL DEFAULT 'MESH' CHECK (channel IN ('MESH','SSE','SMS_PLACEHOLDER')),
+  channel       TEXT NOT NULL DEFAULT 'MESH' CHECK (channel IN ('MESH','SSE','SMS')),
   delivery_state TEXT NOT NULL DEFAULT 'PENDING' CHECK (delivery_state IN ('PENDING','SENT','DELIVERED','FAILED')),
   created_at    TEXT NOT NULL,
   delivered_at  TEXT
 );
+
+-- Disaster-mode situation reports (§13): human-written bulletins that flow
+-- through the mesh and sync at the gateway. Mirrors shared Sitrep shape.
+CREATE TABLE IF NOT EXISTS sitreps (
+  id          TEXT PRIMARY KEY,
+  kind        TEXT NOT NULL CHECK (kind IN ('HAZARD','SHELTER','ROAD','SUPPLIES','RESOLVED')),
+  text        TEXT NOT NULL CHECK (length(text) <= 280),
+  lat         REAL,
+  lon         REAL,
+  author_user_id TEXT REFERENCES users(id) ON DELETE SET NULL,
+  created_at  TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_sitreps_created ON sitreps(created_at DESC);

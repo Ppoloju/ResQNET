@@ -1,10 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { apiFetch, useSession } from '../state/SessionContext';
 import { useStatus } from '../state/StatusContext';
 import { useMesh } from '../state/MeshContext';
 import { useAI } from '../state/AIContext';
 import { useMeshEvents, type BroadcastEvent } from '../state/RealtimeContext';
+import { findGuidance, guidanceForCategory, type GuidanceTopic } from '@iqoo/shared';
 import { EMERGENCY_PROMPT_SUGGESTIONS } from '@iqoo/shared';
 import type { Severity } from '@iqoo/shared';
 
@@ -232,6 +233,45 @@ function AIAssist() {
   );
 }
 
+/** §13 Disaster Mode AI assistant: curated offline first-aid/evacuation steps. */
+function GuidanceCard() {
+  const { result } = useAI();
+  const [ask, setAsk] = useState('');
+  const [manual, setManual] = useState<GuidanceTopic | null>(null);
+
+  // Auto-derive from the AI classification; manual search overrides.
+  const auto = useMemo(() => guidanceForCategory(result?.category), [result]);
+  const topic = manual ?? auto ?? (ask.trim() ? findGuidance(ask) : null);
+
+  return (
+    <div className="card" data-testid="guidance-card">
+      <h2>🧭 Offline assistance</h2>
+      <p className="muted" style={{ margin: '4px 0 8px' }}>
+        Curated steps on this device — no internet needed. Not a replacement for professional care.
+      </p>
+      <div className="row wrap">
+        {['bleeding', 'broken arm', 'burn', 'trapped', 'evacuate'].map((q) => (
+          <button key={q} className="chip" onClick={() => { setManual(null); setAsk(q); }}>{q}</button>
+        ))}
+      </div>
+      {topic ? (
+        <div style={{ marginTop: 10 }}>
+          <h3 style={{ margin: '0 0 6px' }}>{topic.title}</h3>
+          <ol style={{ margin: '0 0 8px', paddingLeft: 20, display: 'grid', gap: 4 }}>
+            {topic.steps.map((s, i) => <li key={i}>{s}</li>)}
+          </ol>
+          <p style={{ margin: '0 0 6px', fontSize: '0.85rem' }}>
+            <strong>Get help if:</strong> {topic.escalate}
+          </p>
+          <p className="muted" style={{ margin: 0, fontSize: '0.78rem' }}>{topic.disclaimer}</p>
+        </div>
+      ) : (
+        ask.trim() !== '' && <p className="muted" style={{ marginTop: 8 }}>No matching topic — try "bleeding", "burn", or "evacuate".</p>
+      )}
+    </div>
+  );
+}
+
 function CountdownOverlay() {
   const { countdown, cancelCountdown } = useMesh();
   return (
@@ -353,6 +393,8 @@ export default function Home() {
           </button>
 
           <AIAssist />
+
+          <GuidanceCard />
 
           <div className="card">
             {quickHelpOpen ? (

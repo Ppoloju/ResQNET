@@ -9,6 +9,8 @@ import { logger } from './logger.js';
 import { errorHandler } from './middleware/audit.js';
 import { authRouter } from './routes/auth.js';
 import { profileRouter } from './routes/profile.js';
+import { sitrepsRouter } from './routes/sitreps.js';
+import { resourcesRouter } from './routes/resources.js';
 import { familyRouter } from './routes/family.js';
 import { emergenciesRouter } from './routes/emergencies.js';
 import { checkinsRouter } from './routes/checkins.js';
@@ -51,6 +53,8 @@ app.use('/api/broadcasts', broadcastsRouter);
 app.use('/api/missing-persons', missingRouter);
 app.use('/api/responders', respondersRouter);
 app.use('/api/notifications', notificationsRouter);
+app.use('/api/sitreps', sitrepsRouter);
+app.use('/api/resources', resourcesRouter);
 app.use('/api/realtime', realtimeRouter);
 
 // Serve idea.html at /idea for convenience (repo-root static, read-only)

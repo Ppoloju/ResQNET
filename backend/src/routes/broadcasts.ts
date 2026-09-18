@@ -5,6 +5,7 @@ import { Router } from 'express';
 import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
 import { db } from '../db.js';
+import { engine } from './sim.js';
 import { audit } from '../middleware/audit.js';
 import { requireAuth, requireRole, type AuthedRequest } from '../middleware/auth.js';
 import { broadcastEvent } from './realtime.js';
@@ -41,6 +42,12 @@ broadcastsRouter.post('/', requireAuth, requireRole('responder', 'admin'), (req:
     b.radiusM ?? null, now.toISOString(), expiresAt);
 
   audit(req.user!.userId, 'broadcast.create', 'emergency_broadcast', id, { mode: b.mode, priority: b.priority });
+
+  // §13: a CRITICAL disaster broadcast puts the mesh into disaster mode —
+  // outbox becomes priority-queued (SOS/SITREP first) until it is cancelled.
+  if (b.priority === 'CRITICAL') {
+    engine.setDisasterMode(true);
+  }
   const payload = {
     id, mode: b.mode, message: b.message, priority: b.priority,
     lat: b.lat ?? null, lon: b.lon ?? null, radiusM: b.radiusM ?? null,
@@ -77,6 +84,12 @@ broadcastsRouter.post('/:id/cancel', requireAuth, requireRole('responder', 'admi
   db.prepare('UPDATE emergency_broadcasts SET expires_at = ? WHERE id = ?')
     .run(new Date().toISOString(), req.params.id); // expire now
   audit(req.user!.userId, 'broadcast.cancel', 'emergency_broadcast', req.params.id);
+  // If a CRITICAL broadcast ends early, re-evaluate: only leave disaster mode
+  // when no other active CRITICAL broadcast exists.
+  const stillCritical = db.prepare(
+    "SELECT COUNT(*) AS n FROM emergency_broadcasts WHERE priority = 'CRITICAL' AND expires_at > ?",
+  ).get(new Date().toISOString()) as { n: number };
+  if (stillCritical.n === 0) engine.setDisasterMode(false);
   broadcastEvent('broadcast_cancelled', { id: req.params.id });
   res.json({ ok: true });
 });

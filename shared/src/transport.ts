@@ -55,6 +55,10 @@ export class CommunicationManager {
   private unsubs: Array<() => void> = [];
 
   register(t: Transport): void {
+    // Dedupe by name: React StrictMode double-mounts providers in dev, which
+    // used to register the same transport twice (duplicate status rows AND
+    // packets fanned out to handlers two times).
+    if (this.transports.some((x) => x.name === t.name)) return;
     this.transports.push(t);
     this.unsubs.push(t.onPacket((ev) => {
       for (const h of this.handlers) h(ev);
@@ -95,10 +99,14 @@ export class CommunicationManager {
   }
 
   async stop(): Promise<void> {
+    // Clear registries SYNCHRONOUSLY before awaiting: React StrictMode unmount
+    // → remount races the async teardown, and a late clear would wipe transports
+    // registered by the remount (leaving the manager silently empty).
+    const toStop = this.transports;
+    this.transports = [];
     for (const u of this.unsubs) u();
     this.unsubs = [];
     this.handlers.clear();
-    await Promise.all(this.transports.map((t) => t.stop().catch(() => { /* already down */ })));
-    this.transports = [];
+    await Promise.all(toStop.map((t) => t.stop().catch(() => { /* already down */ })));
   }
 }

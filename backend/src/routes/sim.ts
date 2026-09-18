@@ -11,7 +11,8 @@ import { syncEmergencyFromGateway } from '../mesh/gatewaySync.js';
 export const simRouter = Router();
 
 // One shared engine instance per process (demo/simulation only — NOT real radios).
-const engine = new MeshEngine({
+// Exported so other routes (e.g. broadcasts) can drive disaster mode (§13).
+export const engine = new MeshEngine({
   nodeId: 'SIM_GW',
   secret: config.msgSigningPepper,
   defaultTtlSeconds: config.mesh.ttlSeconds,
@@ -125,6 +126,7 @@ simRouter.get('/state', requireAuth, (_req, res) => {
 
 const linkSchema = z.object({ a: z.string().min(1), b: z.string().min(1) });
 const batterySchema = z.object({ nodeId: z.string().min(1), battery: z.number().min(0).max(100) });
+const relayHeroSchema = z.object({ nodeId: z.string().min(1).nullable() });
 
 simRouter.post('/link/down', requireAuth, (req: AuthedRequest, res) => {
   const p = linkSchema.safeParse(req.body);
@@ -146,11 +148,30 @@ simRouter.post('/battery', requireAuth, (req: AuthedRequest, res) => {
   const p = batterySchema.safeParse(req.body);
   if (!p.success) { res.status(400).json({ error: 'validation failed' }); return; }
   engine.setBattery(p.data.nodeId, p.data.battery);
+  // Relay Hero (§29 iQOO enhancement): any node dropped to 0% while nominated
+  // releases the nomination — a backbone node with a dead cell is no hero.
+  if (p.data.battery === 0 && engine.getRelayHero() === p.data.nodeId) {
+    engine.setRelayHero(null);
+    broadcastEvent('sim_relay_hero', { nodeId: null, reason: 'battery depleted' });
+  }
   res.json({ ok: true });
 });
 
 simRouter.post('/sweep', requireAuth, (_req, res) => {
   res.json({ expired: engine.sweepExpired() });
+});
+
+/** Relay Hero (§29 iQOO enhancement): nominate/release the mesh's backbone node. */
+simRouter.post('/relay-hero', requireAuth, (req: AuthedRequest, res) => {
+  const p = relayHeroSchema.safeParse(req.body);
+  if (!p.success) { res.status(400).json({ error: 'validation failed', issues: p.error.issues }); return; }
+  if (p.data.nodeId !== null && !engine.hasNode(p.data.nodeId)) {
+    res.status(404).json({ error: `node not found: ${p.data.nodeId}` });
+    return;
+  }
+  engine.setRelayHero(p.data.nodeId);
+  broadcastEvent('sim_relay_hero', { nodeId: p.data.nodeId });
+  res.json({ ok: true, nodeId: p.data.nodeId });
 });
 
 /** Relay Readiness self-report (§37): explain WHY a device would/wouldn't relay. */

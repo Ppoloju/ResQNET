@@ -37,6 +37,7 @@ interface Snapshot {
   nodes: SimNode[];
   deliveries: Delivery[];
   timeline: Timeline[];
+  relayHero: string | null;
   stats: { totalNodes: number; totalLinks: number; delivered: number; acked: number; duplicates: number; expired: number };
 }
 
@@ -47,7 +48,7 @@ const ROLE_ICON: Record<string, string> = {
 export default function Network() {
   const { user } = useSession();
   const { online, battery } = useStatus();
-  const { relayConsent, lowPowerMode, criticalThresholdPct, normalThresholdPct } = useSettings();
+  const { relayConsent, lowPowerMode, criticalThresholdPct, normalThresholdPct, relayHeroMode } = useSettings();
   const { rows: transportRows, requestBluetooth, requestingBluetooth } = useTransports();
   const { events, connected } = useMeshEvents();
   const [snap, setSnap] = useState<Snapshot | null>(null);
@@ -124,13 +125,36 @@ export default function Network() {
     }
   };
 
+  /** Relay Hero (§29 iQOO enhancement): nominate/release a backbone relay node. */
+  const toggleHero = async (nodeId: string) => {
+    setBusy(true);
+    setNote(null);
+    try {
+      const next = snap?.relayHero === nodeId ? null : nodeId;
+      await apiFetch('/sim/relay-hero', {
+        method: 'POST',
+        body: JSON.stringify({ nodeId: next }),
+      });
+      setNote(next
+        ? `⚡ ${nodeId} nominated as Relay Hero — it now relays at full strength regardless of battery.`
+        : `Relay Hero released — all nodes back to battery-tier relay.`);
+      refresh();
+    } catch (e) {
+      setNote(e instanceof Error ? e.message : 'Relay Hero toggle failed');
+    } finally {
+      setBusy(false);
+    }
+  };
+
   // Relay Readiness reflects user settings (§37); low-power mode forces the
   // CRITICAL-only tier (§29) by clamping battery below the threshold.
+  // Relay Hero (§29 iQOO enhancement): full-strength relay regardless of battery.
   const readiness = relayReadiness({
-    batteryPercent: lowPowerMode ? Math.min(battery ?? 0, criticalThresholdPct - 1) : battery,
+    batteryPercent: lowPowerMode && !relayHeroMode ? Math.min(battery ?? 0, criticalThresholdPct - 1) : battery,
     connected: online,
     userConsent: relayConsent,
     foreground: true,
+    hardwareTier: relayHeroMode ? 'large_cell_bypass' : 'standard',
   });
 
   if (!user) {
@@ -211,8 +235,18 @@ export default function Network() {
                   <span className="pill small">{n.role}</span>{' '}
                   <span className={`pill small ${n.battery > 50 ? 'on' : n.battery > 20 ? 'warn' : 'off'}`}>{n.battery}%</span>{' '}
                   <span className="pill small">sees {n.seenPackets}</span>{' '}
+                  {snap.relayHero === n.id && <span className="pill on small">⚡ HERO</span>}
                   {n.queuedPackets > 0 && <span className="pill warn small">⏳ {n.queuedPackets} queued</span>}
                   <span className="dim small"> · {n.degree} link{n.degree === 1 ? '' : 's'}</span>
+                  <button
+                    className="btn link"
+                    style={{ marginLeft: 'auto', fontSize: '0.78rem' }}
+                    disabled={busy}
+                    onClick={() => void toggleHero(n.id)}
+                    aria-label={`${snap.relayHero === n.id ? 'Release' : 'Nominate'} ${n.id} as Relay Hero`}
+                  >
+                    {snap.relayHero === n.id ? 'release hero' : 'make hero'}
+                  </button>
                 </li>
               ))}
             </ul>
