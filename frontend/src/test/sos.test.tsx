@@ -59,15 +59,15 @@ describe('SOS flow', () => {
       // Emergency ID appears in the banner (.eid) and again in the timeline — check the banner element.
       const eid = document.querySelector('.eid');
       expect(eid).not.toBeNull();
-      expect(eid!.textContent).toMatch(/^IQ-[A-Z2-9]{8}$/);
+      expect(eid!.textContent).toMatch(/^RQ-[A-Z2-9]{8}$/);
       expect(screen.getAllByText('OFFLINE').length).toBeGreaterThan(0);
       expect(screen.getByText(/Held \(offline\)/)).toBeInTheDocument();
       expect(screen.getByText("I'M SAFE — RESOLVE EMERGENCY")).toBeInTheDocument();
 
       // Outbox must hold the packet for store-and-forward sync (§13/§47)
-      const box = JSON.parse(localStorage.getItem('iqoo.outbox') ?? '[]') as Array<{ event: { id: string } }>;
+      const box = JSON.parse(localStorage.getItem('resqnet.outbox') ?? '[]') as Array<{ event: { id: string } }>;
       expect(box).toHaveLength(1);
-      expect(box[0].event.id).toMatch(/^IQ-/);
+      expect(box[0].event.id).toMatch(/^RQ-/);
     } finally {
       vi.useRealTimers();
     }
@@ -83,7 +83,7 @@ describe('SOS flow', () => {
 
       await act(async () => { await userEvent.click(screen.getByText("I'M SAFE — RESOLVE EMERGENCY")); });
       expect(screen.getByRole('button', { name: /activate sos/i })).toBeInTheDocument();
-      expect(JSON.parse(localStorage.getItem('iqoo.activeEmergency') ?? 'null')).toBeNull();
+      expect(JSON.parse(localStorage.getItem('resqnet.activeEmergency') ?? 'null')).toBeNull();
     } finally {
       vi.useRealTimers();
     }
@@ -108,7 +108,7 @@ describe('SOS flow', () => {
       await act(async () => { window.dispatchEvent(new Event('offline')); });
       await act(async () => { await userEvent.click(screen.getByRole('button', { name: /activate sos/i })); });
       await act(async () => { vi.advanceTimersByTime(3200); });
-      expect(JSON.parse(localStorage.getItem('iqoo.outbox') ?? '[]')).toHaveLength(1);
+      expect(JSON.parse(localStorage.getItem('resqnet.outbox') ?? '[]')).toHaveLength(1);
 
       // Connectivity returns → MeshContext drains the outbox automatically.
       await act(async () => { window.dispatchEvent(new Event('online')); });
@@ -116,9 +116,9 @@ describe('SOS flow', () => {
 
       // The pushed event id must match the queued one (idempotent ack clears it).
       expect(pushCalls.length).toBe(1);
-      const queuedId = (JSON.parse(localStorage.getItem('iqoo.outbox') ?? '[]') as never[]).length;
+      const queuedId = (JSON.parse(localStorage.getItem('resqnet.outbox') ?? '[]') as never[]).length;
       expect(queuedId).toBe(0); // outbox empty after ack
-      expect(pushCalls[0].body.events[0].id).toMatch(/^IQ-[A-Z2-9]{8}$/);
+      expect(pushCalls[0].body.events[0].id).toMatch(/^RQ-[A-Z2-9]{8}$/);
     } finally {
       vi.useRealTimers();
       vi.unstubAllGlobals();

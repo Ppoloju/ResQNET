@@ -59,7 +59,7 @@ export class WebBluetoothTransport implements Transport {
 
   async statusDetail(): Promise<string> {
     if (!this.api) return this.unsupportedReason;
-    if (!this.device) return 'Ready to pair — tap to choose a nearby IQOO device (foreground only) [P]';
+    if (!this.device) return 'Ready to pair — tap to choose a nearby ResQNET device (foreground only) [P]';
     return `Paired with ${this.device.name ?? this.device.id.slice(0, 8)} [P]`;
   }
 

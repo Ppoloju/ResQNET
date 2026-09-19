@@ -14,7 +14,7 @@ describe('Ed25519 device keys (§32 production upgrade path)', () => {
   it('signs and verifies a payload roundtrip', async (t) => {
     if (!(await ed25519Supported())) t.skip();
     const { publicKey, privateKey } = await generateDeviceKeyPair();
-    const payload = { id: 'msg_x', emergencyId: 'IQ-TEST0001', ts: 123 };
+    const payload = { id: 'msg_x', emergencyId: 'RQ-TEST0001', ts: 123 };
     const sig = await signWithDeviceKey(payload, privateKey);
     expect(sig).toMatch(/^[0-9a-f]{128}$/);
     await expect(verifyWithDeviceKey(payload, sig, publicKey)).resolves.toBe(true);

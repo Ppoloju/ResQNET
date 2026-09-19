@@ -35,7 +35,7 @@ export default function Family() {
     apiFetch<{ members: Member[] }>('/family')
       .then((r) => setMembers(r.members))
       .catch((e: Error) => setError(e.message));
-    // §25: latest check-in per member with a linked IQOO account.
+    // §25: latest check-in per member with a linked ResQNET account.
     apiFetch<{ members: FamilyCheckIn[] }>('/check-ins/family-status')
       .then((r) => setCheckins(r.members))
       .catch(() => setCheckins([])); // offline: statuses simply show as unknown
@@ -120,7 +120,7 @@ export default function Family() {
                   {c.lastCheckInAt && <span className="muted" style={{ fontSize: '0.75rem' }}>{new Date(c.lastCheckInAt).toLocaleString()}</span>}
                 </div>
               ) : c && !c.linked ? (
-                <div className="muted" style={{ fontSize: '0.75rem', marginTop: 4 }}>not on IQOO — SMS path [R]</div>
+                <div className="muted" style={{ fontSize: '0.75rem', marginTop: 4 }}>not on ResQNET — SMS path [R]</div>
               ) : null;
             })()}
           </div>
@@ -149,7 +149,7 @@ export default function Family() {
           <h2>Test communication</h2>
           <p className="muted">
             Sends a real CHECK_IN event through the same path an SOS uses (backend → sync).
-            Members with a linked IQOO account see it instantly via live updates; SMS delivery is
+            Members with a linked ResQNET account see it instantly via live updates; SMS delivery is
             a documented production integration [R].
           </p>
           <button

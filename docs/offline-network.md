@@ -1,4 +1,4 @@
-# IQOO Offline Network
+# ResQNET Offline Network
 
 ## Delay-tolerant networking (§42) as the central concept
 

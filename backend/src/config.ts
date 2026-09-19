@@ -6,10 +6,15 @@ function required(name: string, fallback?: string): string {
   return v;
 }
 
+function portFromEnv(): number {
+  const n = Number(process.env.PORT);
+  return Number.isFinite(n) && n > 0 ? n : 4000; // PORT=0/empty/garbage → default
+}
+
 export const config = {
   env: process.env.NODE_ENV ?? 'development',
   demoMode: process.env.DEMO_MODE === 'true' || process.env.NODE_ENV === 'demo',
-  port: Number(process.env.PORT ?? 4000),
+  port: portFromEnv(),
   databasePath: process.env.DATABASE_PATH ?? './data/iqoo.sqlite',
   jwtSecret: required('JWT_SECRET', 'change-me-local-only'),
   msgSigningPepper: required('MSG_SIGNING_PEPPER', 'change-me-local-only'),
@@ -22,4 +27,16 @@ export const config = {
     maxHops: 8,
     beaconIntervalMs: Number(process.env.MESH_BEACON_INTERVAL_MS ?? 10000),
   },
+  // SMTP for account-security email (verification codes, 2FA, reset). Unset host
+  // → dev console fallback (mailer logs codes; tests mock the mailer).
+  smtp: {
+    host: process.env.SMTP_HOST ?? '',
+    port: Number(process.env.SMTP_PORT ?? 587),
+    secure: process.env.SMTP_SECURE === 'true',
+    user: process.env.SMTP_USER ?? '',
+    pass: process.env.SMTP_PASS ?? '',
+    from: process.env.SMTP_FROM ?? 'ResQNET <no-reply@resqnet.app>',
+  },
+  // Resend a 2FA/verify code at most this often (seconds).
+  emailCodeResendSeconds: Number(process.env.EMAIL_CODE_RESEND_SECONDS ?? 45),
 };

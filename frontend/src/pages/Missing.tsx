@@ -130,7 +130,7 @@ export default function Missing() {
         }),
       });
       setForm(EMPTY); setPhoto(null); setUseLocation(false); setCoords(null);
-      setNote('Report filed. Nearby IQOO devices will receive a minimal alert through the mesh; matching is human-reviewed.');
+      setNote('Report filed. Nearby ResQNET devices will receive a minimal alert through the mesh; matching is human-reviewed.');
       load();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to file report');

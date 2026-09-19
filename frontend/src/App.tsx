@@ -12,7 +12,7 @@ function StatusBar() {
       <span className={`pill ${battery === null ? '' : battery <= 20 ? 'off' : battery <= 50 ? 'warn' : 'on'}`}>
         {battery === null ? 'BATT --' : `BATT ${battery}%${charging ? ' ⚡' : ''}`}
       </span>
-      <span className="pill on">IQOO</span>
+      <span className="pill on">ResQNET</span>
     </div>
   );
 }
@@ -73,7 +73,7 @@ export default function App({ children }: { children: ReactNode }) {
 
       <header className="topbar">
         <span className="brand" aria-hidden>
-          <span className="brand-dot" /> IQOO
+          <span className="brand-dot" /> ResQNET
         </span>
         <div className="topbar-actions">
           <ThemeToggle />

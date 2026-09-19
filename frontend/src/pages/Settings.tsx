@@ -3,9 +3,80 @@
 // readiness meter, low-power mode forces CRITICAL-only, scan interval is a
 // documented prototype knob.
 
+import { useState } from 'react';
+import { useSession } from '../state/SessionContext';
 import { useSettings, type ThemePreference } from '../state/SettingsContext';
 import { useTransports } from '../state/TransportContext';
 import { useStatus } from '../state/StatusContext';
+
+/** Account security: change password (current password + emailed code). */
+function AccountSecurity() {
+  const { user, sendChangeCode, changePassword } = useSession();
+  const [step, setStep] = useState<'idle' | 'code-sent'>('idle');
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [code, setCode] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [msg, setMsg] = useState('');
+  const [err, setErr] = useState('');
+  const [busy, setBusy] = useState(false);
+  if (!user) return null;
+
+  const run = async (fn: () => Promise<void>, okMsg: string) => {
+    setBusy(true); setErr('');
+    try { await fn(); setMsg(okMsg); }
+    catch (e) { setErr(e instanceof Error ? e.message : 'failed'); }
+    finally { setBusy(false); }
+  };
+
+  return (
+    <div className="card">
+      <h2>Account security</h2>
+      <p className="muted" style={{ marginTop: 0 }}>
+        Signed in as <strong>{user.email}</strong>
+        {user.emailVerified === false && ' — email not yet verified'}
+      </p>
+      {step === 'idle' ? (
+        <button className="btn-secondary" style={{ width: '100%' }} disabled={busy}
+          onClick={() => void run(async () => {
+            await sendChangeCode();
+            setStep('code-sent');
+          }, '')}
+        >
+          Change password (we email you a code)
+        </button>
+      ) : (
+        <>
+          <label htmlFor="cur-pass">Current password</label>
+          <input id="cur-pass" type="password" autoComplete="current-password" value={currentPassword}
+            onChange={(e) => setCurrentPassword(e.target.value)} />
+          <label htmlFor="chg-code">6-digit code sent to {user.email}</label>
+          <input id="chg-code" className="code-input" inputMode="numeric" maxLength={6}
+            autoComplete="one-time-code" value={code}
+            onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))} placeholder="••••••" />
+          <label htmlFor="new-pass">New password (min 8 chars)</label>
+          <input id="new-pass" type="password" autoComplete="new-password" value={newPassword}
+            onChange={(e) => setNewPassword(e.target.value)} />
+          {msg && <p className="muted" role="status">{msg}</p>}
+          {err && <p className="error-text" role="alert">{err}</p>}
+          <div className="row wrap mt">
+            <button className="btn-primary" disabled={busy || code.length !== 6 || newPassword.length < 8 || !currentPassword}
+              onClick={() => void run(async () => {
+                await changePassword(currentPassword, code, newPassword);
+                setStep('idle'); setCurrentPassword(''); setCode(''); setNewPassword('');
+                setMsg('Password changed — a confirmation email is on its way.');
+              }, 'Password changed.')}
+            >
+              {busy ? '…' : 'Change password'}
+            </button>
+            <button className="btn-ghost" disabled={busy}
+              onClick={() => void run(async () => { await sendChangeCode(); setMsg('New code sent.'); }, 'New code sent.')}
+            >Resend code</button>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
 
 const AV_LABEL: Record<string, string> = {
   UNSUPPORTED: 'not available in this browser',
@@ -125,15 +196,17 @@ export default function Settings() {
           disabled={requestingBluetooth}
           onClick={() => void requestBluetooth()}
         >
-          {requestingBluetooth ? 'Waiting for picker…' : 'Pair a nearby IQOO device [P]'}
+          {requestingBluetooth ? 'Waiting for picker…' : 'Pair a nearby ResQNET device [P]'}
         </button>
       </div>
+
+      <AccountSecurity />
 
       <div className="card">
         <h2>About</h2>
         <p className="muted" style={{ fontSize: '0.85rem' }}>
-          IQOO is a hackathon prototype. Mesh links are simulated unless a real radio is
-          active (<span className="mono">[P]</span> labels mark prototypes). IQOO augments
+          ResQNET is a hackathon prototype. Mesh links are simulated unless a real radio is
+          active (<span className="mono">[P]</span> labels mark prototypes). ResQNET augments
           emergency response — it never replaces 100/112/911.
         </p>
       </div>

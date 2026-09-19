@@ -35,7 +35,7 @@ describe('offline sync (§47 idempotency + pull)', () => {
   });
 
   const offlineEvent = {
-    id: 'IQ-OFFLINE01',
+    id: 'RQ-OFFLINE01',
     type: 'SOS',
     severity: 'CRITICAL',
     message: 'created while offline',
@@ -46,8 +46,8 @@ describe('offline sync (§47 idempotency + pull)', () => {
 
   it('accepts an offline-created emergency via /sync/push', async () => {
     const packet = await signPacket({
-      id: 'msg_offline_0001', emergencyId: 'IQ-OFFLINE01', senderId: deviceId,
-      senderPublicId: 'IQOO_NODE_TEST', type: 'SOS' as const, priority: 'CRITICAL' as const,
+      id: 'msg_offline_0001', emergencyId: 'RQ-OFFLINE01', senderId: deviceId,
+      senderPublicId: 'RQ_NODE_TEST', type: 'SOS' as const, priority: 'CRITICAL' as const,
       timestamp: Date.now(), location: { latitude: 0, longitude: 0, accuracyMeters: null, state: 'LOCATION_UNAVAILABLE' as const },
       battery: 15, message: 'created while offline', hopCount: 0, ttl: 3600,
       requiresMedicalHelp: true, requiresPoliceHelp: false,
@@ -65,7 +65,7 @@ describe('offline sync (§47 idempotency + pull)', () => {
       });
     expect(res.status).toBe(200);
     expect(res.body.eventsAccepted).toBe(1);
-    expect(res.body.ackedEventIds).toContain('IQ-OFFLINE01');
+    expect(res.body.ackedEventIds).toContain('RQ-OFFLINE01');
   });
 
   it('replaying the same event does NOT duplicate it (idempotency)', async () => {
@@ -74,10 +74,10 @@ describe('offline sync (§47 idempotency + pull)', () => {
       .send({ events: [offlineEvent], packets: [] });
     expect(res.status).toBe(200);
     expect(res.body.eventsAccepted).toBe(0); // already stored
-    expect(res.body.ackedEventIds).toContain('IQ-OFFLINE01'); // still acked so client clears outbox
+    expect(res.body.ackedEventIds).toContain('RQ-OFFLINE01'); // still acked so client clears outbox
 
     const list = await request(app).get('/api/emergencies').set('Authorization', `Bearer ${token}`);
-    const matches = (list.body.emergencies as Array<{ id: string }>).filter((e) => e.id === 'IQ-OFFLINE01');
+    const matches = (list.body.emergencies as Array<{ id: string }>).filter((e) => e.id === 'RQ-OFFLINE01');
     expect(matches.length).toBe(1); // exactly one row, ever
   });
 
@@ -86,7 +86,7 @@ describe('offline sync (§47 idempotency + pull)', () => {
       .set('Authorization', `Bearer ${token}`);
     expect(first.status).toBe(200);
     expect(first.body.packets.length).toBe(1);
-    expect(first.body.packets[0].emergencyId).toBe('IQ-OFFLINE01');
+    expect(first.body.packets[0].emergencyId).toBe('RQ-OFFLINE01');
     expect(first.body.hasMore).toBe(false);
     expect(first.body.nextCursor).toBeTruthy();
 

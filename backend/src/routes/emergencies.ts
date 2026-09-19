@@ -7,6 +7,7 @@ import { config } from '../config.js';
 import { audit } from '../middleware/audit.js';
 import { requireAuth, type AuthedRequest } from '../middleware/auth.js';
 import { logger } from '../logger.js';
+import { broadcastEvent } from './realtime.js';
 
 export const emergenciesRouter = Router();
 
@@ -46,13 +47,13 @@ const publicIdByUser = (userId: string): string => {
   const row = db.prepare('SELECT public_id FROM devices WHERE user_id = ? ORDER BY created_at LIMIT 1').get(userId) as
     | { public_id: string }
     | undefined;
-  return row?.public_id ?? 'IQOO_NODE_UNKNOWN';
+  return row?.public_id ?? 'RQ_NODE_UNKNOWN';
 };
 
 function newEmergencyId(): string {
-  // IQ-XXXXXXXX (§21 example format)
+  // RQ-XXXXXXXX (human-quotable emergency reference)
   const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-  let id = 'IQ-';
+  let id = 'RQ-';
   for (let i = 0; i < 8; i++) id += alphabet[randomInt(alphabet.length)];
   return id;
 }
@@ -120,6 +121,22 @@ emergenciesRouter.post('/', requireAuth, async (req: AuthedRequest, res) => {
 
     audit(userId, 'emergency.create', 'emergency_event', emergencyId, { type: input.type, severity: input.severity });
     logger.info({ emergencyId, type: input.type }, 'emergency created');
+
+    // Real-time fan-out (§18): every connected device sees the emergency the
+    // moment it reaches the backend — no polling, no refresh. Public payload
+    // only: emergency id, type, severity, coarse location. Never user identity.
+    broadcastEvent('emergency', {
+      emergencyId,
+      type: input.type,
+      severity: input.severity,
+      category: input.category ?? null,
+      message: input.message,
+      location: input.location.state !== 'LOCATION_UNAVAILABLE'
+        ? { latitude: input.location.latitude, longitude: input.location.longitude, accuracyMeters: input.location.accuracyMeters }
+        : null,
+      createdAt: now,
+    });
+
     res.status(201).json({ emergencyId, status: 'ACTIVE' });
   } catch (err) {
     logger.error({ err }, 'emergency creation failed');
@@ -178,7 +195,37 @@ emergenciesRouter.post('/:id/resolve', requireAuth, async (req: AuthedRequest, r
   });
 
   audit(req.user!.userId, 'emergency.resolve', 'emergency_event', row.id as string);
+  broadcastEvent('emergency_resolved', { emergencyId: row.id, resolvedAt: now });
   res.json({ ok: true, status: 'RESOLVED', resolutionPacketId: packet.id });
+});
+
+/**
+ * Public live feed (§18 nearby-helper view): ACTIVE emergencies from the last
+ * 2 hours, newest first. Public safety information — emergency id, type,
+ * severity, message, coarse location. No user identity, no medical data.
+ * Used for initial load; updates arrive via the SSE `emergency` event.
+ */
+emergenciesRouter.get('/feed/public', (_req, res) => {
+  const since = new Date(Date.now() - 2 * 3600_000).toISOString();
+  const rows = db.prepare(
+    `SELECT id, type, severity, category, message, lat, lon, location_state, location_accuracy_m, created_at
+     FROM emergency_events
+     WHERE status = 'ACTIVE' AND created_at > ?
+     ORDER BY created_at DESC LIMIT 25`,
+  ).all(since) as Array<Record<string, unknown>>;
+  res.json({
+    emergencies: rows.map((r) => ({
+      id: r.id,
+      type: r.type,
+      severity: r.severity,
+      category: r.category,
+      message: r.message,
+      location: (r.lat != null && r.lon != null && r.location_state !== 'LOCATION_UNAVAILABLE')
+        ? { latitude: r.lat, longitude: r.lon, accuracyMeters: r.location_accuracy_m }
+        : null,
+      createdAt: r.created_at,
+    })),
+  });
 });
 
 /** List own emergencies (emergency history / black box seed). */

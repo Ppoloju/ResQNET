@@ -71,7 +71,7 @@ export const GUIDANCE_TOPICS: Record<string, GuidanceTopic> = {
       'Conserve air and energy — shout only when you hear searchers; otherwise bang on a pipe or wall in a pattern of three.',
       'Cover nose and mouth with cloth against dust.',
       'Do not struggle against heavy debris; movement can bring more down.',
-      'If you have a phone, keep it on but screen off to save battery; send one IQOO SOS with your location.',
+      'If you have a phone, keep it on but screen off to save battery; send one ResQNET SOS with your location.',
       'Stay near an open space or window where sound carries.',
     ],
     escalate: 'If you can move, go toward light and airflow — but never through smoke-filled or unstable areas.',
@@ -81,7 +81,7 @@ export const GUIDANCE_TOPICS: Record<string, GuidanceTopic> = {
     id: 'evacuation',
     title: 'Evacuation basics',
     steps: [
-      'Take your emergency profile (IQOO card works offline) and any essential medication.',
+      'Take your emergency profile (ResQNET card works offline) and any essential medication.',
       'Do not use elevators; use stairs.',
       'Stay away from fallen power lines, cracked walls, and water over roads.',
       'Move perpendicular to floodwater flow; 15 cm of moving water can knock you down.',

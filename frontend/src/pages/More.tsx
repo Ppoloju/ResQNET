@@ -41,9 +41,9 @@ export default function More() {
       <div className="card">
         <h2>About this prototype</h2>
         <p className="muted" style={{ fontSize: '0.85rem' }}>
-          IQOO is a hackathon prototype. Mesh links between phones are simulated in the demo
+          ResQNET is a hackathon prototype. Mesh links between phones are simulated in the demo
           (<span className="mono">[P]</span>) — real BLE transport requires native mobile support
-          (<span className="mono">[R]</span>). IQOO augments emergency response; it never replaces
+          (<span className="mono">[R]</span>). ResQNET augments emergency response; it never replaces
           official emergency numbers (100/112/911).
         </p>
       </div>

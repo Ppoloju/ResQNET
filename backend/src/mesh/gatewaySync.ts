@@ -55,7 +55,7 @@ export function syncEmergencyFromGateway(packet: EmergencyPacket, ownerUserId?: 
   const dev = db.prepare('SELECT id FROM devices WHERE id = ?').get(gatewayDeviceId);
   if (!dev) {
     db.prepare(`INSERT INTO devices (id, user_id, name, platform, public_id, secret, created_at)
-                VALUES (?, ?, 'Demo Gateway (simulated)', 'web', 'IQOO_NODE_GW', ?, ?)`)
+                VALUES (?, ?, 'Demo Gateway (simulated)', 'web', 'RQ_NODE_GW', ?, ?)`)
       .run(gatewayDeviceId, ensureGatewayUser(), randomUUID().replace(/-/g, ''), new Date().toISOString());
   }
 

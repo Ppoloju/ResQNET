@@ -1,6 +1,26 @@
 import { describe, it, expect, beforeAll, beforeEach, vi } from 'vitest';
 import request from 'supertest';
 
+// The 2FA flow makes several auth calls per test — raise the limiter for this suite.
+process.env.RATE_LIMIT_AUTH = '100';
+
+// Capture emails so tests can complete 2FA / verification flows with real codes.
+const { mailedCodes } = vi.hoisted(() => ({
+  mailedCodes: [] as Array<{ to: string; code: string; purpose: string }>,
+}));
+vi.mock('../lib/mailer.js', () => ({
+  sendVerificationCode: async (to: string, code: string, purpose: string) => {
+    mailedCodes.push({ to, code, purpose });
+  },
+  sendPasswordChangedNotice: async () => {},
+  mailerMode: () => 'console',
+}));
+const lastCode = (purpose: string): string => {
+  const c = mailedCodes.filter((m) => m.purpose === purpose).at(-1);
+  if (!c) throw new Error(`no ${purpose} code captured`);
+  return c.code;
+};
+
 // Isolated, in-memory DB per test run (schema applied from database/schema.sql).
 // NOTE: node:sqlite is loaded via createRequire because vitest 2's resolver predates it.
 vi.mock('../db.js', async () => {
@@ -26,7 +46,7 @@ let app: import('express').Express;
 
 beforeAll(async () => {
   ({ app } = await import('../server.js'));
-});
+}, 30_000);
 
 describe('auth + API smoke', () => {
   let token = '';
@@ -38,7 +58,7 @@ describe('auth + API smoke', () => {
       .send({ email, password: 'Str0ngPass!x', displayName: 'Test User' });
     expect(res.status).toBe(201);
     expect(res.body.token).toBeTruthy();
-    expect(res.body.device.publicId).toMatch(/^IQOO_NODE_[0-9A-F]{4}$/);
+    expect(res.body.device.publicId).toMatch(/^RQ_NODE_[0-9A-F]{4}$/);
     expect(res.body.device.secret).toHaveLength(64);
     token = res.body.token;
   });
@@ -50,15 +70,58 @@ describe('auth + API smoke', () => {
     expect(res.status).toBe(409);
   });
 
-  it('logs in with valid credentials only', async () => {
-    const ok = await request(app).post('/api/auth/login')
+  it('logs in with two-step verification: password → emailed code → token', async () => {
+    const first = await request(app).post('/api/auth/login')
       .send({ email, password: 'Str0ngPass!x' });
-    expect(ok.status).toBe(200);
-    expect(ok.body.token).toBeTruthy();
+    expect(first.status).toBe(200);
+    expect(first.body.twoFactorRequired).toBe(true);
+    expect(first.body.email).toMatch(/\*\*\*@/); // masked — never the full address
 
+    // Wrong password → 401 before any code is issued.
     const bad = await request(app).post('/api/auth/login')
       .send({ email, password: 'wrong' });
     expect(bad.status).toBe(401);
+
+    // Correct password + emailed code → session token.
+    const ok = await request(app).post('/api/auth/login/verify-2fa')
+      .send({ email, code: lastCode('LOGIN_2FA') });
+    expect(ok.status).toBe(200);
+    expect(ok.body.token).toBeTruthy();
+    token = ok.body.token;
+
+    // Codes are single-use — replaying the same code fails.
+    const replay = await request(app).post('/api/auth/login/verify-2fa')
+      .send({ email, code: lastCode('LOGIN_2FA') });
+    expect(replay.status).toBe(401);
+  });
+
+  it('verifies the email address with the emailed code', async () => {
+    const res = await request(app).post('/api/auth/verify-email')
+      .send({ email, code: lastCode('VERIFY_ACCOUNT') });
+    expect(res.status).toBe(200);
+    expect(res.body.emailVerified).toBe(true);
+
+    const me = await request(app).get('/api/auth/me').set('Authorization', `Bearer ${token}`);
+    expect(me.body.user.emailVerified).toBe(true);
+  });
+
+  it('resets a forgotten password via emailed code and notifies', async () => {
+    const req = await request(app).post('/api/auth/forgot-password').send({ email });
+    expect(req.status).toBe(200);
+
+    const reset = await request(app).post('/api/auth/reset-password')
+      .send({ email, code: lastCode('PASSWORD_RESET'), newPassword: 'N3wStr0ng!pass' });
+    expect(reset.status).toBe(200);
+
+    // New password works (through 2FA); old password rejected.
+    const old = await request(app).post('/api/auth/login').send({ email, password: 'Str0ngPass!x' });
+    expect(old.status).toBe(401);
+    const step1 = await request(app).post('/api/auth/login').send({ email, password: 'N3wStr0ng!pass' });
+    expect(step1.body.twoFactorRequired).toBe(true);
+    const step2 = await request(app).post('/api/auth/login/verify-2fa')
+      .send({ email, code: lastCode('LOGIN_2FA') });
+    expect(step2.status).toBe(200);
+    token = step2.body.token;
   });
 
   it('protects endpoints without token', async () => {
@@ -92,7 +155,7 @@ describe('auth + API smoke', () => {
       });
     expect(res.status).toBe(201);
     const id = res.body.emergencyId as string;
-    expect(id).toMatch(/^IQ-/);
+    expect(id).toMatch(/^RQ-/);
 
     const detail = await request(app).get(`/api/emergencies/${id}`)
       .set('Authorization', `Bearer ${token}`);
@@ -123,11 +186,11 @@ describe('auth + API smoke', () => {
   it('pushes offline events idempotently (§47)', async () => {
     const body = {
       events: [{
-        id: 'IQ-OFFLINE1', type: 'SOS' as const, severity: 'CRITICAL' as const, message: 'offline',
+        id: 'RQ-OFFLINE1', type: 'SOS' as const, severity: 'CRITICAL' as const, message: 'offline',
         locationState: 'LOCATION_UNAVAILABLE' as const, createdAt: new Date().toISOString(),
       }],
       packets: [{
-        id: 'msg_offline-1', emergencyId: 'IQ-OFFLINE1', type: 'SOS', priority: 'CRITICAL',
+        id: 'msg_offline-1', emergencyId: 'RQ-OFFLINE1', type: 'SOS', priority: 'CRITICAL',
         payload: JSON.stringify({ id: 'msg_offline-1' }), signature: 'f'.repeat(64),
         hopCount: 0, createdAt: new Date().toISOString(),
       }],
@@ -139,7 +202,7 @@ describe('auth + API smoke', () => {
     const second = await request(app).post('/api/sync/push').set('Authorization', `Bearer ${token}`).send(body);
     expect(second.status).toBe(200);
     expect(second.body.eventsAccepted).toBe(0); // idempotent
-    expect(second.body.ackedEventIds).toContain('IQ-OFFLINE1');
+    expect(second.body.ackedEventIds).toContain('RQ-OFFLINE1');
   });
 
   it('enforces profile conflict handling via baseVersion (§47)', async () => {
@@ -205,7 +268,7 @@ describe('auth + API smoke', () => {
 
     const inject = await request(app).post('/api/sim/inject')
       .set('Authorization', `Bearer ${token}`)
-      .send({ from: 'A', emergencyId: 'IQ-SIM00001', message: 'sim SOS', priority: 'CRITICAL', battery: 70 });
+      .send({ from: 'A', emergencyId: 'RQ-SIM00001', message: 'sim SOS', priority: 'CRITICAL', battery: 70 });
     expect(inject.status).toBe(200);
     expect(inject.body.packet.signature).toMatch(/^[0-9a-f]{64}$/);
 

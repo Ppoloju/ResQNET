@@ -105,7 +105,7 @@ export default function Network() {
     setBusy(true);
     setNote(null);
     try {
-      const emergencyId = `IQ-${Math.random().toString(36).slice(2, 8).toUpperCase().replace(/[^A-Z0-9]/g, 'X').padEnd(8, 'X').slice(0, 8)}`;
+      const emergencyId = `RQ-${Math.random().toString(36).slice(2, 8).toUpperCase().replace(/[^A-Z0-9]/g, 'X').padEnd(8, 'X').slice(0, 8)}`;
       const r = await apiFetch<{ accepted: boolean; snapshot: Snapshot }>('/sim/inject', {
         method: 'POST',
         body: JSON.stringify({
@@ -195,7 +195,7 @@ export default function Network() {
         ))}
         <button className="btn-secondary" style={{ width: '100%', marginTop: 8 }}
           disabled={requestingBluetooth} onClick={() => void requestBluetooth()}>
-          {requestingBluetooth ? 'Waiting for picker…' : 'Pair nearby IQOO device [P]'}
+          {requestingBluetooth ? 'Waiting for picker…' : 'Pair nearby ResQNET device [P]'}
         </button>
         <p className="dim small">Thresholds: CRITICAL-only below {criticalThresholdPct}% · normal above {normalThresholdPct}% (change in Settings)</p>
       </section>

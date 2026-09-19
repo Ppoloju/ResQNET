@@ -1,5 +1,5 @@
 /* =====================================================================
-   IQOO — design system
+   ResQNET — design system
    - Theme tokens on :root (dark default) overridden by [data-theme="light"];
      SettingsProvider sets document.documentElement.dataset.theme.
    - Phone-first: base styles target phones, media queries enhance desktop.
@@ -93,6 +93,25 @@ input:focus-visible, textarea:focus-visible, button:focus-visible, a:focus-visib
 }
 input[type="range"] { accent-color: var(--red); width: 100%; }
 input[type="checkbox"] { accent-color: var(--red); }
+input.code-input {
+  font-size: 1.6rem;
+  letter-spacing: 0.55em;
+  text-align: center;
+  font-family: var(--mono, ui-monospace, monospace);
+  padding: 10px 4px 10px 0.55em;
+}
+
+/* ---------- emergency map ---------- */
+.map-wrap { margin-top: 10px; }
+.map-wrap .leaflet-container { background: var(--surface-2, #1a2330); font: inherit; }
+.leaflet-control-attribution { font-size: 9px !important; }
+html[data-theme='dark'] .leaflet-tile-pane { filter: brightness(0.85) contrast(1.05) saturate(0.85); }
+.pulse-dot { animation: pulse-dot 1.6s ease-out infinite; }
+@keyframes pulse-dot {
+  0% { box-shadow: 0 0 0 0 rgba(224, 112, 0, 0.5); }
+  70% { box-shadow: 0 0 0 14px rgba(224, 112, 0, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(224, 112, 0, 0); }
+}
 
 /* ---------- app shell ---------- */
 .app { min-height: 100dvh; display: flex; flex-direction: column; }

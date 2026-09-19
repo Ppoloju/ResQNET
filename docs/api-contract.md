@@ -1,4 +1,4 @@
-# IQOO API Contract
+# ResQNET API Contract
 
 Base URL: `/api` · Auth: `Authorization: Bearer <JWT>` (register/login/device).
 All bodies JSON. Errors: `{ "error": string, "issues"?: [...] }`.

@@ -20,21 +20,24 @@ export function broadcastEvent(event: string, data: unknown): void {
   }
 }
 
+/** Connected-client count (used by /auth/me/live and logs). */
+export function clientCount(): number {
+  return clients.size;
+}
+
 realtimeRouter.get('/stream', (req: Request, res: Response) => {
-  // EventSource cannot set headers — accept the JWT as ?token= (documented in docs/api-contract.md).
-  // Wrapped requireAuth logic inline so both header and query auth work on one route.
+  // Live emergency feed — public safety information, so the stream is open to
+  // every device (a phone with no account must still SEE emergencies).
+  // EventSource cannot set headers — accept the JWT as ?token= when present
+  // (documented in docs/api-contract.md); identity-gated events stay auth-only.
   const header = req.headers.authorization;
   const token = header?.startsWith('Bearer ') ? header.slice(7)
     : typeof req.query.token === 'string' ? req.query.token : undefined;
-  if (!token) {
-    res.status(401).json({ error: 'missing bearer token' });
-    return;
-  }
-  try {
-    jwt.verify(token, config.jwtSecret);
-  } catch {
-    res.status(401).json({ error: 'invalid or expired token' });
-    return;
+  if (token) {
+    try { jwt.verify(token, config.jwtSecret); } catch {
+      res.status(401).json({ error: 'invalid or expired token' });
+      return;
+    }
   }
   res.set({
     'content-type': 'text/event-stream',

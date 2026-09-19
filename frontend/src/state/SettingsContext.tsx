@@ -37,7 +37,7 @@ const DEFAULTS: IqooSettings = {
   theme: 'system',
 };
 
-const KEY = 'iqoo.settings';
+const KEY = 'resqnet.settings';
 
 function load(): IqooSettings {
   try {

@@ -4,7 +4,9 @@ import { apiFetch, useSession } from '../state/SessionContext';
 import { useStatus } from '../state/StatusContext';
 import { useMesh } from '../state/MeshContext';
 import { useAI } from '../state/AIContext';
-import { useMeshEvents, type BroadcastEvent } from '../state/RealtimeContext';
+import { useMeshEvents, type BroadcastEvent, type LiveEmergency } from '../state/RealtimeContext';
+import { EmergencyMap, useHighAccuracyLocation } from '../components/EmergencyMap';
+import { setLatestFix } from '../state/locationStore';
 import { findGuidance, guidanceForCategory, type GuidanceTopic } from '@iqoo/shared';
 import { EMERGENCY_PROMPT_SUGGESTIONS } from '@iqoo/shared';
 import type { Severity } from '@iqoo/shared';
@@ -19,6 +21,72 @@ function BroadcastBanner() {
     <div className={`banner ${critical ? 'danger-banner' : 'warn-banner'}`} role={critical ? 'alert' : 'status'}>
       <strong>⚠ {b.mode} BROADCAST</strong> — {b.message}
       <button className="btn-ghost" style={{ marginLeft: 'auto', minHeight: 32 }} onClick={clearBroadcast} aria-label="Dismiss broadcast">✕</button>
+    </div>
+  );
+}
+
+/**
+ * Live emergency map (§18): my exact GPS + other people's active emergencies
+ * from the real-time feed. Public safety info — no login required to SEE.
+ */
+function LiveMapCard() {
+  const { fix, state } = useHighAccuracyLocation();
+  const { liveEmergencies, connected } = useMeshEvents();
+
+  // Feed the freshest fix to the SOS flow so packets carry the exact position.
+  useEffect(() => {
+    if (fix) setLatestFix(fix);
+  }, [fix]);
+
+  // Load the initial public feed once (updates arrive via SSE).
+  const [initial, setInitial] = useState<LiveEmergency[]>([]);
+  useEffect(() => {
+    apiFetch<{ emergencies: Array<LiveEmergency & { id?: string }> }>('/emergencies/feed/public')
+      .then((r) => setInitial(r.emergencies.map((e) => ({ ...e, emergencyId: e.emergencyId ?? e.id ?? '' }))))
+      .catch(() => { /* offline — SSE will catch us up when a link exists */ });
+  }, []);
+
+  const merged = useMemo(() => {
+    const byId = new Map<string, LiveEmergency>();
+    for (const e of [...initial, ...liveEmergencies]) byId.set(e.emergencyId, e);
+    return [...byId.values()];
+  }, [initial, liveEmergencies]);
+
+  const others = merged
+    .filter((e) => e.location)
+    .map((e) => ({
+      emergencyId: e.emergencyId,
+      latitude: e.location!.latitude,
+      longitude: e.location!.longitude,
+      label: `${e.type} · ${e.severity}`,
+    })) as Array<{ emergencyId: string; latitude: number; longitude: number; label?: string }>;
+
+  return (
+    <div className="card" data-testid="live-map-card">
+      <div className="row spread" style={{ alignItems: 'baseline' }}>
+        <h2 style={{ margin: 0 }}>Live emergency map</h2>
+        <span className={`pill small ${connected ? 'on' : 'off'}`}>{connected ? 'LIVE' : 'RECONNECTING'}</span>
+      </div>
+      <EmergencyMap position={fix} others={others} height={240} />
+      {state === 'denied' && (
+        <p className="muted small">Location permission denied — your SOS still works, but responders get no map pin.</p>
+      )}
+      {merged.length > 0 && (
+        <ul className="event-list mt">
+          {merged.slice(0, 6).map((e) => (
+            <li key={e.emergencyId}>
+              <span className={`sev-pill ${e.severity === 'CRITICAL' ? 'sev-critical' : e.severity === 'HIGH' ? 'sev-high' : 'sev-medium'}`}>{e.severity}</span>{' '}
+              <strong>{e.type}</strong>{e.message ? ` — ${e.message}` : ''}{' '}
+              <span className="dim small">{new Date(e.createdAt).toLocaleTimeString()}</span>{' '}
+              <span className="mono small">{e.emergencyId}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+      <p className="muted small" style={{ margin: '6px 2px 0' }}>
+        Red: you (exact GPS, ±{fix?.accuracyMeters != null ? Math.round(fix.accuracyMeters) : '…'} m).
+        Orange: other active emergencies nearby.
+      </p>
     </div>
   );
 }
@@ -65,7 +133,7 @@ function CheckInCard() {
   );
 }
 
-/** Nearby IQOO devices (§18): server view when online; nothing fabricated offline. */
+/** Nearby ResQNET devices (§18): server view when online; nothing fabricated offline. */
 function NearbyCard() {
   const { online } = useStatus();
   const { user } = useSession();
@@ -90,7 +158,7 @@ function NearbyCard() {
     return (
       <div className="card">
         <h2>🛰 Nearby</h2>
-        <p className="muted">{!user ? 'Sign in to see nearby IQOO devices.' : 'Offline — device discovery resumes when connectivity returns.'}</p>
+        <p className="muted">{!user ? 'Sign in to see nearby ResQNET devices.' : 'Offline — device discovery resumes when connectivity returns.'}</p>
       </div>
     );
   }
@@ -102,7 +170,7 @@ function NearbyCard() {
       {state === 'denied' && <p className="muted">Location permission denied — enable it to see nearby devices.</p>}
       {state === 'loaded' && (
         nearby.length === 0
-          ? <p className="muted">No IQOO devices reported nearby in the last 24h. <span className="mono">[R: full discovery is BLE-based]</span></p>
+          ? <p className="muted">No ResQNET devices reported nearby in the last 24h. <span className="mono">[R: full discovery is BLE-based]</span></p>
           : (
             <ul className="event-list">
               {nearby.slice(0, 5).map((n) => (
@@ -329,6 +397,26 @@ function EmergencyMode() {
         </div>
       )}
 
+      {active.location && active.location.state !== 'LOCATION_UNAVAILABLE' && (
+        <div className="card">
+          <h2>Your location — shared with the network</h2>
+          <EmergencyMap
+            position={{
+              latitude: active.location.latitude,
+              longitude: active.location.longitude,
+              accuracyMeters: active.location.accuracyMeters,
+            }}
+            height={220}
+            zoom={17}
+          />
+          <p className="muted small" style={{ margin: '6px 2px 0' }}>
+            {active.location.latitude.toFixed(5)}, {active.location.longitude.toFixed(5)}
+            {active.location.accuracyMeters != null ? ` · ±${Math.round(active.location.accuracyMeters)} m` : ''}
+            {' '}- exact GPS from this device, attached to your signed packet.
+          </p>
+        </div>
+      )}
+
       {active.ai && (
         <div className="card" data-testid="emergency-ai">
           <h2>🧠 Local AI assessment</h2>
@@ -380,8 +468,8 @@ export default function Home() {
           <h1>{greeting}{user ? `, ${user.displayName.split(' ')[0]}` : ''}</h1>
           <p className="muted">
             {online
-              ? 'Connected to IQOO backend.'
-              : 'No internet — SOS will alert nearby IQOO devices and queue for sync.'}
+              ? 'Connected to ResQNET backend.'
+              : 'No internet — SOS will alert nearby ResQNET devices and queue for sync.'}
           </p>
 
           <button
@@ -400,7 +488,7 @@ export default function Home() {
             {quickHelpOpen ? (
               <>
                 <h2>Need Help — pick a reason</h2>
-                <p className="muted">Lower-profile alert to nearby IQOO users. Not a replacement for SOS.</p>
+                <p className="muted">Lower-profile alert to nearby ResQNET users. Not a replacement for SOS.</p>
                 {['Someone is following me', 'I am lost', 'Need assistance', 'Unsafe environment', 'Medical help'].map((r) => (
                   <button key={r} className="btn-help" style={{ marginBottom: 8 }}
                     onClick={() => { setQuickHelpOpen(false); startSos(`NEED_HELP:${r}`); }}>
@@ -415,6 +503,8 @@ export default function Home() {
           </div>
 
           <CheckInCard />
+
+          <LiveMapCard />
 
           <NearbyCard />
 

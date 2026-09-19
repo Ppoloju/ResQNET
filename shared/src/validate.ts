@@ -27,7 +27,7 @@ export function validatePacket(p: unknown): { valid: boolean; issues: Validation
   };
 
   req('id', typeof pkt.id === 'string' && pkt.id.length >= 8 && pkt.id.length <= 64, 'missing or malformed id');
-  req('emergencyId', typeof pkt.emergencyId === 'string' && /^IQ-[0-9A-Z]{6,12}$/.test(pkt.emergencyId), 'emergencyId must match IQ-XXXXXXXX');
+  req('emergencyId', typeof pkt.emergencyId === 'string' && /^RQ-[0-9A-Z]{6,12}$/.test(pkt.emergencyId), 'emergencyId must match RQ-XXXXXXXX');
   req('senderId', typeof pkt.senderId === 'string' && pkt.senderId.length > 0, 'missing senderId');
   req('senderPublicId', typeof pkt.senderPublicId === 'string' && pkt.senderPublicId.length <= 32, 'missing senderPublicId');
   req('type', PACKET_TYPES.includes(pkt.type as PacketType), 'invalid type');

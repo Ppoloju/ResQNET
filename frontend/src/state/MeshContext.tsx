@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { signPacket, type EmergencyPacket, type GeoLocation, type LocationState, type AIResult } from '@iqoo/shared';
 import { apiFetch, useSession } from './SessionContext';
 import { useStatus } from './StatusContext';
+import { getLatestFix } from './locationStore';
 
 export type SosPhase = 'IDLE' | 'COUNTDOWN' | 'ACTIVE' | 'RESOLVED';
 
@@ -26,16 +27,27 @@ export interface ActiveEmergency {
   ai?: AIResult;
 }
 
-/** Emergency ID generation: IQ-XXXXXXXX (Crockford-ish alphabet, no 0/O/1/I). */
+/** Emergency ID generation: RQ-XXXXXXXX (Crockford-ish alphabet, no 0/O/1/I). */
 function newEmergencyId(): string {
   const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-  let id = 'IQ-';
+  let id = 'RQ-';
   const bytes = crypto.getRandomValues(new Uint8Array(8));
   for (const b of bytes) id += alphabet[b % alphabet.length];
   return id;
 }
 
 function getLocation(): Promise<GeoLocation> {
+  // Prefer the live watch fix (exact, already warm). Fall back to a fresh
+  // high-accuracy read. LOCATION_UNAVAILABLE is honest — never fabricated.
+  const cached = getLatestFix();
+  if (cached) {
+    return Promise.resolve({
+      latitude: cached.latitude,
+      longitude: cached.longitude,
+      accuracyMeters: cached.accuracyMeters,
+      state: (cached.accuracyMeters ?? 999) <= 100 ? 'GPS_AVAILABLE' : 'NETWORK_LOCATION_AVAILABLE',
+    });
+  }
   return new Promise((resolve) => {
     if (!('geolocation' in navigator)) {
       resolve({ latitude: 0, longitude: 0, accuracyMeters: null, state: 'LOCATION_UNAVAILABLE' });
@@ -68,25 +80,25 @@ interface MeshState {
 
 const MeshContext = createContext<MeshState>(null as unknown as MeshState);
 
-const ACTIVE_KEY = 'iqoo.activeEmergency';
+const ACTIVE_KEY = 'resqnet.activeEmergency';
 
 /**
  * Anonymous local identity (§34): SOS must work with NO account and NO network.
  * Identity is generated on-device, kept in localStorage, and upgraded to the
  * server-issued device identity when the user registers. Public ID carries no
- * personal information (IQOO_NODE_XXXX).
+ * personal information (RQ_NODE_XXXX).
  */
 function getOrCreateLocalIdentity(): { id: string; publicId: string; secret: string } {
-  const raw = localStorage.getItem('iqoo.localDevice');
+  const raw = localStorage.getItem('resqnet.localDevice');
   if (raw) {
     try { return JSON.parse(raw) as { id: string; publicId: string; secret: string }; } catch { /* regenerate */ }
   }
   const secretBytes = crypto.getRandomValues(new Uint8Array(32));
   const secret = Array.from(secretBytes).map((b) => b.toString(16).padStart(2, '0')).join('');
   const pubBytes = crypto.getRandomValues(new Uint8Array(2));
-  const publicId = `IQOO_NODE_${Array.from(pubBytes).map((b) => b.toString(16).padStart(2, '0').toUpperCase()).join('')}`;
+  const publicId = `RQ_NODE_${Array.from(pubBytes).map((b) => b.toString(16).padStart(2, '0').toUpperCase()).join('')}`;
   const identity = { id: `local_${crypto.randomUUID()}`, publicId, secret };
-  localStorage.setItem('iqoo.localDevice', JSON.stringify(identity));
+  localStorage.setItem('resqnet.localDevice', JSON.stringify(identity));
   return identity;
 }
 
@@ -116,7 +128,7 @@ export function MeshProvider({ children }: { children: ReactNode }) {
         log('EMERGENCY_RESTORED', saved.emergencyId);
       } catch { /* corrupt state — ignore */ }
     }
-    setOutboxCount(JSON.parse(localStorage.getItem('iqoo.outbox') ?? '[]').length);
+    setOutboxCount(JSON.parse(localStorage.getItem('resqnet.outbox') ?? '[]').length);
   }, []);
 
   // Persist active emergency.
@@ -129,13 +141,13 @@ export function MeshProvider({ children }: { children: ReactNode }) {
     setBlackBox((b) => {
       const next = [...b, { ts: Date.now(), event, detail }].slice(-200);
       // Persist so History/Demo pages can show the black box after reload (§39).
-      try { localStorage.setItem('iqoo.blackbox', JSON.stringify(next)); } catch { /* storage full */ }
+      try { localStorage.setItem('resqnet.blackbox', JSON.stringify(next)); } catch { /* storage full */ }
       return next;
     });
   }, []);
 
   const pushOutbox = useCallback((packet: EmergencyPacket, emergencyId: string, type: string, severity: string) => {
-    const box = JSON.parse(localStorage.getItem('iqoo.outbox') ?? '[]') as unknown[];
+    const box = JSON.parse(localStorage.getItem('resqnet.outbox') ?? '[]') as unknown[];
     box.push({
       event: {
         id: emergencyId, type, severity,
@@ -147,7 +159,7 @@ export function MeshProvider({ children }: { children: ReactNode }) {
       },
       packet,
     });
-    localStorage.setItem('iqoo.outbox', JSON.stringify(box));
+    localStorage.setItem('resqnet.outbox', JSON.stringify(box));
     setOutboxCount(box.length);
   }, []);
 
@@ -186,7 +198,7 @@ export function MeshProvider({ children }: { children: ReactNode }) {
   /** Drain outbox when connectivity returns (§47). Idempotent server-side. */
   const syncOutbox = useCallback(async () => {
     if (!onlineRef.current) return;
-    const box = JSON.parse(localStorage.getItem('iqoo.outbox') ?? '[]') as Array<{
+    const box = JSON.parse(localStorage.getItem('resqnet.outbox') ?? '[]') as Array<{
       event: Record<string, unknown>; packet: EmergencyPacket;
     }>;
     if (box.length === 0) return;
@@ -205,7 +217,7 @@ export function MeshProvider({ children }: { children: ReactNode }) {
       });
       const acked = new Set(res.ackedEventIds);
       const remaining = box.filter((i) => !acked.has((i.event as { id: string }).id));
-      localStorage.setItem('iqoo.outbox', JSON.stringify(remaining));
+      localStorage.setItem('resqnet.outbox', JSON.stringify(remaining));
       setOutboxCount(remaining.length);
       setLastSyncAt(Date.now());
       log('SYNC_DRAINED', `${box.length - remaining.length} items synced`);
@@ -226,7 +238,7 @@ export function MeshProvider({ children }: { children: ReactNode }) {
    */
   const pullUpdates = useCallback(async () => {
     if (!onlineRef.current || !userRef.current) return;
-    const cursor = localStorage.getItem('iqoo.syncCursor') ?? '';
+    const cursor = localStorage.getItem('resqnet.syncCursor') ?? '';
     try {
       const res = await apiFetch<{ packets: Array<{ id: string; emergencyId: string; type: string; priority: string; payload: unknown; createdAt: string }>; nextCursor: string; hasMore: boolean }>(
         `/sync/pull?cursor=${encodeURIComponent(cursor)}&limit=50`,
@@ -234,16 +246,16 @@ export function MeshProvider({ children }: { children: ReactNode }) {
       let newCount = 0;
       for (const p of res.packets) {
         // Skip packets this device authored or already saw (dedupe, §33).
-        const seen = localStorage.getItem('iqoo.seenPackets');
+        const seen = localStorage.getItem('resqnet.seenPackets');
         const seenSet = new Set<string>(seen ? (JSON.parse(seen) as string[]) : []);
         if (!seenSet.has(p.id)) {
           seenSet.add(p.id);
-          localStorage.setItem('iqoo.seenPackets', JSON.stringify([...seenSet].slice(-500)));
+          localStorage.setItem('resqnet.seenPackets', JSON.stringify([...seenSet].slice(-500)));
           newCount++;
           log('PACKET_RECEIVED_SYNC', `${p.type} for ${p.emergencyId}`);
         }
       }
-      localStorage.setItem('iqoo.syncCursor', res.nextCursor);
+      localStorage.setItem('resqnet.syncCursor', res.nextCursor);
       if (newCount > 0) log('SYNC_PULL', `${newCount} new packet(s) received`);
     } catch {
       // pull failed — retried on next reconnect; cursor unchanged so nothing is lost

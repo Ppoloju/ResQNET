@@ -18,6 +18,17 @@ db.exec('PRAGMA foreign_keys = ON;');
 const schemaPath = path.resolve(__dirname, '../../database/schema.sql');
 db.exec(fs.readFileSync(schemaPath, 'utf8'));
 
+// Lightweight idempotent migrations for databases created before the
+// account-security phase (email 2FA). CREATE TABLE IF NOT EXISTS does not
+// touch existing tables, so pre-existing users tables get the new columns here.
+const userColumns = db.prepare('PRAGMA table_info(users)').all() as Array<{ name: string }>;
+if (!userColumns.some((c) => c.name === 'email_verified')) {
+  db.exec("ALTER TABLE users ADD COLUMN email_verified INTEGER NOT NULL DEFAULT 0");
+}
+if (!userColumns.some((c) => c.name === 'two_factor_enabled')) {
+  db.exec("ALTER TABLE users ADD COLUMN two_factor_enabled INTEGER NOT NULL DEFAULT 1");
+}
+
 /**
  * better-sqlite3-style synchronous transaction helper.
  * Runs fn inside BEGIN/COMMIT; rolls back on throw.

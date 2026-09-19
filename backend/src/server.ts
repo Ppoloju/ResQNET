@@ -24,7 +24,13 @@ import { notificationsRouter } from './routes/notifications.js';
 
 const app = express();
 app.set('trust proxy', 1);
-app.use(compression());
+// gzip would buffer the SSE event stream on browsers — never compress realtime.
+app.use(compression({
+  filter: (req, res) => {
+    if (req.path.includes('/realtime/stream') || req.headers.accept === 'text/event-stream') return false;
+    return compression.filter(req, res);
+  },
+}));
 app.use(cors({ origin: config.frontendOrigin, credentials: true }));
 app.use(express.json({ limit: '1mb' }));
 
@@ -76,7 +82,7 @@ const server = http.createServer(app);
 
 const PORT = config.port;
 server.listen(PORT, () => {
-  logger.info(`IQOO backend listening on :${PORT} (env=${config.env}, demo=${config.demoMode})`);
+  logger.info(`ResQNET backend listening on :${PORT} (env=${config.env}, demo=${config.demoMode})`);
 });
 
 export { app, server };

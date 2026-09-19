@@ -128,7 +128,7 @@ export default function Demo() {
       </div>
 
       <h2>Scripted scenario: SOS without internet</h2>
-      <p className="dim">A trekker is injured where there is no signal. Nearby IQOO phones carry the emergency hop-by-hop to a gateway, which syncs it to responders and family.</p>
+      <p className="dim">A trekker is injured where there is no signal. Nearby ResQNET phones carry the emergency hop-by-hop to a gateway, which syncs it to responders and family.</p>
 
       <div className="demo-progress" aria-label={`Demo progress ${complete} of ${total}`}>
         <div className="readiness-bar"><div className="readiness-fill tier-high" style={{ width: `${(complete / total) * 100}%` }} /></div>

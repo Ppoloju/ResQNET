@@ -1,4 +1,4 @@
-# IQOO AI Architecture
+# ResQNET AI Architecture
 
 ## Policy (§61)
 

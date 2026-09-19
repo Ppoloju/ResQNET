@@ -1,6 +1,6 @@
 {
-  "name": "IQOO — Offline AI Emergency Network",
-  "short_name": "IQOO",
+  "name": "ResQNET — Offline AI Emergency Network",
+  "short_name": "ResQNET",
   "description": "Offline-first emergency communication over nearby-device mesh",
   "start_url": "/",
   "display": "standalone",

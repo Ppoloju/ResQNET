@@ -83,6 +83,21 @@ ResQNET/
 
 ## 🔥 Core Features (Implemented)
 
+### 0. Accounts with Two-Step Email Verification
+Register with email + password (Argon2id-hashed in the backend SQLite DB) → a 6-digit code
+is emailed to verify the address → every sign-in requires a second emailed code (2FA).
+Password reset (forgot-password) and in-app password change both arrive by email code, and
+every password change triggers a confirmation email. Any SMTP provider works via env vars
+(`SMTP_HOST/PORT/USER/PASS/FROM`); with SMTP unset (local dev) codes are echoed as
+`devCode` and printed in the server console — never fabricated elsewhere.
+
+### 0.5 Live Map + Real-Time Emergency Feed
+Home shows a real map (Leaflet + OpenStreetMap tiles, free, no API key): your exact GPS
+(`watchPosition`, ±meters accuracy circle) plus every other active emergency as a live
+marker. Emergency creation, ACKs and resolutions fan out over SSE to ALL devices
+instantly — phones without accounts see the public safety feed too. The initial feed
+loads from `GET /api/emergencies/feed/public`; after that everything arrives in real time.
+
 ### 1. Emergency Profile
 User creates an emergency profile during registration containing essential information:
 name, age, blood group, medical conditions, allergies, accessibility needs. Information is
@@ -130,7 +145,7 @@ Reception is never blocked.
 - Passwords: **Argon2id** (bank-grade hashing)
 - Packets: **HMAC-SHA256** signed, ±5 min anti-replay window
 - Medical fields: **AES-256-GCM** encrypted at rest, consent-gated
-- Public device IDs (`IQOO_NODE_XXXX`) carry zero personal data
+- Public device IDs (`RQ_NODE_XXXX`) carry zero personal data
 - Ed25519 device keys as upgrade path from HMAC
 - Light / dark / system theme; phone-first UI with burger nav + 48 px touch targets
 - Audit log: append-only, structured, with secret/medical redaction

@@ -1,4 +1,4 @@
-# IQOO Deployment Guide
+# ResQNET Deployment Guide
 
 ## Quick start (development)
 
