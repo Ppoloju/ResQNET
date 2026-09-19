@@ -43,8 +43,14 @@ export default function Profile() {
   if (error) return <div className="card error-text">{error}</div>;
   if (!p) return <div className="card">Loading profile…</div>;
 
-  const set = (k: keyof ProfileData) => (e: { target: { value: string } }) =>
-    setP({ ...p, [k]: e.target.value } as ProfileData);
+  const set = (k: keyof ProfileData) => (e: { target: { value: string } }) => {
+    // HTML number inputs still emit strings. Preserve an empty field as
+    // undefined and send a number to the API's strict profile schema.
+    const value = k === 'age' && e.target.value !== '' ? Number(e.target.value)
+      : k === 'age' ? undefined
+        : e.target.value;
+    setP({ ...p, [k]: value } as ProfileData);
+  };
 
   async function save() {
     setStatus('');

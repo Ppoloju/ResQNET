@@ -18,6 +18,10 @@ const locationSchema = z.object({
 });
 
 const emergencySchema = z.object({
+  // The device creates this before it knows whether a gateway is reachable.
+  // Keeping it on the online path makes an SOS id stable across offline and
+  // online delivery, so the resolution packet can always target the same event.
+  emergencyId: z.string().regex(/^IQ-[0-9A-Z]{6,12}$/).optional(),
   type: z.enum(['SOS', 'QUICK_HELP', 'CHECK_IN', 'DISASTER_BROADCAST']).default('SOS'),
   severity: z.enum(['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']).default('HIGH'),
   category: z.string().max(40).optional(),
@@ -67,7 +71,7 @@ emergenciesRouter.post('/', requireAuth, async (req: AuthedRequest, res) => {
   const userId = req.user!.userId;
 
   try {
-    const emergencyId = newEmergencyId();
+    const emergencyId = input.emergencyId ?? newEmergencyId();
     const now = new Date().toISOString();
     const networkState = 'ONLINE'; // reaching the backend proves internet is available
 
@@ -122,6 +126,12 @@ emergenciesRouter.post('/', requireAuth, async (req: AuthedRequest, res) => {
     logger.info({ emergencyId, type: input.type }, 'emergency created');
     res.status(201).json({ emergencyId, status: 'ACTIVE' });
   } catch (err) {
+    // A client-generated id may very rarely collide. Report a usable conflict
+    // instead of a generic server failure (and never overwrite an emergency).
+    if (err instanceof Error && /UNIQUE constraint failed: emergency_events\.id/.test(err.message)) {
+      res.status(409).json({ error: 'emergency id already exists' });
+      return;
+    }
     logger.error({ err }, 'emergency creation failed');
     res.status(500).json({ error: err instanceof Error ? err.message : 'creation failed' });
   }

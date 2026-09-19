@@ -164,6 +164,7 @@ export function MeshProvider({ children }: { children: ReactNode }) {
       await apiFetch('/emergencies', {
         method: 'POST',
         body: JSON.stringify({
+          emergencyId,
           type,
           severity,
           category: packet.ai?.category,

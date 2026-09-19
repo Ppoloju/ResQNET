@@ -101,6 +101,22 @@ describe('auth + API smoke', () => {
     expect(detail.body.packets[0].signature).toMatch(/^[0-9a-f]{64}$/);
   });
 
+  it('preserves a device-generated emergency id so it can be resolved', async () => {
+    const id = 'IQ-ONLINE01';
+    const created = await request(app).post('/api/emergencies')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        emergencyId: id, type: 'SOS', severity: 'HIGH', message: 'stable id',
+        location: { latitude: 0, longitude: 0, accuracyMeters: null, state: 'LOCATION_UNAVAILABLE' },
+      });
+    expect(created.status).toBe(201);
+    expect(created.body.emergencyId).toBe(id);
+
+    const resolved = await request(app).post(`/api/emergencies/${id}/resolve`)
+      .set('Authorization', `Bearer ${token}`);
+    expect(resolved.status).toBe(200);
+  });
+
   it('resolves an emergency and records resolution packet', async () => {
     const created = await request(app).post('/api/emergencies')
       .set('Authorization', `Bearer ${token}`)

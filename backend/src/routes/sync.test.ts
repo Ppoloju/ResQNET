@@ -106,6 +106,21 @@ describe('offline sync (§47 idempotency + pull)', () => {
     expect(res.body.acked).toBe(ids.length);
   });
 
+  it('does not expose another user\'s packets through pull', async () => {
+    const other = await request(app).post('/api/auth/register')
+      .send({ email: `sync-other${Date.now()}@test.io`, password: 'Str0ngPass!x', displayName: 'Other' });
+    const created = await request(app).post('/api/emergencies')
+      .set('Authorization', `Bearer ${other.body.token}`)
+      .send({
+        emergencyId: 'IQ-PRIVATE1', type: 'SOS', severity: 'HIGH', message: 'private',
+        location: { latitude: 0, longitude: 0, accuracyMeters: null, state: 'LOCATION_UNAVAILABLE' },
+      });
+    expect(created.status).toBe(201);
+
+    const pulled = await request(app).get('/api/sync/pull').set('Authorization', `Bearer ${token}`);
+    expect((pulled.body.packets as Array<{ emergencyId: string }>).some((p) => p.emergencyId === 'IQ-PRIVATE1')).toBe(false);
+  });
+
   it('rejects push with malformed event ids', async () => {
     const res = await request(app).post('/api/sync/push')
       .set('Authorization', `Bearer ${token}`)
