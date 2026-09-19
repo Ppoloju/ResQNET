@@ -332,7 +332,7 @@ function LongPressButton({ onComplete, className, ariaLabel, showProgress = true
 
 function HoldToResolveButton({ onComplete }: { onComplete: () => void }) {
   return <LongPressButton className="activated-resolve-button" ariaLabel="Hold for three seconds to resolve emergency" onComplete={onComplete}>
-    {(progress) => <><CheckCircle2 size={20} /><span>{progress > 0 ? `HOLD ${Math.ceil((100 - progress) / 33.34)}...` : "I'M SAFE — HOLD 3 SEC"}</span></>}
+    {(progress) => <><CheckCircle2 size={20} /><span>{progress > 0 ? `HOLD ${Math.max(1, Math.ceil((100 - progress) / 33.34))}...` : "I'M SAFE — HOLD 3 SEC"}</span></>}
   </LongPressButton>;
 }
 
@@ -499,7 +499,7 @@ function TacticalBeacon({ countdown, startSos, cancelCountdown }: { countdown: n
       <circle className="beacon-node" cx="50" cy="94" r="3.5" />
       <circle className="beacon-node" cx="6" cy="50" r="3.5" />
     </svg>
-    <span className="beacon-cross" aria-live="assertive">{activating ? countdown : progress > 0 ? Math.ceil((100 - progress) / 33.34) : '+'}</span>
+    <span className="beacon-cross" aria-live="assertive">{activating ? countdown : progress > 0 ? Math.max(1, Math.ceil((100 - progress) / 33.34)) : '+'}</span>
     <strong>{activating ? 'SOS ACTIVATING' : progress > 0 ? 'HOLD TO ACTIVATE' : 'SOS'}</strong>
     <span className="beacon-caption">{activating ? 'TAP TO CANCEL' : progress > 0 ? 'KEEP HOLDING' : 'HOLD 3 SEC TO SEND'}</span>
   </>;
