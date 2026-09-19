@@ -89,6 +89,11 @@ name, age, blood group, medical conditions, allergies, accessibility needs. Info
 shared during emergency with **consent-gated visibility tiers** (Private / Family /
 Responders / Nearby helpers). Medical fields are **AES-256-GCM encrypted at rest**.
 
+### 2. Family Circle
+Users create a family circle with contacts stored with name, relationship, phone, emergency
+priority. During emergency, the system prioritizes these contacts for fastest notification.
+Live *check-in statuses* (SAFE / AT RISK / NEEDS HELP) for linked accounts.
+
 ### 3. SOS Button
 The central emergency feature with 3-2-1 countdown and cancel. When activated:
 - Application immediately enters emergency mode
