@@ -24,6 +24,10 @@ export default function More() {
           <h2 style={{ margin: 0 }}>Demo Mode</h2>
           <p className="muted" style={{ margin: '4px 0 0' }}>Scripted mesh scenario <span className="mono">[P]</span></p>
         </Link>
+        <Link to="/disaster-demo" className="card" style={{ textDecoration: 'none', color: 'inherit' }}>
+          <h2 style={{ margin: 0 }}>Disaster Demo</h2>
+          <p className="muted" style={{ margin: '4px 0 0' }}>Community response walkthrough <span className="mono">[P]</span></p>
+        </Link>
         <Link to="/responders" className="card" style={{ textDecoration: 'none', color: 'inherit' }}>
           <h2 style={{ margin: 0 }}>Responders</h2>
           <p className="muted" style={{ margin: '4px 0 0' }}>Responder dashboard (role-gated)</p>

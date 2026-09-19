@@ -231,4 +231,16 @@ describe('auth + API smoke', () => {
     expect(gw.seenPackets).toBe(1);
     expect(state.body.stats.acked).toBeGreaterThan(0);
   });
+
+  it('toggles Disaster Mode for the protected simulator walkthrough', async () => {
+    const enabled = await request(app).post('/api/sim/disaster-mode')
+      .set('Authorization', `Bearer ${token}`).send({ enabled: true });
+    expect(enabled.status).toBe(200);
+    expect(enabled.body.enabled).toBe(true);
+
+    const disabled = await request(app).post('/api/sim/disaster-mode')
+      .set('Authorization', `Bearer ${token}`).send({ enabled: false });
+    expect(disabled.status).toBe(200);
+    expect(disabled.body.enabled).toBe(false);
+  });
 });

@@ -22,6 +22,7 @@ import Missing from './pages/Missing';
 import Settings from './pages/Settings';
 import Situations from './pages/Situations';
 import AIAssistance from './pages/AIAssistance';
+import DisasterDemo from './pages/DisasterDemo';
 import './styles.css';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
@@ -43,6 +44,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
                       <Route path="/responders" element={<Responders />} />
                       <Route path="/history" element={<History />} />
                       <Route path="/demo" element={<Demo />} />
+                      <Route path="/disaster-demo" element={<DisasterDemo />} />
                       <Route path="/more" element={<More />} />
                       <Route path="/missing" element={<Missing />} />
                       <Route path="/settings" element={<Settings />} />

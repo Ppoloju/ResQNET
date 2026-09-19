@@ -138,6 +138,7 @@ simRouter.get('/state', requireAuth, (_req, res) => {
 const linkSchema = z.object({ a: z.string().min(1), b: z.string().min(1) });
 const batterySchema = z.object({ nodeId: z.string().min(1), battery: z.number().min(0).max(100) });
 const relayHeroSchema = z.object({ nodeId: z.string().min(1).nullable() });
+const disasterModeSchema = z.object({ enabled: z.boolean() });
 
 simRouter.post('/link/down', requireAuth, (req: AuthedRequest, res) => {
   const p = linkSchema.safeParse(req.body);
@@ -170,6 +171,18 @@ simRouter.post('/battery', requireAuth, (req: AuthedRequest, res) => {
 
 simRouter.post('/sweep', requireAuth, (_req, res) => {
   res.json({ expired: engine.sweepExpired() });
+});
+
+/**
+ * Dedicated Disaster Mode demo control. It only changes the in-process
+ * simulator; it is not an official alert and never creates a public broadcast.
+ */
+simRouter.post('/disaster-mode', requireAuth, (req, res) => {
+  const parsed = disasterModeSchema.safeParse(req.body);
+  if (!parsed.success) { res.status(400).json({ error: 'validation failed', issues: parsed.error.issues }); return; }
+  engine.setDisasterMode(parsed.data.enabled);
+  broadcastEvent('sim_disaster_mode', { enabled: parsed.data.enabled, ts: Date.now() });
+  res.json({ ok: true, enabled: engine.disasterMode });
 });
 
 /** Relay Hero (§29 iQOO enhancement): nominate/release the mesh's backbone node. */
