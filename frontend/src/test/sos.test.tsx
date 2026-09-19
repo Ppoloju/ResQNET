@@ -1,5 +1,5 @@
-import { describe, expect, it, vi, beforeEach } from 'vitest';
-import { render, screen, act, fireEvent } from '@testing-library/react';
+import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
+import { cleanup, render, screen, act, fireEvent } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import Home, { SosPage } from '../pages/Home';
 import { SessionProvider } from '../state/SessionContext';
@@ -35,6 +35,14 @@ async function hold(button: HTMLElement, durationMs = 3100) {
 describe('SOS flow', () => {
   beforeEach(() => {
     localStorage.clear();
+  });
+
+  afterEach(() => {
+    cleanup();
+    window.dispatchEvent(new Event('online'));
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+    Reflect.deleteProperty(navigator, 'vibrate');
   });
 
   it('requires a three-second hold before activating SOS', async () => {
@@ -87,7 +95,9 @@ describe('SOS flow', () => {
       await hold(screen.getByRole('button', { name: /hold for three seconds to resolve/i }));
 
       expect(screen.getByText('SOS DISARMED')).toBeInTheDocument();
-      await act(async () => { vi.advanceTimersByTime(2500); });
+      await act(async () => { await Promise.resolve(); });
+      expect(screen.getByRole('button', { name: /return to sos hub/i })).toBeInTheDocument();
+      await act(async () => { fireEvent.click(screen.getByRole('button', { name: /return to sos hub/i })); });
       expect(screen.getByRole('button', { name: /hold for three seconds to activate sos/i })).toBeInTheDocument();
       expect(JSON.parse(localStorage.getItem('iqoo.activeEmergency') ?? 'null')).toBeNull();
     } finally {
@@ -108,9 +118,11 @@ describe('SOS flow', () => {
 
     vi.useFakeTimers({ shouldAdvanceTime: true });
     try {
+      Object.defineProperty(navigator, 'onLine', { configurable: true, value: false });
       renderHome();
       await act(async () => { window.dispatchEvent(new Event('offline')); });
       await hold(screen.getByRole('button', { name: /hold for three seconds to activate sos/i }));
+      await act(async () => { await Promise.resolve(); });
       expect(JSON.parse(localStorage.getItem('iqoo.outbox') ?? '[]')).toHaveLength(1);
 
       await act(async () => { window.dispatchEvent(new Event('online')); });

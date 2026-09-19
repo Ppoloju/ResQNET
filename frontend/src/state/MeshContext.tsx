@@ -357,7 +357,6 @@ export function MeshProvider({ children }: { children: ReactNode }) {
     }
     setActive(null);
     setPhase('RESOLVED');
-    setTimeout(() => setPhase('IDLE'), 2500);
   }, [active, log]);
 
   const value = useMemo<MeshState>(() => ({

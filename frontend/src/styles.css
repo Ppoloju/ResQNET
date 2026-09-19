@@ -2403,6 +2403,28 @@ button.btn:disabled,
     color: var(--green-soft);
 }
 
+.disarmed-home-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    min-height: 48px;
+    margin-top: 10px;
+    border: 1px solid var(--blue);
+    border-radius: 4px;
+    background: var(--blue);
+    color: #07111e;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 0.72rem;
+    font-weight: 900;
+    letter-spacing: 0.06em;
+}
+
+.disarmed-home-button:hover {
+    filter: brightness(1.1);
+}
+
 @keyframes disarmed-breathe {
     50% {
         box-shadow: 0 0 0 14px rgba(88, 166, 255, 0.03), 0 0 44px rgba(88, 166, 255, 0.26);
@@ -4287,6 +4309,29 @@ select {
 
 .family-members-section {
     margin-bottom: 16px;
+}
+
+.family-summary {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 10px 12px;
+    margin: 0 0 12px;
+    border: 1px solid rgba(143, 154, 167, 0.18);
+    background: #151b21;
+    color: var(--text-dim);
+    font-size: 0.68rem;
+}
+
+.family-summary span:first-child {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    color: var(--green-soft);
+}
+
+.family-summary .family-icon-action {
+    margin-left: auto;
 }
 
 .family-refresh-row {

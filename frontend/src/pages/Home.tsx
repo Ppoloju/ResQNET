@@ -484,6 +484,7 @@ function DisarmedPage() {
       </section>
       <section className="disarmed-audit"><div className="activated-section-heading"><span><ShieldCheck size={15} /> ABORT AUDIT SUMMARY</span><small>LOCAL STORE-AND-FORWARD LOG</small></div><p>Emergency was resolved by the user after the hold-to-disarm confirmation. Any queued packet remains available in the black-box history.</p><div className="disarmed-audit-row"><span>HMAC SIGNED ABORT</span><b>RECORDED LOCALLY</b></div><div className="disarmed-audit-row"><span>RADIO STATE</span><b>SILENT LISTEN</b></div></section>
       <section className="disarmed-footer"><span><span className="security-dot" /> HMAC-SHA256: VALID</span><span>ED25519 VERIFIED</span></section>
+      <button className="disarmed-home-button" type="button" onClick={() => navigate('/', { replace: true })}>Return to SOS hub</button>
     </div>
   );
 }
@@ -527,28 +528,8 @@ function TacticalBeacon({ countdown, startSos, cancelCountdown }: { countdown: n
   );
 }
 
-function HomeTelemetry({ battery }: { battery: number | null }) {
-  return (
-    <div className="home-telemetry-grid">
-      <div className="telemetry-tile">
-        <span className="telemetry-label">POWER CELL</span>
-        <strong className="telemetry-orange">{battery === null ? '--' : `${battery}%`}</strong>
-        <div className="battery-meter" aria-label={`Battery ${battery ?? 'unknown'} percent`}>
-          {[0, 1, 2, 3, 4].map((segment) => <i key={segment} className={battery !== null && battery > segment * 20 ? 'filled' : ''} />)}
-        </div>
-      </div>
-      <div className="telemetry-tile telemetry-wide">
-        <span className="telemetry-label">PACKET SECURITY</span>
-        <strong>LOCAL SIGNATURE VALID</strong>
-        <span className="telemetry-detail">Device identity stays on this device</span>
-      </div>
-    </div>
-  );
-}
-
 export default function Home() {
   const { user } = useSession();
-  const { battery } = useStatus();
   const { phase, countdown, startSos, cancelCountdown } = useMesh();
   const location = useLocation();
   const navigate = useNavigate();
@@ -572,7 +553,6 @@ export default function Home() {
           </div>
 
           <TacticalBeacon countdown={phase === 'COUNTDOWN' ? countdown : null} startSos={() => startSos('', undefined, { skipCountdown: true })} cancelCountdown={cancelCountdown} />
-          <HomeTelemetry battery={battery} />
 
           <div className="card">
             {quickHelpOpen ? (
