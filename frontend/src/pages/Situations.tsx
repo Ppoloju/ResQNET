@@ -7,6 +7,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { apiFetch, useSession } from '../state/SessionContext';
 import { useStatus } from '../state/StatusContext';
 import { SITREP_STALE_MS } from '@iqoo/shared';
+import DemoMap, { type DemoMapMarker } from '../components/DemoMap';
 
 interface Sitrep {
   id: string; kind: string; text: string;
@@ -19,14 +20,14 @@ interface ResourcePoint {
 }
 
 const KIND_META: Record<string, { icon: string; color: string; label: string }> = {
-  HAZARD: { icon: '⚠️', color: '#e0a12b', label: 'Hazard' },
-  SHELTER: { icon: '🏠', color: '#2fae66', label: 'Shelter' },
-  ROAD: { icon: '🚧', color: '#e0a12b', label: 'Road' },
-  SUPPLIES: { icon: '📦', color: '#2e7dd1', label: 'Supplies' },
-  RESOLVED: { icon: '✅', color: '#2fae66', label: 'Resolved' },
+  HAZARD: { icon: '', color: '#e0a12b', label: 'Hazard' },
+  SHELTER: { icon: '', color: '#2fae66', label: 'Shelter' },
+  ROAD: { icon: '', color: '#e0a12b', label: 'Road' },
+  SUPPLIES: { icon: '', color: '#2e7dd1', label: 'Supplies' },
+  RESOLVED: { icon: '', color: '#2fae66', label: 'Resolved' },
 };
 const RES_META: Record<string, string> = {
-  SHELTER: '🏠', MEDICAL: '🚑', SAFE_ZONE: '🛡', WATER: '💧', SUPPLIES: '📦',
+  SHELTER: 'Shelter', MEDICAL: 'Medical', SAFE_ZONE: 'Safe zone', WATER: 'Water', SUPPLIES: 'Supplies',
 };
 
 export default function Situations() {
@@ -99,8 +100,12 @@ export default function Situations() {
 
   const now = Date.now();
   return (
-    <div>
-      <h1>🚨 Situations</h1>
+    <div className="disaster-page">
+      <div className="disaster-page-heading">
+        <span className="eyebrow">RESQNET / DISASTER MESH</span>
+        <h1>Situations</h1>
+        <span className={`disaster-state ${online ? 'connected' : 'offline'}`}>{online ? 'GATEWAY LINK ACTIVE' : 'STORE-FORWARD MODE'}</span>
+      </div>
       <p className="muted">
         Community bulletins during a disaster. These propagate like any other mesh packet —
         short, factual, human-written. AI never rewrites them.
@@ -162,7 +167,7 @@ export default function Situations() {
                 <span className="pill small" style={{ background: m.color, color: '#0b0f14' }}>{m.icon} {m.label}</span>{' '}
                 {s.text}
                 {s.lat !== null && s.lon !== null && (
-                  <span className="dim small mono"> 📍{s.lat.toFixed(4)}, {s.lon.toFixed(4)}</span>
+                  <span className="dim small mono"> location {s.lat.toFixed(4)}, {s.lon.toFixed(4)}</span>
                 )}
                 <span className="dim small"> · {new Date(s.createdAt).toLocaleTimeString()}{stale ? ' · STALE' : ''}</span>
               </li>
@@ -172,7 +177,7 @@ export default function Situations() {
       </div>
 
       <div className="card">
-        <h2>🗺 Resource map</h2>
+        <h2>Resource map</h2>
         <p className="muted" style={{ margin: '4px 0 8px', fontSize: '0.85rem' }}>
           Shelters, medical points, water. Every point shows when it was verified and by whom —
           verify locally before relying on it.
@@ -185,7 +190,7 @@ export default function Situations() {
           <ul className="event-list">
             {resources.map((r) => (
               <li key={r.id}>
-                <strong>{RES_META[r.kind] ?? '📍'} {r.name}</strong>
+                <strong>{RES_META[r.kind] ?? 'Resource'}: {r.name}</strong>
                 <div className="dim small">
                   {Math.round(r.distanceM)} m away · capacity: {r.capacityNote ?? 'unknown'}<br />
                   verified {r.verifiedAt} — {r.source}
@@ -193,6 +198,20 @@ export default function Situations() {
               </li>
             ))}
           </ul>
+        )}
+        {resources && resources.length > 0 && (
+          <DemoMap
+            title="Nearby resource overview"
+            subtitle="Temporary local visualization of verified resource points. Distances remain authoritative; map positions are illustrative."
+            markers={resources.slice(0, 8).map((resource, index): DemoMapMarker => ({
+              id: resource.id,
+              label: resource.kind,
+              x: 14 + (index * 17) % 74,
+              y: 24 + (index * 29) % 56,
+              tone: resource.kind === 'MEDICAL' ? 'primary' : 'tertiary',
+              detail: `${Math.round(resource.distanceM)} m`,
+            }))}
+          />
         )}
       </div>
     </div>

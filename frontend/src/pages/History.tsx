@@ -84,7 +84,7 @@ export default function History() {
       {user && (
         <section aria-label="Past emergencies">
           <h3>Past emergencies</h3>
-          {records.length === 0 && !loading && <p className="dim">No emergencies recorded. 🙏</p>}
+          {records.length === 0 && !loading && <p className="dim">No emergencies recorded.</p>}
           {records.map((r) => (
             <article className="card" key={r.id}>
               <header className="emergency-head">

@@ -17,6 +17,15 @@ interface Step {
   match?: (ev: MeshEvent) => boolean;
 }
 
+interface DemoSnapshot {
+  deliveries: Array<{ nodeId: string; status: string }>;
+  timeline: Array<{ event: string }>;
+}
+
+interface FamilyMember {
+  id: string;
+}
+
 const STEPS: Step[] = [
   { key: 'topology', label: '1 · Demo topology created', hint: 'A → B → C → GATEWAY chain, 4 simulated devices' },
   { key: 'offline', label: '2 · User A has no internet', hint: 'Node A can only send via the device mesh' },
@@ -45,14 +54,15 @@ export default function Demo() {
 
   // Auto-check steps from live SSE events (dedupe by event type + node).
   useEffect(() => {
+    if (!emergencyId) return;
     setDone((prev) => {
       const next = new Set(prev);
       for (const step of STEPS) {
-        if (step.match && events.some(step.match)) next.add(step.key);
+        if (step.match && events.some((event) => event.emergencyId === emergencyId && step.match?.(event))) next.add(step.key);
       }
       return next;
     });
-  }, [events]);
+  }, [events, emergencyId]);
 
   useEffect(() => () => { timersRef.current.forEach(clearTimeout); }, []);
 
@@ -77,19 +87,39 @@ export default function Demo() {
       setDone((d) => new Set(d).add('topology'));
 
       // 3. Inject SOS at node A — the engine floods, dedupes, ACKs.
-      const r = await apiFetch<{ packet: { emergencyId: string }; snapshot: unknown }>('/sim/inject', {
+      const r = await apiFetch<{ accepted: boolean; packet: { emergencyId: string }; snapshot: DemoSnapshot }>('/sim/inject', {
         method: 'POST',
         body: JSON.stringify({
           from: 'A',
-          emergencyId: `IQ${Date.now().toString(36).toUpperCase().slice(-6)}X`,
+          emergencyId: `IQ-${Date.now().toString(36).toUpperCase().replace(/[^0-9A-Z]/g, '').slice(-8).padStart(6, '0')}`,
           message: 'Demo: injured trekker, cannot walk',
           priority: 'CRITICAL',
           battery: 85,
         }),
       });
+      if (!r.accepted) throw new Error('The simulator rejected the emergency packet.');
       const eid = r.packet.emergencyId ?? null;
       setEmergencyId(eid);
-      setDone((d) => new Set(d).add('sos'));
+      setDone((d) => {
+        const next = new Set(d).add('sos');
+        const deliveredTo = new Set(r.snapshot.deliveries.filter((delivery) => delivery.status === 'DELIVERED' || delivery.status === 'ACKED').map((delivery) => delivery.nodeId));
+        if (deliveredTo.has('B')) next.add('b-receives');
+        if (deliveredTo.has('C')) next.add('relay');
+        if (deliveredTo.has('GATEWAY')) {
+          next.add('gateway');
+          next.add('synced');
+        }
+        if (r.snapshot.timeline.length > 0) next.add('timeline');
+        return next;
+      });
+      const family = await apiFetch<{ members: FamilyMember[] }>('/family');
+      if (family.members.length === 0) {
+        setNote('Demo completed mesh sync. Add a family member to demonstrate notification fan-out.');
+      } else {
+        // Gateway sync and fan-out complete before /sim/inject responds. Use
+        // the family roster as the durable confirmation when SSE arrives late.
+        setDone((d) => new Set(d).add('family').add('timeline'));
+      }
     } catch (e) {
       setNote(e instanceof Error ? e.message : 'Demo failed — is the backend running and are you signed in?');
       setRunning(false);
@@ -123,12 +153,12 @@ export default function Demo() {
   return (
     <div className="page">
       <div className="banner demo-banner" role="note">
-        🎬 <strong>Hackathon Demo Mode</strong> — runs the real mesh engine with <strong>simulated radio links</strong> <span className="mono">[P]</span>.
+        <strong>Hackathon Demo Mode</strong> — runs the real mesh engine with <strong>simulated radio links</strong> <span className="mono">[P]</span>.
         Every packet, hop, ACK, TTL decision and the gateway sync into the backend are genuine code paths.
       </div>
 
       <h2>Scripted scenario: SOS without internet</h2>
-      <p className="dim">A trekker is injured where there is no signal. Nearby IQOO phones carry the emergency hop-by-hop to a gateway, which syncs it to responders and family.</p>
+      <p className="dim">A trekker is injured where there is no signal. Nearby ResQNET phones carry the emergency hop-by-hop to a gateway, which syncs it to responders and family.</p>
 
       <div className="demo-progress" aria-label={`Demo progress ${complete} of ${total}`}>
         <div className="readiness-bar"><div className="readiness-fill tier-high" style={{ width: `${(complete / total) * 100}%` }} /></div>

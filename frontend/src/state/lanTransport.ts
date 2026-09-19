@@ -45,7 +45,7 @@ export class LocalNetworkTransport implements Transport {
   async statusDetail(): Promise<string> {
     const ok = await this.probe();
     return ok
-      ? `IQOO backend reachable at ${this.baseUrl}`
+      ? `ResQNET backend reachable at ${this.baseUrl}`
       : `No backend at ${this.baseUrl} — mesh/outbox still work offline`;
   }
 

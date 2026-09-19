@@ -1,8 +1,9 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useLocation } from 'react-router-dom';
 import { useStatus } from './state/StatusContext';
 import { useSession } from './state/SessionContext';
 import { useSettings } from './state/SettingsContext';
+import { useMode } from './state/ModeContext';
 
 function StatusBar() {
   const { online, battery, charging } = useStatus();
@@ -10,9 +11,9 @@ function StatusBar() {
     <div className="statusbar" role="status" aria-live="polite">
       <span className={`pill ${online ? 'on' : 'off'}`}>{online ? 'ONLINE' : 'OFFLINE'}</span>
       <span className={`pill ${battery === null ? '' : battery <= 20 ? 'off' : battery <= 50 ? 'warn' : 'on'}`}>
-        {battery === null ? 'BATT --' : `BATT ${battery}%${charging ? ' ⚡' : ''}`}
+        {battery === null ? 'BATT --' : `BATT ${battery}%${charging ? ' CHARGING' : ''}`}
       </span>
-      <span className="pill on">IQOO</span>
+      <span className="pill on">ResQNET</span>
     </div>
   );
 }
@@ -29,22 +30,36 @@ function ThemeToggle() {
       aria-label={`Color theme: ${label}. Switch to ${next}`}
       title={`${label} — tap to change`}
     >
-      {theme === 'system' ? '🖥' : theme === 'light' ? '☀️' : '🌙'}
+      {theme === 'system' ? 'SYS' : theme === 'light' ? 'LIGHT' : 'DARK'}
     </button>
   );
 }
 
+function ModeBanner() {
+  const { mode, reason } = useMode();
+  if (mode === 'NORMAL') return null;
+  return (
+    <div className={`mode-banner mode-${mode.toLowerCase()}`} role="status">
+      <div>
+        <strong>{mode === 'DISASTER' ? 'DISASTER MODE ACTIVE' : 'EMERGENCY MODE ACTIVE'}</strong>
+        <span>{reason}</span>
+      </div>
+      <NavLink to="/situations">Open alerts</NavLink>
+    </div>
+  );
+}
+
 const NAV = [
-  { to: '/', label: 'Home', icon: '🏠', end: true },
-  { to: '/family', label: 'Family', icon: '👪' },
-  { to: '/history', label: 'History', icon: '📜' },
-  { to: '/network', label: 'Network', icon: '🛰' },
-  { to: '/situations', label: 'Alerts', icon: '🚨' },
-  { to: '/more', label: 'More', icon: '⋯' },
+  { to: '/', label: 'Home', end: true },
+  { to: '/family', label: 'Family' },
+  { to: '/ai-assistance', label: 'AI Assistance' },
+  { to: '/network', label: 'Network' },
+  { to: '/more', label: 'More' },
 ];
 
 export default function App({ children }: { children: ReactNode }) {
   const { user } = useSession();
+  const location = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
 
   // Close the drawer when the route changes (any NavLink click).
@@ -63,7 +78,7 @@ export default function App({ children }: { children: ReactNode }) {
         className={({ isActive }) => (isActive ? 'active' : '')}
         onClick={onClick}
       >
-        <span className="ico" aria-hidden>{n.icon}</span> {n.label}
+        <span className="nav-label">{n.label}</span>
       </NavLink>
     ));
 
@@ -72,8 +87,9 @@ export default function App({ children }: { children: ReactNode }) {
       <a href="#main-content" className="skip-link">Skip to content</a>
 
       <header className="topbar">
-        <span className="brand" aria-hidden>
-          <span className="brand-dot" /> IQOO
+        <span className="brand">
+          <img className="brand-mark" src="/icon.svg" alt="" aria-hidden="true" />
+          <span>ResQNET</span>
         </span>
         <div className="topbar-actions">
           <ThemeToggle />
@@ -91,6 +107,8 @@ export default function App({ children }: { children: ReactNode }) {
         </div>
       </header>
 
+      <ModeBanner />
+
       <nav id="main-nav" className={`drawer ${menuOpen ? 'open' : ''}`} aria-label="Main navigation">
         {navLinks(() => setMenuOpen(false))}
         <div className="drawer-foot">
@@ -103,7 +121,7 @@ export default function App({ children }: { children: ReactNode }) {
       </nav>
       {menuOpen && <button className="scrim" aria-label="Close menu" onClick={() => setMenuOpen(false)} />}
 
-      <StatusBar />
+      {location.pathname !== '/' && <StatusBar />}
       <main id="main-content" className="page-host">
         {children}
       </main>

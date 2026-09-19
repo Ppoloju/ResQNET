@@ -32,9 +32,9 @@ export default function Settings() {
   const currentTier = tierFor(battery, s);
 
   const THEMES: Array<{ value: ThemePreference; label: string; icon: string }> = [
-    { value: 'system', label: 'System', icon: '🖥' },
+    { value: 'system', label: 'System', icon: '' },
     { value: 'light', label: 'Light', icon: '☀️' },
-    { value: 'dark', label: 'Dark', icon: '🌙' },
+    { value: 'dark', label: 'Dark', icon: '' },
   ];
 
   return (
@@ -76,7 +76,7 @@ export default function Settings() {
         </label>
         <label className="row spread" style={{ alignItems: 'center', gap: 8, minHeight: 48 }}>
           <span>
-            ⚡ Relay Hero mode <span className="muted small">(iQOO flagships [P])</span><br />
+            Relay Hero mode <span className="muted small">(ResQNET flagships [P])</span><br />
             <span className="muted" style={{ fontSize: '0.8rem', fontWeight: 400 }}>
               Volunteer as the mesh backbone: relay everything even on low battery —
               built for large-cell + bypass-charging hardware.
@@ -112,7 +112,7 @@ export default function Settings() {
         <h2>Transports</h2>
         {rows.map((r) => (
           <div key={r.name} className="row spread" style={{ minHeight: 44, alignItems: 'center' }}>
-            <span>{r.name === 'bluetooth' ? '🔵 Bluetooth [P]' : '🌐 LAN/Internet'}</span>
+            <span>{r.name === 'bluetooth' ? 'Bluetooth [P]' : 'LAN/Internet'}</span>
             <span className={`pill small ${r.availability === 'READY' ? 'on' : r.availability === 'PERMISSION_NEEDED' ? 'warn' : 'off'}`}>
               {AV_LABEL[r.availability]}
             </span>
@@ -125,15 +125,15 @@ export default function Settings() {
           disabled={requestingBluetooth}
           onClick={() => void requestBluetooth()}
         >
-          {requestingBluetooth ? 'Waiting for picker…' : 'Pair a nearby IQOO device [P]'}
+          {requestingBluetooth ? 'Waiting for picker…' : 'Pair a nearby ResQNET device [P]'}
         </button>
       </div>
 
       <div className="card">
         <h2>About</h2>
         <p className="muted" style={{ fontSize: '0.85rem' }}>
-          IQOO is a hackathon prototype. Mesh links are simulated unless a real radio is
-          active (<span className="mono">[P]</span> labels mark prototypes). IQOO augments
+          ResQNET is a hackathon prototype. Mesh links are simulated unless a real radio is
+          active (<span className="mono">[P]</span> labels mark prototypes). ResQNET augments
           emergency response — it never replaces 100/112/911.
         </p>
       </div>

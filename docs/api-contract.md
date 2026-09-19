@@ -11,6 +11,11 @@ All bodies JSON. Errors: `{ "error": string, "issues"?: [...] }`.
 | POST | `/auth/devices` | `{name}` | register additional device |
 | GET | `/auth/me` | — | current user + role |
 
+## ai assistance
+| Method | Path | Body | Notes |
+|---|---|---|---|
+| POST | `/ai/classify` | `{text, battery?, saysImmobile?}` | Authenticated deterministic offline rule-engine fallback; does not persist text or call a cloud model |
+
 ## emergency-profiles
 | Method | Path | Notes |
 |---|---|---|

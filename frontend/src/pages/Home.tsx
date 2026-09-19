@@ -35,7 +35,7 @@ function CheckInCard() {
       .then((r) => { if (r.checkins?.length) setLast(r.checkins[0]); })
       .catch(() => { /* offline — nothing fabricated */ });
   }, [user]);
-
+  const { online, battery } = useStatus();
   const checkIn = async (status: 'SAFE' | 'AT_RISK') => {
     setNote('');
     try {
@@ -65,7 +65,7 @@ function CheckInCard() {
   );
 }
 
-/** Nearby IQOO devices (§18): server view when online; nothing fabricated offline. */
+/** Nearby ResQNET devices (§18): server view when online; nothing fabricated offline. */
 function NearbyCard() {
   const { online } = useStatus();
   const { user } = useSession();
@@ -89,20 +89,20 @@ function NearbyCard() {
   if (state === 'offline' || !user) {
     return (
       <div className="card">
-        <h2>🛰 Nearby</h2>
-        <p className="muted">{!user ? 'Sign in to see nearby IQOO devices.' : 'Offline — device discovery resumes when connectivity returns.'}</p>
+        <h2>Nearby</h2>
+        <p className="muted">{!user ? 'Sign in to see nearby ResQNET devices.' : 'Offline — device discovery resumes when connectivity returns.'}</p>
       </div>
     );
   }
 
   return (
     <div className="card">
-      <h2>🛰 Nearby</h2>
+      <h2>Nearby</h2>
       {state === 'locating' && <p className="muted">Locating…</p>}
       {state === 'denied' && <p className="muted">Location permission denied — enable it to see nearby devices.</p>}
       {state === 'loaded' && (
         nearby.length === 0
-          ? <p className="muted">No IQOO devices reported nearby in the last 24h. <span className="mono">[R: full discovery is BLE-based]</span></p>
+          ? <p className="muted">No ResQNET devices reported nearby in the last 24h. <span className="mono">[R: full discovery is BLE-based]</span></p>
           : (
             <ul className="event-list">
               {nearby.slice(0, 5).map((n) => (
@@ -156,7 +156,7 @@ function AIAssist() {
 
   return (
     <div className="card" data-testid="ai-assist">
-      <h2>🧠 Describe your emergency (optional)</h2>
+      <h2>Describe your emergency <span className="muted">(optional)</span></h2>
       <p className="muted">
         Runs entirely on this device — no internet, no cloud. AI helps classify severity; it is an
         assistance signal, never a diagnosis.
@@ -178,7 +178,7 @@ function AIAssist() {
             disabled={ai.voiceState === 'RECORDING'}
             aria-label="Speak your emergency"
           >
-            {ai.voiceState === 'RECORDING' ? '● Listening…' : '🎤 Speak'}
+            {ai.voiceState === 'RECORDING' ? 'Listening…' : 'Speak'}
           </button>
         )}
         <button className="btn-primary" onClick={() => runClassify(text)} disabled={!text.trim()}>
@@ -245,7 +245,7 @@ function GuidanceCard() {
 
   return (
     <div className="card" data-testid="guidance-card">
-      <h2>🧭 Offline assistance</h2>
+      <h2>Offline assistance</h2>
       <p className="muted" style={{ margin: '4px 0 8px' }}>
         Curated steps on this device — no internet needed. Not a replacement for professional care.
       </p>
@@ -316,7 +316,7 @@ function EmergencyMode() {
 
       {myAcks.length > 0 && (
         <div className="card" role="status" data-testid="responder-acks">
-          <h2>🚑 Responder acknowledgements</h2>
+          <h2>Responder acknowledgements</h2>
           <ul className="event-list">
             {myAcks.map((a, i) => (
               <li key={`${a.ack.id}-${i}`}>
@@ -331,7 +331,7 @@ function EmergencyMode() {
 
       {active.ai && (
         <div className="card" data-testid="emergency-ai">
-          <h2>🧠 Local AI assessment</h2>
+          <h2>Local AI assessment</h2>
           <div className="row wrap">
             <span className={`sev-pill ${SEVERITY_CLASS[active.ai.severity]}`}>{active.ai.severity}</span>
             <span className="sev-pill sev-cat">{active.ai.category}</span>
@@ -358,14 +358,61 @@ function EmergencyMode() {
   );
 }
 
+function TacticalBeacon({ battery, startSos }: { battery: number | null; startSos: () => void }) {
+  return (
+    <section className="tactical-home" aria-label="ResQNET SOS control">
+      <div className="tactical-beacon-panel">
+        <div className="tactical-coordinates">
+          <span>TX_PWR: STANDBY</span>
+          <span>MODE: FLOOD_ROUTING</span>
+        </div>
+        <div className="beacon-wrap">
+          <div className="beacon-grid" aria-hidden="true" />
+          <div className="beacon-rings" aria-hidden="true"><i /><i /><i /></div>
+          <button className="tactical-beacon" onClick={startSos} aria-label="Activate SOS emergency" type="button">
+            <svg viewBox="0 0 100 100" aria-hidden="true">
+              <circle className="beacon-track" cx="50" cy="50" r="44" />
+              <circle className="beacon-progress" cx="50" cy="50" r="44" />
+              <circle className="beacon-node" cx="50" cy="6" r="3.5" />
+              <circle className="beacon-node" cx="94" cy="50" r="3.5" />
+              <circle className="beacon-node" cx="50" cy="94" r="3.5" />
+              <circle className="beacon-node" cx="6" cy="50" r="3.5" />
+            </svg>
+            <span className="beacon-cross" aria-hidden="true">+</span>
+            <strong>BROADCAST</strong>
+            <span className="beacon-caption">TAP TO SEND SOS</span>
+          </button>
+        </div>
+        <p className="tactical-hint">Emergency alert will be signed, queued offline if needed, and relayed to nearby devices.</p>
+      </div>
+    </section>
+  );
+}
+
+function HomeTelemetry({ battery }: { battery: number | null }) {
+  return (
+    <div className="home-telemetry-grid">
+      <div className="telemetry-tile">
+        <span className="telemetry-label">POWER CELL</span>
+        <strong className="telemetry-orange">{battery === null ? '--' : `${battery}%`}</strong>
+        <div className="battery-meter" aria-label={`Battery ${battery ?? 'unknown'} percent`}>
+          {[0, 1, 2, 3, 4].map((segment) => <i key={segment} className={battery !== null && battery > segment * 20 ? 'filled' : ''} />)}
+        </div>
+      </div>
+      <div className="telemetry-tile telemetry-wide">
+        <span className="telemetry-label">PACKET SECURITY</span>
+        <strong>LOCAL SIGNATURE VALID</strong>
+        <span className="telemetry-detail">Device identity stays on this device</span>
+      </div>
+    </div>
+  );
+}
+
 export default function Home() {
   const { user } = useSession();
-  const { online } = useStatus();
+  const { battery } = useStatus();
   const { phase, startSos } = useMesh();
   const [quickHelpOpen, setQuickHelpOpen] = useState(false);
-
-  const hour = new Date().getHours();
-  const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
 
   if (phase === 'COUNTDOWN') return <CountdownOverlay />;
 
@@ -377,30 +424,19 @@ export default function Home() {
         <EmergencyMode />
       ) : (
         <>
-          <h1>{greeting}{user ? `, ${user.displayName.split(' ')[0]}` : ''}</h1>
-          <p className="muted">
-            {online
-              ? 'Connected to IQOO backend.'
-              : 'No internet — SOS will alert nearby IQOO devices and queue for sync.'}
-          </p>
+          <div className="home-heading">
+            <span className="eyebrow">RESQNET / SOS HUB</span>
+            <h1>Emergency hub</h1>
+          </div>
 
-          <button
-            className="sos-btn"
-            onClick={() => startSos()}
-            aria-label="Activate SOS emergency"
-          >
-            SOS
-          </button>
-
-          <AIAssist />
-
-          <GuidanceCard />
+          <TacticalBeacon battery={battery} startSos={() => startSos()} />
+          <HomeTelemetry battery={battery} />
 
           <div className="card">
             {quickHelpOpen ? (
               <>
                 <h2>Need Help — pick a reason</h2>
-                <p className="muted">Lower-profile alert to nearby IQOO users. Not a replacement for SOS.</p>
+                <p className="muted">Lower-profile alert to nearby ResQNET users. Not a replacement for SOS.</p>
                 {['Someone is following me', 'I am lost', 'Need assistance', 'Unsafe environment', 'Medical help'].map((r) => (
                   <button key={r} className="btn-help" style={{ marginBottom: 8 }}
                     onClick={() => { setQuickHelpOpen(false); startSos(`NEED_HELP:${r}`); }}>
@@ -420,11 +456,11 @@ export default function Home() {
 
           <div className="grid2">
             <Link to="/family" className="card" style={{ textDecoration: 'none', color: 'inherit' }}>
-              <h2 style={{ margin: 0 }}>👪 Family</h2>
+              <h2 style={{ margin: 0 }}>Family</h2>
               <p className="muted" style={{ margin: '4px 0 0' }}>Circle &amp; statuses</p>
             </Link>
             <Link to="/history" className="card" style={{ textDecoration: 'none', color: 'inherit' }}>
-              <h2 style={{ margin: 0 }}>📜 History</h2>
+              <h2 style={{ margin: 0 }}>History</h2>
               <p className="muted" style={{ margin: '4px 0 0' }}>Black-box &amp; past events</p>
             </Link>
           </div>

@@ -10,6 +10,7 @@ import { useSettings } from '../state/SettingsContext';
 import { useTransports } from '../state/TransportContext';
 import { useMeshEvents, type MeshEvent } from '../state/RealtimeContext';
 import { relayReadiness } from '@iqoo/shared';
+import DemoMap, { type DemoMapMarker } from '../components/DemoMap';
 
 interface SimNode {
   id: string;
@@ -42,7 +43,7 @@ interface Snapshot {
 }
 
 const ROLE_ICON: Record<string, string> = {
-  NORMAL: '📱', RELAY: '📡', RESPONDER: '🚑', GATEWAY: '🛰️',
+  NORMAL: 'N', RELAY: 'R', RESPONDER: 'E', GATEWAY: 'G',
 };
 
 export default function Network() {
@@ -189,13 +190,13 @@ export default function Network() {
         <h3>Transports</h3>
         {transportRows.map((r) => (
           <div key={r.name} className="row spread" style={{ minHeight: 40, alignItems: 'center' }}>
-            <span>{r.name === 'bluetooth' ? '🔵 Bluetooth [P]' : '🌐 LAN/Internet'}</span>
+            <span>{r.name === 'bluetooth' ? 'Bluetooth [P]' : 'LAN/Internet'}</span>
             <span className={`pill small ${r.availability === 'READY' ? 'on' : r.availability === 'PERMISSION_NEEDED' ? 'warn' : 'off'}`}>{r.availability}</span>
           </div>
         ))}
         <button className="btn-secondary" style={{ width: '100%', marginTop: 8 }}
           disabled={requestingBluetooth} onClick={() => void requestBluetooth()}>
-          {requestingBluetooth ? 'Waiting for picker…' : 'Pair nearby IQOO device [P]'}
+          {requestingBluetooth ? 'Waiting for picker…' : 'Pair nearby ResQNET device [P]'}
         </button>
         <p className="dim small">Thresholds: CRITICAL-only below {criticalThresholdPct}% · normal above {normalThresholdPct}% (change in Settings)</p>
       </section>
@@ -213,6 +214,19 @@ export default function Network() {
 
       {snap && (
         <>
+          <DemoMap
+            title="Live mesh topology"
+            subtitle="A temporary local map for the simulated relay chain. No external map key or coordinates are used."
+            markers={snap.nodes.map((node, index): DemoMapMarker => ({
+              id: node.id,
+              label: node.id,
+              x: node.id === 'GATEWAY' ? 86 : 18 + index * 22,
+              y: node.role === 'GATEWAY' ? 50 : 42 + (index % 2) * 20,
+              tone: node.role === 'GATEWAY' ? 'tertiary' : node.role === 'RELAY' ? 'success' : 'secondary',
+              detail: `${node.role} / ${node.battery}%`,
+            }))}
+            paths={snap.nodes.slice(0, -1).map((node, index) => [node.id, snap.nodes[index + 1].id] as [string, string])}
+          />
           <section className="card" aria-label="Mesh statistics">
             <h3>Mesh stats</h3>
             <div className="statgrid">
@@ -230,7 +244,7 @@ export default function Network() {
             <ul className="event-list">
               {snap.nodes.map((n) => (
                 <li key={n.id}>
-                  <span className="mesh-icon">{ROLE_ICON[n.role] ?? '📱'}</span>{' '}
+                  <span className="mesh-icon" aria-hidden>{ROLE_ICON[n.role] ?? 'N'}</span>{' '}
                   <strong className="mono">{n.id}</strong>{' '}
                   <span className="pill small">{n.role}</span>{' '}
                   <span className={`pill small ${n.battery > 50 ? 'on' : n.battery > 20 ? 'warn' : 'off'}`}>{n.battery}%</span>{' '}

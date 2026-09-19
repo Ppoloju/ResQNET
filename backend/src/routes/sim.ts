@@ -10,6 +10,11 @@ import { syncEmergencyFromGateway } from '../mesh/gatewaySync.js';
 
 export const simRouter = Router();
 
+// The simulator inject route is authenticated, but the mesh callback runs
+// later during delivery. Keep the owner by packet id so gateway sync can fan
+// out to the account that launched the demo instead of the synthetic gateway.
+const simulationOwners = new Map<string, string>();
+
 // One shared engine instance per process (demo/simulation only — NOT real radios).
 // Exported so other routes (e.g. broadcasts) can drive disaster mode (§13).
 export const engine = new MeshEngine({
@@ -31,7 +36,7 @@ export const engine = new MeshEngine({
     });
     // Gateway receipt enters the REAL data plane (§42/§52 step 7-8).
     if (toNodeId === 'GATEWAY') {
-      syncEmergencyFromGateway(packet);
+      syncEmergencyFromGateway(packet, simulationOwners.get(packet.id));
     }
     logger.info({ packetId: packet.id, emergencyId: packet.emergencyId, toNodeId, transport }, 'SIM delivery');
   },
@@ -105,10 +110,16 @@ simRouter.post('/inject', requireAuth, async (req: AuthedRequest, res) => {
     requiresPoliceHelp: input.requiresPoliceHelp,
   }, config.msgSigningPepper);
 
-  const result = await engine.inject(input.from, packet);
-  // Deterministic demo behavior: settle the flood before responding so callers
-  // immediately observe deliveries/acks/timeline.
-  await engine.settle();
+  simulationOwners.set(packet.id, req.user!.userId);
+  let result;
+  try {
+    result = await engine.inject(input.from, packet);
+    // Deterministic demo behavior: settle the flood before responding so callers
+    // immediately observe deliveries/acks/timeline.
+    await engine.settle();
+  } finally {
+    simulationOwners.delete(packet.id);
+  }
   broadcastEvent('mesh_event', {
     id: packet.id, emergencyId: input.emergencyId, type: 'ORIGINATED',
     from: input.from, to: input.from, hopCount: 0, priority: packet.priority, ts: Date.now(),

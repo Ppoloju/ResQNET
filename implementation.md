@@ -34,7 +34,7 @@
 | Auth | Argon2id (`@node-rs/argon2`), HS256 JWT (free), per-device token | No paid auth service. |
 | Signing | **HMAC-SHA256 over canonical JSON** via WebCrypto (identical code client+server) | Works in every modern browser and Node; Ed25519 noted as production upgrade. |
 | Mesh simulation | `MeshEngine` (deterministic, in-process) + `/api/sim/*` endpoints | §51: proves routing logic without physical radios; clearly labeled SIMULATION. |
-| Local AI | `LocalAIEngine` interface planned; rule-based classifier first (§61: no big model downloads) | ONNX Runtime Web = upgrade path. |
+| Local AI | `LocalAIEngine` interface + deterministic rule-based classifier implemented (§61: no big model downloads) | ONNX Runtime Web remains an optional upgrade path. |
 | Location | Geolocation API with accuracy-honest states (§20) | Browser GPS; `LOCATION_UNAVAILABLE` when it fails. |
 | Docker | `docker compose` (node:24-alpine multi-stage) | `node:sqlite` requires Node ≥ 22.5 → base image is 24. |
 
@@ -81,8 +81,8 @@ The frontend is a web PWA. Browser Bluetooth cannot do background BLE mesh; iOS/
 **Implementation:** Everything above; backend boots (`/healthz` + register/login verified via curl), `npm run build` green for all three workspaces.
 **Files changed:** package.json, .gitignore, .env.example, database/schema.sql, docker/*, backend/**, frontend/**, shared/**, README.md, idea.html, implementation.md
 **Tests:** 25 passing (22 backend: crypto/validation/mesh scenarios/API smoke incl. sim demo path; 3 frontend: SOS countdown/cancel, offline activation → outbox, resolve)
-**Known limitations:** BLE/real radio transports not yet started (Phase 5 remainder); local AI not yet started (Phase 6); responder dashboard not yet (Phase 7); medical fields not yet encrypted-at-rest (Phase 10); Docker image build pending Docker daemon.
-**Next step:** Phase 2-3 polish (profile/family sync from PWA is done vs server), then Phase 5 remainder: WebBluetoothTransport `[P]` + LocalNetworkTransport (same-LAN HTTP), then Phase 6 local AI.
+**Known limitations:** native background BLE/Wi-Fi Direct, SMS/push delivery, and sensor-stream fusion remain production integrations `[R]`; the web PWA provides foreground/browser-safe fallbacks.
+**Next step:** native client integration for background radios and sensors; no web-only implementation can provide those platform capabilities honestly.
 
 # Phase 2 — Emergency Profile
 
@@ -127,7 +127,7 @@ The frontend is a web PWA. Browser Bluetooth cannot do background BLE mesh; iOS/
 - [x] WebBluetoothTransport `[P]` (foreground GATT via Nordic-UART-style service; implements shared `Transport` interface; feature-detected, honest availability states; iOS/unsupported browsers degrade cleanly)
 - [x] CommunicationManager + Transport interfaces in shared (`shared/src/transport.ts`); TransportProvider wires them app-wide
 - [x] LocalNetworkTransport (same-LAN backend via configurable URL, real `/healthz` probing with TTL cache — never trusts `navigator.onLine`)
-- [ ] Wi-Fi Direct / Wi-Fi Aware `[R]` (needs native client)
+- [R] Wi-Fi Direct / Wi-Fi Aware (needs native client)
 - [x] InternetTransport SSE live push (`/api/realtime/stream`, JWT via header or `?token=` for EventSource)
 - [x] Delivery status UI in Emergency Mode (queued/delivered state + live responder ACK cards via SSE for the active emergency)
 
@@ -213,15 +213,15 @@ The frontend is a web PWA. Browser Bluetooth cannot do background BLE mesh; iOS/
 
 # Phase 13 — 3-Mode Architecture — **COMPLETE 2026-09-18**
 
-- [x] Normal Mode: Standard app usage with minimal resource consumption, background monitoring of sensors (low power), family circle and emergency profile stored securely — the existing app IS normal mode; battery-tier relay gating (§29) + Settings thresholds govern background cost, profile stays AES-GCM encrypted at rest
+- [P/R] Normal Mode: Standard web-PWA usage, family circle and emergency profile stored securely; background sensor monitoring requires the native client
 - [x] Emergency Mode: Triggered by SOS button or AI detection (fall, accident, distress signals), device-to-device Bluetooth mesh for multi-hop alerts, shares emergency profile + location with trusted contacts, prioritizes critical alerts using local AI classification — deriveMode() raises EMERGENCY on an active SOS; WebBluetooth [P] + transports carry multi-hop packets; AI classification attaches to every packet
 - [x] Disaster Mode: Activated when multiple emergencies are detected in a region or disaster signals (earthquake, flood, fire) are identified — deriveMode() (shared/modes.ts): official DISASTER_BROADCAST or ≥5 distinct emergencies on the live feed ⇒ DISASTER; app-wide banner shows mode + reason
 - [x] Disaster Mode - Community mesh expansion: Devices form a larger ad-hoc network for group coordination — mesh engine opens in disaster mode on CRITICAL broadcast (outbox drains CRITICAL-first; sim engine state visible on Network page)
 - [x] Disaster Mode - Resource mapping: AI identifies safe zones, shelters, medical aid points from local data — /api/resources/nearby (reviewed seed dataset, haversine-ranked MEDICAL-first, verifiedAt + source per point; honest scope, no fake live feed)
-- [x] Disaster Mode - Crowdsourced situational awareness: Each device contributes sensor data (smoke, noise, GPS movement) to build a disaster map — Situations page: community bulletins posted/listed via /api/sitreps (mesh-propagated packet format in shared/sitrep.ts, SSE push, 280-char budget); sensor-stream fusion [R] documented
+- [P/R] Disaster Mode - Crowdsourced situational awareness: community bulletins and location-tagged reports are implemented; smoke/noise/sensor-stream fusion requires native hardware integration
 - [x] Disaster Mode - Priority routing: Critical alerts (injuries, trapped individuals) are given bandwidth priority — priorityForMode() promotes one notch in disaster mode (CRITICAL never degrades); engine outbox drains priority-ranked; covered by unit tests
 - [x] Disaster Mode - Offline disaster bulletin: Updates propagate through mesh (e.g., "Bridge collapsed ahead", "Shelter open at school") — sitreps flow like packets (shared format + validation), STALE flag after 6 h, live feed + post UI on /situations
-- [x] Disaster Mode - AI assistant: Guides basic first aid, evacuation steps, or connects survivors to nearest responders — guidance.ts: deterministic curated topics (bleeding/fracture/burns/trapped/evacuation) auto-selected from AI category or free text; GuidanceCard on Home; disclaimer + escalation criteria on every topic
+- [x] Disaster Mode - AI assistant: deterministic offline guidance and triage are implemented on the dedicated `/ai-assistance` page; disclaimer + escalation criteria are shown for each topic
 
 ---
 

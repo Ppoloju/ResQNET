@@ -50,9 +50,9 @@ export default function Login() {
       </form>
       <p className="mt">
         {mode === 'login' ? (
-          <>No account? <button className="btn-ghost" onClick={() => setMode('register')}>Register</button></>
+          <>No account? <button type="button" className="btn-ghost" onClick={() => setMode('register')}>Register</button></>
         ) : (
-          <>Have an account? <button className="btn-ghost" onClick={() => setMode('login')}>Sign in</button></>
+          <>Have an account? <button type="button" className="btn-ghost" onClick={() => setMode('login')}>Sign in</button></>
         )}
       </p>
       <p className="muted">

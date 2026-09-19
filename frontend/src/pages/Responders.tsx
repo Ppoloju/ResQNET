@@ -102,7 +102,7 @@ export default function Responders() {
       <section aria-label="Active emergencies">
         <h3>Active emergencies ({emergencies.length})</h3>
         {loading && <p className="dim">Loading…</p>}
-        {!loading && emergencies.length === 0 && <p className="dim">No active emergencies. 🙏</p>}
+        {!loading && emergencies.length === 0 && <p className="dim">No active emergencies.</p>}
         {emergencies.map((e) => (
           <article className="card emergency-item" key={e.id} aria-label={`Emergency ${e.id}`}>
             <header className="emergency-head">

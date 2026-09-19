@@ -23,7 +23,7 @@ const VISIBILITY_HELP: Record<ProfileData['visibility'], string> = {
   PRIVATE: 'Only you. Nothing is shared, even during SOS.',
   FAMILY: 'Shared with your family circle during emergencies.',
   RESPONDERS: 'Shared with verified responders at emergency gateways.',
-  NEARBY_HELPERS: 'Shared with nearby IQOO helpers during an active SOS.',
+  NEARBY_HELPERS: 'Shared with nearby ResQNET helpers during an active SOS.',
 };
 
 export default function Profile() {

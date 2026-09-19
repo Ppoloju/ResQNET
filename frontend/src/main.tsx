@@ -21,6 +21,7 @@ import More from './pages/More';
 import Missing from './pages/Missing';
 import Settings from './pages/Settings';
 import Situations from './pages/Situations';
+import AIAssistance from './pages/AIAssistance';
 import './styles.css';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
@@ -46,6 +47,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
                       <Route path="/missing" element={<Missing />} />
                       <Route path="/settings" element={<Settings />} />
                       <Route path="/situations" element={<Situations />} />
+                      <Route path="/ai-assistance" element={<AIAssistance />} />
                     </Routes>
                   </App>
                 </ModeProvider>
