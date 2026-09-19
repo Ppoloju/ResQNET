@@ -44,10 +44,6 @@ export default function More() {
           <h2 style={{ margin: 0 }}>Missing Person</h2>
           <p className="muted" style={{ margin: '4px 0 0' }}>File &amp; view reports</p>
         </Link>
-        <Link to="/settings" className="card" style={{ textDecoration: 'none', color: 'inherit' }}>
-          <h2 style={{ margin: 0 }}>⚙️ Settings</h2>
-          <p className="muted" style={{ margin: '4px 0 0' }}>Relay, battery tiers, transports</p>
-        </Link>
       </div>
 
       <div className="card">

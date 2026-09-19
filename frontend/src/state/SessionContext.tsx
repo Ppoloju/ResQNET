@@ -3,6 +3,7 @@ import { createContext, useContext, useEffect, useMemo, useState, type ReactNode
 export interface SessionUser {
   id: string;
   email: string;
+  phone?: string | null;
   displayName: string;
   role: string;
 }

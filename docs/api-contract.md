@@ -6,10 +6,10 @@ All bodies JSON. Errors: `{ "error": string, "issues"?: [...] }`.
 ## auth
 | Method | Path | Body | Notes |
 |---|---|---|---|
-| POST | `/auth/register` | `{email, password, displayName, phone?}` | → 201 `{token, user, device{id, publicId, secret}}` — secret shown ONCE |
-| POST | `/auth/login` | `{email, password}` | → `{token, user, device?}` |
+| POST | `/auth/register` | `{email, password, displayName, phone?}` | → 201 `{token, user{id,email,phone,displayName,role}, device{id, publicId, secret}}` — secret shown ONCE |
+| POST | `/auth/login` | `{email, password}` | → `{token, user{id,email,phone,displayName,role}, device?}` |
 | POST | `/auth/devices` | `{name}` | register additional device |
-| GET | `/auth/me` | — | current user + role |
+| GET | `/auth/me` | — | current user `{id,email,phone,displayName,role}` |
 
 ## ai assistance
 | Method | Path | Body | Notes |

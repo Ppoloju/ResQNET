@@ -1,7 +1,7 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { type ReactNode } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
+import { Settings as SettingsIcon } from 'lucide-react';
 import { useStatus } from './state/StatusContext';
-import { useSession } from './state/SessionContext';
 import { useSettings } from './state/SettingsContext';
 import { useMode } from './state/ModeContext';
 
@@ -58,25 +58,15 @@ const NAV = [
 ];
 
 export default function App({ children }: { children: ReactNode }) {
-  const { user } = useSession();
   const location = useLocation();
-  const [menuOpen, setMenuOpen] = useState(false);
 
-  // Close the drawer when the route changes (any NavLink click).
-  useEffect(() => {
-    const close = () => setMenuOpen(false);
-    window.addEventListener('popstate', close);
-    return () => window.removeEventListener('popstate', close);
-  }, []);
-
-  const navLinks = (onClick?: () => void) =>
+  const navLinks = () =>
     NAV.map((n) => (
       <NavLink
         key={n.to}
         to={n.to}
         end={n.end}
         className={({ isActive }) => (isActive ? 'active' : '')}
-        onClick={onClick}
       >
         <span className="nav-label">{n.label}</span>
       </NavLink>
@@ -93,40 +83,20 @@ export default function App({ children }: { children: ReactNode }) {
         </span>
         <div className="topbar-actions">
           <ThemeToggle />
-          <button
-            className={`icon-btn burger ${menuOpen ? 'open' : ''}`}
-            onClick={() => setMenuOpen((o) => !o)}
-            aria-expanded={menuOpen}
-            aria-controls="main-nav"
-            aria-label={menuOpen ? 'Close menu' : 'Open menu'}
-          >
-            <span className="burger-line" aria-hidden />
-            <span className="burger-line" aria-hidden />
-            <span className="burger-line" aria-hidden />
-          </button>
+          <NavLink className="icon-btn settings-link" to="/settings" aria-label="Open settings" title="Settings">
+            <SettingsIcon size={20} aria-hidden="true" />
+          </NavLink>
         </div>
       </header>
 
       <ModeBanner />
-
-      <nav id="main-nav" className={`drawer ${menuOpen ? 'open' : ''}`} aria-label="Main navigation">
-        {navLinks(() => setMenuOpen(false))}
-        <div className="drawer-foot">
-          {user ? (
-            <span className="dim small">Signed in as <strong>{user.displayName}</strong></span>
-          ) : (
-            <span className="dim small">SOS works without an account</span>
-          )}
-        </div>
-      </nav>
-      {menuOpen && <button className="scrim" aria-label="Close menu" onClick={() => setMenuOpen(false)} />}
 
       {location.pathname !== '/' && <StatusBar />}
       <main id="main-content" className="page-host">
         {children}
       </main>
 
-      {/* Desktop sidebar nav — hidden on phones by CSS; the burger drawer is the phone nav. */}
+      {/* Desktop section navigation — hidden on phones by CSS. */}
       <nav className="footer-nav" aria-label="Section navigation">
         {navLinks()}
       </nav>

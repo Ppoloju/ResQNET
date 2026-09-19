@@ -6,6 +6,8 @@
 import { useSettings, type ThemePreference } from '../state/SettingsContext';
 import { useTransports } from '../state/TransportContext';
 import { useStatus } from '../state/StatusContext';
+import { useSession } from '../state/SessionContext';
+import { Mail, LogOut, Phone, ShieldCheck, Smartphone, UserRound } from 'lucide-react';
 
 const AV_LABEL: Record<string, string> = {
   UNSUPPORTED: 'not available in this browser',
@@ -26,6 +28,7 @@ function tierFor(battery: number | null, s: ReturnType<typeof useSettings>): 'CR
 
 export default function Settings() {
   const s = useSettings();
+  const { user, device, logout } = useSession();
   const { rows, requestingBluetooth, requestBluetooth } = useTransports();
   const { battery } = useStatus();
 
@@ -40,6 +43,28 @@ export default function Settings() {
   return (
     <div>
       <h1>Settings</h1>
+
+      <div className="card settings-account-card">
+        <div className="settings-account-heading">
+          <div className="settings-account-avatar"><UserRound size={22} /></div>
+          <div>
+            <span className="eyebrow">ACCOUNT INFORMATION</span>
+            <h2>{user?.displayName ?? 'Local device user'}</h2>
+          </div>
+          <span className="pill on"><ShieldCheck size={13} /> {user ? 'SIGNED IN' : 'LOCAL MODE'}</span>
+        </div>
+        {user ? (
+          <div className="settings-account-grid">
+            <div><Mail size={15} /><span><small>EMAIL</small><strong>{user.email}</strong></span></div>
+            <div><Phone size={15} /><span><small>PHONE</small><strong>{user.phone || 'Not provided'}</strong></span></div>
+            <div><ShieldCheck size={15} /><span><small>ROLE</small><strong>{user.role.toUpperCase()}</strong></span></div>
+            <div><Smartphone size={15} /><span><small>DEVICE</small><strong>{device?.publicId || 'Local device'}</strong></span></div>
+          </div>
+        ) : (
+          <p className="muted">SOS works locally. Sign in to sync family, profile, and emergency history.</p>
+        )}
+        {user && <button className="btn-ghost settings-signout" type="button" onClick={logout}><LogOut size={16} /> Sign out</button>}
+      </div>
 
       <div className="card">
         <h2>Appearance</h2>

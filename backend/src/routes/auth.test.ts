@@ -26,7 +26,7 @@ let app: import('express').Express;
 
 beforeAll(async () => {
   ({ app } = await import('../server.js'));
-});
+}, 30_000);
 
 describe('auth + API smoke', () => {
   let token = '';

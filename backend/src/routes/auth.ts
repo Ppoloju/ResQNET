@@ -77,7 +77,7 @@ authRouter.post('/register', authLimiter, async (req, res) => {
   const token = issueToken(userId, 'user', deviceId);
   res.status(201).json({
     token,
-    user: { id: userId, email, displayName, role: 'user' },
+    user: { id: userId, email, phone: phone ?? null, displayName, role: 'user' },
     device: { id: deviceId, publicId, secret: deviceSecret }, // secret shown once; client stores in IndexedDB
   });
 });
@@ -90,7 +90,7 @@ authRouter.post('/login', authLimiter, async (req, res) => {
   }
   const { email, password } = parsed.data;
   const user = db.prepare('SELECT * FROM users WHERE email = ?').get(email.toLowerCase()) as
-    | { id: string; password_hash: string; role: string; display_name: string }
+    | { id: string; email: string; phone: string | null; password_hash: string; role: string; display_name: string }
     | undefined;
 
   if (!user || !(await verify(user.password_hash, password))) {
@@ -107,7 +107,7 @@ authRouter.post('/login', authLimiter, async (req, res) => {
   const token = issueToken(user.id, user.role, device?.id);
   res.json({
     token,
-    user: { id: user.id, email: email.toLowerCase(), displayName: user.display_name, role: user.role },
+    user: { id: user.id, email: user.email, phone: user.phone, displayName: user.display_name, role: user.role },
     device: device ? { id: device.id, publicId: device.public_id } : null,
   });
 });
@@ -137,12 +137,12 @@ authRouter.post('/devices', requireAuth, (req: AuthedRequest, res) => {
 });
 
 authRouter.get('/me', requireAuth, (req: AuthedRequest, res) => {
-  const user = db.prepare('SELECT id, email, display_name, role FROM users WHERE id = ?').get(req.user!.userId) as
-    | { id: string; email: string; display_name: string; role: string }
+  const user = db.prepare('SELECT id, email, phone, display_name, role FROM users WHERE id = ?').get(req.user!.userId) as
+    | { id: string; email: string; phone: string | null; display_name: string; role: string }
     | undefined;
   if (!user) {
     res.status(404).json({ error: 'user not found' });
     return;
   }
-  res.json({ user: { id: user.id, email: user.email, displayName: user.display_name, role: user.role } });
+  res.json({ user: { id: user.id, email: user.email, phone: user.phone, displayName: user.display_name, role: user.role } });
 });

@@ -1,7 +1,7 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { render, screen, act, fireEvent } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
-import Home from '../pages/Home';
+import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import Home, { SosPage } from '../pages/Home';
 import { SessionProvider } from '../state/SessionContext';
 import { StatusProvider } from '../state/StatusContext';
 import { MeshProvider } from '../state/MeshContext';
@@ -14,7 +14,10 @@ function renderHome() {
         <StatusProvider>
           <MeshProvider>
             <AIProvider>
-              <Home />
+              <Routes>
+                <Route path="/" element={<Home />} />
+                <Route path="/sos" element={<SosPage />} />
+              </Routes>
             </AIProvider>
           </MeshProvider>
         </StatusProvider>
@@ -83,6 +86,8 @@ describe('SOS flow', () => {
       await hold(screen.getByRole('button', { name: /hold for three seconds to activate sos/i }));
       await hold(screen.getByRole('button', { name: /hold for three seconds to resolve/i }));
 
+      expect(screen.getByText('SOS DISARMED')).toBeInTheDocument();
+      await act(async () => { vi.advanceTimersByTime(2500); });
       expect(screen.getByRole('button', { name: /hold for three seconds to activate sos/i })).toBeInTheDocument();
       expect(JSON.parse(localStorage.getItem('iqoo.activeEmergency') ?? 'null')).toBeNull();
     } finally {
