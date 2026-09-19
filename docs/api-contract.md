@@ -29,12 +29,16 @@ Visibility tiers: `PRIVATE | FAMILY | RESPONDERS | NEARBY_HELPERS`.
 ## family
 `GET /family` · `POST /family` · `PUT /family/:id` · `DELETE /family/:id`
 Fields: `name, relation(FATHER…OTHER), phone, priority(1=highest), trusted, iqooAccountId?`.
+`GET /family` also returns `linked`, `checkInStatus`, and `lastCheckInAt` for the linked account's latest check-in.
 
 ## emergencies
 | Method | Path | Notes |
 |---|---|---|
-| POST | `/emergencies` | `{type: SOS\|QUICK_HELP, severity, category?, message?, location{latitude,longitude,accuracyMeters,state}, battery?, requiresMedicalHelp, requiresPoliceHelp, ai?}` → 201 `{emergencyId: "IQ-XXXXXXXX"}` |
-| POST | `/emergencies/:id/resolve` | signed RESOLUTION packet; `resolvedHow: USER_SAFE\|USER_CANCELLED\|RESPONDER` |
+| POST | `/emergencies` | `{type: SOS\|QUICK_HELP, severity, category?, message?, location{latitude,longitude,accuracyMeters,state}, battery?, requiresMedicalHelp, requiresPoliceHelp, ai?}` → 201 `{emergencyId: "IQ-XXXXXXXX", clientFeedback:{vibrationPatternMs:[120,60,180]}}`; vibration is executed locally by the client |
+| POST | `/emergencies/:id/safe-ping` | Owner of an active emergency broadcasts an all-safe family notification; → `{notifiedCount, createdAt}` and SSE `family_safe_ping` |
+| POST | `/emergencies/:id/sitrep` | Owner-only `{text}` (≤280 chars), encrypted at rest; → `{id, encrypted:true, createdAt}` and SSE metadata event |
+| GET | `/emergencies/:id/sitreps` | Owner-only decrypted notes for the emergency |
+| POST | `/emergencies/:id/resolve` | signed RESOLUTION packet; `resolvedHow: USER_SAFE\|USER_CANCELLED\|RESPONDER`; → `{status:"RESOLVED", clientFeedback:{state:"DISARMED", vibrationPatternMs:[60,40,60]}}` |
 | GET | `/emergencies?limit=` | own history |
 
 ## check-ins

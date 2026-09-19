@@ -129,6 +129,18 @@ CREATE TABLE IF NOT EXISTS emergency_messages (
 CREATE INDEX IF NOT EXISTS idx_messages_emergency ON emergency_messages(emergency_id);
 CREATE INDEX IF NOT EXISTS idx_messages_sync ON emergency_messages(synced_at);
 
+-- Short private notes attached to an active emergency. Content is encrypted
+-- before storage and is only returned through the owning emergency route.
+CREATE TABLE IF NOT EXISTS emergency_sitreps (
+  id            TEXT PRIMARY KEY,
+  emergency_id  TEXT NOT NULL REFERENCES emergency_events(id) ON DELETE CASCADE,
+  author_user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  note_encrypted TEXT NOT NULL,
+  created_at    TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_emergency_sitreps_emergency ON emergency_sitreps(emergency_id, created_at DESC);
+
 CREATE TABLE IF NOT EXISTS message_deliveries (
   id                TEXT PRIMARY KEY,
   message_id        TEXT NOT NULL REFERENCES emergency_messages(id) ON DELETE CASCADE,

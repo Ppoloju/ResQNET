@@ -93,6 +93,7 @@ describe('auth + API smoke', () => {
     expect(res.status).toBe(201);
     const id = res.body.emergencyId as string;
     expect(id).toMatch(/^IQ-/);
+    expect(res.body.clientFeedback.vibrationPatternMs).toEqual([120, 60, 180]);
 
     const detail = await request(app).get(`/api/emergencies/${id}`)
       .set('Authorization', `Bearer ${token}`);
@@ -130,6 +131,7 @@ describe('auth + API smoke', () => {
       .set('Authorization', `Bearer ${token}`);
     expect(res.status).toBe(200);
     expect(res.body.status).toBe('RESOLVED');
+    expect(res.body.clientFeedback).toEqual({ state: 'DISARMED', vibrationPatternMs: [60, 40, 60] });
 
     const again = await request(app).post(`/api/emergencies/${id}/resolve`)
       .set('Authorization', `Bearer ${token}`);
@@ -242,5 +244,41 @@ describe('auth + API smoke', () => {
       .set('Authorization', `Bearer ${token}`).send({ enabled: false });
     expect(disabled.status).toBe(200);
     expect(disabled.body.enabled).toBe(false);
+  });
+
+  it('broadcasts a safe ping and stores an encrypted emergency sitrep', async () => {
+    const member = await request(app).post('/api/family')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ name: 'Family Node', relation: 'FRIEND', phone: '+911234567890', priority: 1, trusted: true });
+    expect(member.status).toBe(201);
+
+    const family = await request(app).get('/api/family').set('Authorization', `Bearer ${token}`);
+    expect(family.status).toBe(200);
+    expect(family.body.members[0]).toMatchObject({ linked: false, checkInStatus: null, lastCheckInAt: null });
+
+    const created = await request(app).post('/api/emergencies')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        emergencyId: 'IQ-ACTIVE01', type: 'SOS', severity: 'CRITICAL', message: 'active test',
+        location: { latitude: 0, longitude: 0, accuracyMeters: null, state: 'LOCATION_UNAVAILABLE' },
+      });
+    expect(created.status).toBe(201);
+
+    const ping = await request(app).post('/api/emergencies/IQ-ACTIVE01/safe-ping')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ message: 'All safe - acknowledge when able.' });
+    expect(ping.status).toBe(200);
+    expect(ping.body.notifiedCount).toBe(1);
+
+    const sitrep = await request(app).post('/api/emergencies/IQ-ACTIVE01/sitrep')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ text: 'At the east shelter entrance.' });
+    expect(sitrep.status).toBe(201);
+    expect(sitrep.body.encrypted).toBe(true);
+
+    const notes = await request(app).get('/api/emergencies/IQ-ACTIVE01/sitreps')
+      .set('Authorization', `Bearer ${token}`);
+    expect(notes.status).toBe(200);
+    expect(notes.body.sitreps[0].text).toBe('At the east shelter entrance.');
   });
 });

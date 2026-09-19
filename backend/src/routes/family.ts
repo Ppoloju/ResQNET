@@ -21,7 +21,9 @@ const memberSchema = z.object({
 
 familyRouter.get('/', requireAuth, (req: AuthedRequest, res) => {
   const rows = db.prepare(
-    `SELECT id, name, relation, phone, iqoo_account_id, priority, trusted, status, last_seen_at, last_lat, last_lon
+    `SELECT id, name, relation, phone, iqoo_account_id, priority, trusted, status, last_seen_at, last_lat, last_lon,
+       (SELECT ci.status FROM check_ins ci WHERE ci.user_id = family_members.iqoo_account_id ORDER BY ci.created_at DESC LIMIT 1) AS check_in_status,
+       (SELECT ci.created_at FROM check_ins ci WHERE ci.user_id = family_members.iqoo_account_id ORDER BY ci.created_at DESC LIMIT 1) AS last_check_in_at
      FROM family_members WHERE owner_user_id = ? ORDER BY priority ASC, created_at ASC`,
   ).all(req.user!.userId) as Array<Record<string, unknown>>;
 
@@ -32,10 +34,13 @@ familyRouter.get('/', requireAuth, (req: AuthedRequest, res) => {
       relation: r.relation,
       phone: r.phone,
       iqooAccountId: r.iqoo_account_id,
+      linked: !!r.iqoo_account_id,
       priority: r.priority,
       trusted: !!r.trusted,
       status: r.status,
       lastSeenAt: r.last_seen_at,
+      checkInStatus: r.check_in_status ?? null,
+      lastCheckInAt: r.last_check_in_at ?? null,
       lastLocation: r.last_lat != null && r.last_lon != null
         ? { latitude: r.last_lat, longitude: r.last_lon }
         : null,

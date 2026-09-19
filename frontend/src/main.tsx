@@ -9,7 +9,7 @@ import { TransportProvider } from './state/TransportContext';
 import { MeshProvider } from './state/MeshContext';
 import { AIProvider } from './state/AIContext';
 import { ModeProvider } from './state/ModeContext';
-import Home from './pages/Home';
+import Home, { SosPage } from './pages/Home';
 import Login from './pages/Login';
 import Profile from './pages/Profile';
 import Family from './pages/Family';
@@ -37,6 +37,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
                   <App>
                     <Routes>
                       <Route path="/" element={<Home />} />
+                      <Route path="/sos" element={<SosPage />} />
                       <Route path="/login" element={<Login />} />
                       <Route path="/profile" element={<Profile />} />
                       <Route path="/family" element={<Family />} />

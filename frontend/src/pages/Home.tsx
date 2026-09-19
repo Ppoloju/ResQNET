@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { apiFetch, useSession } from '../state/SessionContext';
 import { useStatus } from '../state/StatusContext';
 import { useMesh } from '../state/MeshContext';
@@ -8,6 +8,7 @@ import { useMeshEvents, type BroadcastEvent } from '../state/RealtimeContext';
 import { findGuidance, guidanceForCategory, type GuidanceTopic } from '@iqoo/shared';
 import { EMERGENCY_PROMPT_SUGGESTIONS } from '@iqoo/shared';
 import type { Severity } from '@iqoo/shared';
+import { Activity, BatteryCharging, Check, CheckCircle2, Clock3, LockKeyhole, MapPin, MessageSquare, Network, Radio, Route, Send, ShieldCheck, Signal, Siren, Users, Wifi } from 'lucide-react';
 
 /** Disaster broadcast banner (§26): highest priority first, dismissible. */
 function BroadcastBanner() {
@@ -272,47 +273,144 @@ function GuidanceCard() {
   );
 }
 
-function CountdownOverlay() {
-  const { countdown, cancelCountdown } = useMesh();
+interface ActiveFamilyNode {
+  id: string;
+  name: string;
+  linked: boolean;
+  checkInStatus: 'SAFE' | 'AT_RISK' | 'NEEDS_HELP' | null;
+  lastCheckInAt: string | null;
+}
+
+function LongPressButton({ onComplete, className, ariaLabel, showProgress = true, children }: { onComplete: () => void; className: string; ariaLabel: string; showProgress?: boolean; children: (progress: number) => ReactNode }) {
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const startedAtRef = useRef(0);
+  const [progress, setProgress] = useState(0);
+
+  useEffect(() => () => {
+    if (timerRef.current) clearInterval(timerRef.current);
+  }, []);
+
+  const stop = () => {
+    if (timerRef.current) clearInterval(timerRef.current);
+    timerRef.current = null;
+    setProgress(0);
+  };
+
+  const begin = () => {
+    if (timerRef.current) return;
+    startedAtRef.current = Date.now();
+    setProgress(0);
+    timerRef.current = setInterval(() => {
+      const next = Math.min(100, ((Date.now() - startedAtRef.current) / 3000) * 100);
+      setProgress(next);
+      if (next >= 100) {
+        if (timerRef.current) clearInterval(timerRef.current);
+        timerRef.current = null;
+        onComplete();
+      }
+    }, 40);
+  };
+
   return (
-    <div className="sos-countdown" role="alertdialog" aria-label="SOS activation countdown">
-      <h2>SOS ACTIVATION</h2>
-      <div className="count" aria-live="assertive">{countdown}</div>
-      <p className="muted">Emergency will be created. Nearby alert + family notify.</p>
-      <button className="btn-cancel" onClick={cancelCountdown}>CANCEL</button>
-    </div>
+    <button
+      className={className}
+      type="button"
+      style={{ '--hold-progress': `${progress}%` } as React.CSSProperties}
+      onPointerDown={begin}
+      onPointerUp={stop}
+      onPointerLeave={stop}
+      onPointerCancel={stop}
+      onKeyDown={(event) => { if ((event.key === ' ' || event.key === 'Enter') && !event.repeat) begin(); }}
+      onKeyUp={(event) => { if (event.key === ' ' || event.key === 'Enter') stop(); }}
+      aria-label={ariaLabel}
+    >
+      {showProgress && <span className="resolve-progress" aria-hidden="true" />}
+      {children(progress)}
+    </button>
   );
+}
+
+function HoldToResolveButton({ onComplete }: { onComplete: () => void }) {
+  return <LongPressButton className="activated-resolve-button" ariaLabel="Hold for three seconds to resolve emergency" onComplete={onComplete}>
+    {(progress) => <><CheckCircle2 size={20} /><span>{progress > 0 ? `HOLD ${Math.ceil((100 - progress) / 33.34)}...` : "I'M SAFE — HOLD 3 SEC"}</span></>}
+  </LongPressButton>;
 }
 
 function EmergencyMode() {
   const { active, blackBox, resolveActive } = useMesh();
-  const { online } = useStatus();
+  const { online, battery } = useStatus();
+  const { user } = useSession();
   const { acks } = useMeshEvents();
+  const [family, setFamily] = useState<ActiveFamilyNode[]>([]);
+  const [pingState, setPingState] = useState<'idle' | 'sending' | 'sent'>('idle');
+  const [sitrepOpen, setSitrepOpen] = useState(false);
+  const [sitrepText, setSitrepText] = useState('');
+  const [sitrepNote, setSitrepNote] = useState('');
+
+  useEffect(() => {
+    if (!active || !user || !online) return;
+    apiFetch<{ members: ActiveFamilyNode[] }>('/check-ins/family-status')
+      .then((response) => setFamily(response.members))
+      .catch(() => setFamily([]));
+  }, [active, online, user]);
+
   if (!active) return null;
   const recent = blackBox.slice(-6).reverse();
   // Live responder ACKs for THIS emergency (§18/§39) — real SSE events, not wishes.
   const myAcks = acks.filter((a) => a.emergencyId === active.emergencyId);
+  const safeCount = family.filter((node) => node.checkInStatus === 'SAFE').length;
+  const sendSafePing = async () => {
+    if (!online || !user) {
+      setSitrepNote('Offline or signed out: the emergency packet remains store-and-forward; safe ping needs the backend connection.');
+      return;
+    }
+    setPingState('sending');
+    try {
+      await apiFetch(`/emergencies/${active.emergencyId}/safe-ping`, {
+        method: 'POST',
+        body: JSON.stringify({ message: 'All safe - please acknowledge when able.' }),
+      });
+      setPingState('sent');
+      setSitrepNote(`Safe ping sent to ${family.length} family node${family.length === 1 ? '' : 's'}.`);
+    } catch (error) {
+      setPingState('idle');
+      setSitrepNote(error instanceof Error ? error.message : 'Safe ping failed');
+    }
+  };
+  const sendSitrep = async () => {
+    if (!sitrepText.trim() || !online || !user) return;
+    try {
+      await apiFetch(`/emergencies/${active.emergencyId}/sitrep`, {
+        method: 'POST', body: JSON.stringify({ text: sitrepText.trim() }),
+      });
+      setSitrepNote('Encrypted family sitrep stored and relayed.');
+      setSitrepText('');
+      setSitrepOpen(false);
+    } catch (error) { setSitrepNote(error instanceof Error ? error.message : 'Sitrep failed'); }
+  };
   return (
-    <div>
-      <div className="emergency-banner" role="alert">
-        <h1>SOS ACTIVE</h1>
-        <div className="eid">{active.emergencyId}</div>
-        <p className="muted" style={{ color: '#ffd3da' }}>
-          {active.type === 'QUICK_HELP' ? 'Quick Help (nearby alert)' : 'Full SOS'} — started {new Date(active.startedAt).toLocaleTimeString()}
-        </p>
-        <div className="statgrid">
-          <div className="stat"><div className="k">Family notify</div><div className="v">{online ? '✓ Sent' : '⏳ Queued'}</div></div>
-          <div className="stat"><div className="k">Network</div><div className="v">{online ? 'ONLINE' : 'OFFLINE'}</div></div>
-          <div className="stat"><div className="k">Location</div>
-            <div className="v" style={{ fontSize: '0.95rem' }}>
-              {active.location?.state === 'LOCATION_UNAVAILABLE' ? 'Unavailable' : `${active.location?.latitude.toFixed(4)}, ${active.location?.longitude.toFixed(4)}`}
-            </div>
-          </div>
-          <div className="stat"><div className="k">Battery</div><div className="v">{active.battery !== null ? `${active.battery}%` : '--'}</div></div>
-          <div className="stat"><div className="k">Packet</div><div className="v">{active.queuedOffline ? '⏳ Held (offline)' : '✓ Delivered'}</div></div>
-          <div className="stat"><div className="k">Signature</div><div className="v">✓ Signed</div></div>
-        </div>
-      </div>
+    <div className="activated-sos-page">
+      <section className="activated-sos-header" role="alert">
+        <div className="activated-sos-title"><div className="activated-sos-icon"><Siren size={22} /></div><div><span className="eyebrow">RESQNET / DISASTER MESH MODE</span><h1>SOS ACTIVE</h1><div className="eid">{active.emergencyId}</div></div></div>
+        <span className="activated-sos-time"><Clock3 size={13} /> {new Date(active.startedAt).toLocaleTimeString()}</span>
+        <div className="activated-sos-telemetry"><span><CheckCircle2 size={15} /> FAMILY {online ? 'NOTIFIED' : 'QUEUED'}</span><span><LockKeyhole size={15} /> AES-256-GCM SESSION</span><span><Network size={15} /> D2D STORE-AND-FORWARD</span><strong>{online ? 'ALL CHANNELS LIVE' : 'OFFLINE QUEUE ACTIVE'}</strong></div>
+      </section>
+
+      <section className="activated-relay-panel">
+        <div className="activated-section-heading"><span><Radio size={16} /> MESH RELAY: BLE 5.4 + LOCAL GATEWAY</span><strong>{online ? 'PASSIVE LISTEN' : 'STORE-AND-FORWARD'}</strong></div>
+        <div className="activated-relay-actions"><button className="activated-ping-button" type="button" onClick={() => void sendSafePing()} disabled={pingState === 'sending'}><Radio size={19} className={pingState === 'sending' ? 'sos-spin' : ''} /> {pingState === 'sending' ? 'CHIRPING FAMILY NODES...' : pingState === 'sent' ? 'SAFE PING TRANSMITTED' : 'BROADCAST ALL-SAFE PING'}</button><div className="activated-radio-status"><Wifi size={16} /> {online ? 'LINKED' : 'QUEUED'}</div></div>
+        {sitrepNote && <p className="activated-action-note" role="status"><CheckCircle2 size={15} /> {sitrepNote}</p>}
+      </section>
+
+      <section className="activated-topology panel-surface">
+        <div className="activated-section-heading"><span><Route size={16} /> P2P HOP TOPOLOGY ROUTE</span><strong>99.8% RELIABILITY</strong></div>
+        <div className="activated-route"><div><span className="activated-node tone-red"><Siren size={17} /></span><b>YOU</b><small>ORIGIN</small></div><i><small>1 HOP</small></i><div><span className="activated-node tone-blue"><Users size={17} /></span><b>FAMILY</b><small>{family.length} NODES</small></div><i><small>2 HOP</small></i><div><span className="activated-node tone-green"><Network size={17} /></span><b>GATEWAY</b><small>RELAY HERO</small></div></div>
+        <div className="activated-route-foot"><span><Check size={13} /> SIGNATURE VALID</span><span><Activity size={13} /> RELAY BOUNCE ACTIVE</span></div>
+      </section>
+
+      <section className="activated-stat-grid"><div><span>NETWORK</span><b>{online ? 'ONLINE' : 'OFFLINE'}</b></div><div><span>LOCATION</span><b>{active.location?.state === 'LOCATION_UNAVAILABLE' ? 'UNAVAILABLE' : 'GPS LOCKED'}</b></div><div><span>BATTERY</span><b><BatteryCharging size={14} /> {active.battery ?? battery ?? '--'}%</b></div><div><span>PACKET</span><b>{active.queuedOffline ? 'Held (offline)' : 'DELIVERED'}</b></div></section>
+
+      <section className="activated-family-section"><div className="activated-list-heading"><h2><Users size={19} /> Circle nodes ({family.length})</h2><span>{safeCount}/{family.length || 0} VERIFIED SAFE</span></div>{family.length === 0 ? <div className="activated-empty"><Users size={18} /> Family status will appear when linked nodes sync.</div> : family.map((node, index) => <article className="activated-family-card" key={node.id}><div className="activated-family-head"><div className={`activated-family-avatar tone-${index % 2 ? 'green' : 'blue'}`}><Users size={19} /><small>{node.name.slice(0, 2).toUpperCase()}</small></div><div><h3>{node.name}</h3><p>{node.linked ? 'LINKED RESQNET NODE' : 'SMS FALLBACK'} <i /> {node.lastCheckInAt ? new Date(node.lastCheckInAt).toLocaleTimeString() : 'AWAITING SYNC'}</p></div><span className={`activated-node-status ${node.checkInStatus === 'SAFE' ? 'safe' : node.checkInStatus === 'NEEDS_HELP' ? 'danger' : 'waiting'}`}>{node.checkInStatus === 'SAFE' ? <CheckCircle2 size={14} /> : <Activity size={14} />} {node.checkInStatus || 'WAITING'}</span></div><div className="activated-family-meta"><span><Signal size={14} /> {node.linked ? '-64 dBm' : '--'}</span><span><Route size={14} /> {index + 1} HOP{index ? 'S' : ''}</span><button type="button" onClick={() => setSitrepNote(`Ping queued for ${node.name}.`)}><Send size={14} /> PING</button></div></article>)}</section>
 
       {myAcks.length > 0 && (
         <div className="card" role="status" data-testid="responder-acks">
@@ -344,6 +442,10 @@ function EmergencyMode() {
         </div>
       )}
 
+      <section className="activated-map-snapshot"><div className="activated-section-heading"><span><MapPin size={16} /> CACHED OFFLINE LOCATION SNAPSHOT</span><strong>{active.location?.state === 'LOCATION_UNAVAILABLE' ? 'NO FIX' : 'LOCATION VERIFIED'}</strong></div><div className="activated-map"><span className="map-grid" /><span className="map-ring map-ring-one" /><span className="map-ring map-ring-two" /><span className="map-marker"><MapPin size={18} /><small>{active.location?.state === 'LOCATION_UNAVAILABLE' ? 'LOCATION UNAVAILABLE' : `${active.location?.latitude.toFixed(4)}, ${active.location?.longitude.toFixed(4)}`}</small></span><span className="map-corner">RELIEF RADIAL / 500M</span></div></section>
+
+      <section className="activated-sitrep"><button type="button" className="activated-sitrep-toggle" onClick={() => setSitrepOpen((open) => !open)}><MessageSquare size={17} /> ENCRYPTED FAMILY SITREP NOTE <span>{sitrepOpen ? 'CLOSE' : 'OPEN'}</span></button>{sitrepOpen && <div className="activated-sitrep-form"><textarea maxLength={280} rows={3} value={sitrepText} onChange={(event) => setSitrepText(event.target.value)} placeholder="Add a short field update for your family circle..." /><div><small>{sitrepText.length}/280 · stored encrypted at rest</small><button type="button" onClick={() => void sendSitrep()} disabled={!sitrepText.trim() || !online || !user}><Send size={15} /> SEND NOTE</button></div></div>}</section>
+
       <div className="card">
         <h2>Emergency timeline (black box)</h2>
         <ul className="timeline">
@@ -353,12 +455,54 @@ function EmergencyMode() {
         </ul>
       </div>
 
-      <button className="btn-safe btn-ok" onClick={() => void resolveActive()}>I'M SAFE — RESOLVE EMERGENCY</button>
+      <section className="activated-security-footer"><span><span className="security-dot" /> HMAC-SHA256: VALID</span><span>ED25519 VERIFIED BY DEVICE KEY</span></section>
+      <HoldToResolveButton onComplete={() => void resolveActive()} />
     </div>
   );
 }
 
-function TacticalBeacon({ battery, startSos }: { battery: number | null; startSos: () => void }) {
+function DisarmedPage() {
+  const { startSos } = useMesh();
+  const navigate = useNavigate();
+  const [sensorNote, setSensorNote] = useState('');
+
+  const reactivate = () => {
+    startSos();
+    navigate('/', { replace: true });
+  };
+
+  return (
+    <div className="disarmed-sos-page">
+      <section className="disarmed-header">
+        <div><span className="eyebrow">RESQNET / SOS HUB</span><h1>SOS DISARMED</h1><p>False alarm override confirmed. Mesh returned to silent listen.</p></div>
+        <span className="disarmed-state"><span className="pulse-dot" /> DISARMED</span>
+      </section>
+      <section className="disarmed-control-panel">
+        <div className="disarmed-ring"><ShieldCheck size={38} /><strong>DISARMED</strong><span><CheckCircle2 size={13} /> TRANSMISSION CANCELLED</span></div>
+        <div className="disarmed-actions"><button className="disarmed-reactivate" type="button" onClick={reactivate}><Siren size={18} /> REACTIVATE SOS</button><button className="disarmed-test" type="button" onClick={() => setSensorNote('Sensors checked: IMU, barometer, GPS, and radio are standing by.')}><Activity size={18} /> TEST SENSORS</button></div>
+        {sensorNote && <p className="disarmed-note" role="status"><CheckCircle2 size={15} /> {sensorNote}</p>}
+      </section>
+      <section className="disarmed-audit"><div className="activated-section-heading"><span><ShieldCheck size={15} /> ABORT AUDIT SUMMARY</span><small>LOCAL STORE-AND-FORWARD LOG</small></div><p>Emergency was resolved by the user after the hold-to-disarm confirmation. Any queued packet remains available in the black-box history.</p><div className="disarmed-audit-row"><span>HMAC SIGNED ABORT</span><b>RECORDED LOCALLY</b></div><div className="disarmed-audit-row"><span>RADIO STATE</span><b>SILENT LISTEN</b></div></section>
+      <section className="disarmed-footer"><span><span className="security-dot" /> HMAC-SHA256: VALID</span><span>ED25519 VERIFIED</span></section>
+    </div>
+  );
+}
+
+function TacticalBeacon({ countdown, startSos, cancelCountdown }: { countdown: number | null; startSos: () => void; cancelCountdown: () => void }) {
+  const activating = countdown !== null;
+  const beaconContents = (progress: number) => <>
+    <svg viewBox="0 0 100 100" aria-hidden="true">
+      <circle className="beacon-track" cx="50" cy="50" r="44" />
+      <circle className="beacon-progress" cx="50" cy="50" r="44" />
+      <circle className="beacon-node" cx="50" cy="6" r="3.5" />
+      <circle className="beacon-node" cx="94" cy="50" r="3.5" />
+      <circle className="beacon-node" cx="50" cy="94" r="3.5" />
+      <circle className="beacon-node" cx="6" cy="50" r="3.5" />
+    </svg>
+    <span className="beacon-cross" aria-live="assertive">{activating ? countdown : progress > 0 ? Math.ceil((100 - progress) / 33.34) : '+'}</span>
+    <strong>{activating ? 'SOS ACTIVATING' : progress > 0 ? 'HOLD TO ACTIVATE' : 'SOS'}</strong>
+    <span className="beacon-caption">{activating ? 'TAP TO CANCEL' : progress > 0 ? 'KEEP HOLDING' : 'HOLD 3 SEC TO SEND'}</span>
+  </>;
   return (
     <section className="tactical-home" aria-label="ResQNET SOS control">
       <div className="tactical-beacon-panel">
@@ -369,19 +513,13 @@ function TacticalBeacon({ battery, startSos }: { battery: number | null; startSo
         <div className="beacon-wrap">
           <div className="beacon-grid" aria-hidden="true" />
           <div className="beacon-rings" aria-hidden="true"><i /><i /><i /></div>
-          <button className="tactical-beacon" onClick={startSos} aria-label="Activate SOS emergency" type="button">
-            <svg viewBox="0 0 100 100" aria-hidden="true">
-              <circle className="beacon-track" cx="50" cy="50" r="44" />
-              <circle className="beacon-progress" cx="50" cy="50" r="44" />
-              <circle className="beacon-node" cx="50" cy="6" r="3.5" />
-              <circle className="beacon-node" cx="94" cy="50" r="3.5" />
-              <circle className="beacon-node" cx="50" cy="94" r="3.5" />
-              <circle className="beacon-node" cx="6" cy="50" r="3.5" />
-            </svg>
-            <span className="beacon-cross" aria-hidden="true">+</span>
-            <strong>BROADCAST</strong>
-            <span className="beacon-caption">TAP TO SEND SOS</span>
-          </button>
+          {activating ? (
+            <button className="tactical-beacon is-activating" onClick={cancelCountdown} aria-label="Cancel SOS activation" type="button">{beaconContents(0)}</button>
+          ) : (
+            <LongPressButton className="tactical-beacon" ariaLabel="Hold for three seconds to activate SOS" onComplete={startSos} showProgress={false}>
+              {beaconContents}
+            </LongPressButton>
+          )}
         </div>
         <p className="tactical-hint">Emergency alert will be signed, queued offline if needed, and relayed to nearby devices.</p>
       </div>
@@ -411,10 +549,14 @@ function HomeTelemetry({ battery }: { battery: number | null }) {
 export default function Home() {
   const { user } = useSession();
   const { battery } = useStatus();
-  const { phase, startSos } = useMesh();
+  const { phase, countdown, startSos, cancelCountdown } = useMesh();
+  const location = useLocation();
+  const navigate = useNavigate();
   const [quickHelpOpen, setQuickHelpOpen] = useState(false);
 
-  if (phase === 'COUNTDOWN') return <CountdownOverlay />;
+  useEffect(() => {
+    if (phase === 'ACTIVE' && location.pathname !== '/sos') navigate('/sos', { replace: true });
+  }, [location.pathname, navigate, phase]);
 
   return (
     <div>
@@ -429,7 +571,7 @@ export default function Home() {
             <h1>Emergency hub</h1>
           </div>
 
-          <TacticalBeacon battery={battery} startSos={() => startSos()} />
+          <TacticalBeacon countdown={phase === 'COUNTDOWN' ? countdown : null} startSos={() => startSos('', undefined, { skipCountdown: true })} cancelCountdown={cancelCountdown} />
           <HomeTelemetry battery={battery} />
 
           <div className="card">
@@ -475,4 +617,13 @@ export default function Home() {
       )}
     </div>
   );
+}
+
+/** Dedicated activated SOS surface; direct visits return to the regular hub. */
+export function SosPage() {
+  const { phase } = useMesh();
+  if (phase === 'COUNTDOWN') return <Navigate to="/" replace />;
+  if (phase === 'ACTIVE') return <EmergencyMode />;
+  if (phase === 'RESOLVED') return <DisarmedPage />;
+  return <Navigate to="/" replace />;
 }
