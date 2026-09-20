@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import { classifyFromText, AI_DISCLAIMER } from '@iqoo/shared';
+import { classifyFromText, AI_DISCLAIMER, triageHelp } from '@iqoo/shared';
 import { audit } from '../middleware/audit.js';
 import { requireAuth, type AuthedRequest } from '../middleware/auth.js';
 
@@ -31,4 +31,18 @@ aiRouter.post('/classify', requireAuth, (req: AuthedRequest, res) => {
     engine: result.engine,
   });
   res.json({ result, disclaimer: AI_DISCLAIMER, local: true });
+});
+
+/** Quick Help routing: choose offline map, SOS, or local assistance chat. */
+aiRouter.post('/triage', requireAuth, (req: AuthedRequest, res) => {
+  const parsed = classifySchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: 'validation failed', issues: parsed.error.issues });
+    return;
+  }
+  const triage = triageHelp(parsed.data.text, parsed.data.battery);
+  audit(req.user!.userId, 'ai.triage', 'ai_assistance', undefined, {
+    action: triage.action, category: triage.category, severity: triage.severity, engine: triage.engine,
+  });
+  res.json({ triage, disclaimer: AI_DISCLAIMER, local: true });
 });

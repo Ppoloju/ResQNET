@@ -5,10 +5,10 @@ import { useStatus } from '../state/StatusContext';
 import { useMesh } from '../state/MeshContext';
 import { useAI } from '../state/AIContext';
 import { useMeshEvents, type BroadcastEvent } from '../state/RealtimeContext';
-import { findGuidance, guidanceForCategory, type GuidanceTopic } from '@iqoo/shared';
+import { findGuidance, guidanceForCategory, triageHelp, type GuidanceTopic, type HelpTriage } from '@iqoo/shared';
 import { EMERGENCY_PROMPT_SUGGESTIONS } from '@iqoo/shared';
 import type { Severity } from '@iqoo/shared';
-import { Activity, BatteryCharging, Check, CheckCircle2, Clock3, LockKeyhole, MapPin, MessageSquare, Network, Radio, Route, Send, ShieldCheck, Signal, Siren, Users, Wifi } from 'lucide-react';
+import { Activity, BatteryCharging, Check, CheckCircle2, Clock3, LockKeyhole, MapPin, MapPinned, MessageSquare, Network, Radio, Route, Send, ShieldCheck, Signal, Siren, Users, Wifi } from 'lucide-react';
 
 /** Disaster broadcast banner (§26): highest priority first, dismissible. */
 function BroadcastBanner() {
@@ -528,6 +528,70 @@ function TacticalBeacon({ countdown, startSos, cancelCountdown }: { countdown: n
   );
 }
 
+function QuickHelpCard({ onClose }: { onClose: () => void }) {
+  const { user } = useSession();
+  const { online, battery } = useStatus();
+  const { startSos } = useMesh();
+  const navigate = useNavigate();
+  const [plan, setPlan] = useState<HelpTriage | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [note, setNote] = useState('');
+
+  async function triage(message: string) {
+    setBusy(true); setNote('');
+    const localPlan = triageHelp(message, battery);
+    try {
+      if (online && user) {
+        const response = await apiFetch<{ triage: HelpTriage }>('/ai/triage', {
+          method: 'POST', body: JSON.stringify({ text: message, battery }),
+        });
+        setPlan(response.triage);
+      } else {
+        setPlan(localPlan);
+        setNote('Offline triage used on this device.');
+      }
+    } catch {
+      setPlan(localPlan);
+      setNote('Backend unavailable. Offline triage used on this device.');
+    } finally { setBusy(false); }
+  }
+
+  const quickActions = [
+    'I am lost and need directions',
+    'I am bleeding and need medical help',
+    'Someone is following me',
+    'There is a fire nearby',
+    'I need assistance',
+  ];
+
+  return (
+    <div className="card quick-help-card">
+      <div className="row spread wrap">
+        <div><h2>Need Help</h2><p className="muted">Choose a quick action. ResQNET will open the right help.</p></div>
+        <button className="btn-ghost" type="button" onClick={onClose}>Close</button>
+      </div>
+      <div className="quick-help-actions" aria-label="Quick help actions">
+        {quickActions.map((message) => <button key={message} className="quick-help-action" type="button" onClick={() => void triage(message)} disabled={busy}>{message}</button>)}
+      </div>
+      {note && <p className="muted small" role="status">{note}</p>}
+      {plan && (
+        <div className={`quick-help-result action-${plan.action.toLowerCase()}`} role="status">
+          <div className="row wrap spread"><strong>{plan.action === 'SOS' ? 'SOS recommended' : plan.action === 'OFFLINE_MAP' ? 'Map help recommended' : 'Assistant recommended'}</strong><span className={`sev-pill ${SEVERITY_CLASS[plan.severity]}`}>{plan.severity}</span></div>
+          <p>{plan.reason}</p>
+          {plan.action === 'SOS' && <button className="btn-help" type="button" onClick={() => startSos(plan.matched.join(', '), plan)}><Siren size={17} /> Activate SOS</button>}
+          {plan.action === 'OFFLINE_MAP' && <button className="btn-secondary" type="button" onClick={() => navigate('/family-map')}><MapPinned size={17} /> Open map and nearby resources</button>}
+          {plan.action === 'CHAT' && (
+            <div className="quick-help-chat">
+              <p className="muted">No SOS is needed for this quick request. Open AI Assistance for detailed guidance.</p>
+              <button className="btn-secondary" type="button" onClick={() => navigate('/ai-assistance')}>Open AI Assistance</button>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function Home() {
   const { user } = useSession();
   const { phase, countdown, startSos, cancelCountdown } = useMesh();
@@ -554,23 +618,7 @@ export default function Home() {
 
           <TacticalBeacon countdown={phase === 'COUNTDOWN' ? countdown : null} startSos={() => startSos('', undefined, { skipCountdown: true })} cancelCountdown={cancelCountdown} />
 
-          <div className="card">
-            {quickHelpOpen ? (
-              <>
-                <h2>Need Help — pick a reason</h2>
-                <p className="muted">Lower-profile alert to nearby ResQNET users. Not a replacement for SOS.</p>
-                {['Someone is following me', 'I am lost', 'Need assistance', 'Unsafe environment', 'Medical help'].map((r) => (
-                  <button key={r} className="btn-help" style={{ marginBottom: 8 }}
-                    onClick={() => { setQuickHelpOpen(false); startSos(`NEED_HELP:${r}`); }}>
-                    {r}
-                  </button>
-                ))}
-                <button className="btn-ghost" onClick={() => setQuickHelpOpen(false)}>Back</button>
-              </>
-            ) : (
-              <button className="btn-help" onClick={() => setQuickHelpOpen(true)}>Need Help (quick, low-profile)</button>
-            )}
-          </div>
+          {quickHelpOpen ? <QuickHelpCard onClose={() => setQuickHelpOpen(false)} /> : <div className="card"><button className="btn-help" onClick={() => setQuickHelpOpen(true)}>Need Help</button></div>}
 
           <CheckInCard />
 

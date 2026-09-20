@@ -95,11 +95,12 @@ describe('resource ranking (§13)', () => {
     { id: 'c', kind: 'MEDICAL', name: 'Medical', lat: 13.0000, lon: 77.7000, capacityNote: null, verifiedAt: '2026-09', source: 'seed' },
   ];
 
-  it('ranks by kind priority first, then distance', () => {
+    it('ranks by distance first, then kind for ties', () => {
     const ranked = rankResources(points, 12.9716, 77.5946);
     // MEDICAL first, then SHELTER, then WATER (kind order), distance as tiebreak.
-    expect(ranked.map((r) => r.id)).toEqual(['c', 'b', 'a']);
-    expect(ranked[2].distanceM).toBeCloseTo(0, 0); // water point is at the user's location
+      // The nearest resource wins regardless of category; kind only stabilizes ties.
+      expect(ranked.map((r) => r.id)).toEqual(['a', 'b', 'c']);
+      expect(ranked[0].distanceM).toBeCloseTo(0, 0);
   });
 });
 
