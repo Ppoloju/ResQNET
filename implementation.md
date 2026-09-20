@@ -67,7 +67,7 @@ The frontend is a web PWA. Browser Bluetooth cannot do background BLE mesh; iOS/
 
 - [x] Monorepo structure (frontend/ backend/ shared/ database/ docker/)
 - [x] Environment configuration (.env.example with LOCAL/DEV/DEMO/PRODUCTION guidance)
-- [x] Docker (compose + multi-stage Dockerfile; node:24-alpine; daemon-off on dev machine — build pending daemon start)
+- [x] Docker (compose + multi-stage Dockerfile; node:24-alpine; image and compose E2E path verified)
 - [x] Database (SQLite schema v1: users, devices, emergency_profiles, family_members, emergency_events, emergency_messages, message_deliveries, check_ins, responders, responder_locations, audit_log, emergency_media)
 - [x] Authentication (register/login, Argon2id, JWT, per-device secrets shown once)
 - [x] Logging (pino, structured, secret + medical redaction)
@@ -78,9 +78,9 @@ The frontend is a web PWA. Browser Bluetooth cannot do background BLE mesh; iOS/
 - [x] Anonymous device identity (SOS works logged-out; public ID carries no personal info)
 
 **Status:** Complete
-**Implementation:** Everything above; backend boots (`/healthz` + register/login verified via curl), `npm run build` green for all three workspaces.
+**Implementation:** Everything above; backend boots (`/healthz` + register/login verified via curl), and the shared, backend, and frontend production builds are green.
 **Files changed:** package.json, .gitignore, .env.example, database/schema.sql, docker/*, backend/**, frontend/**, shared/**, README.md, idea.html, implementation.md
-**Tests:** 25 passing (22 backend: crypto/validation/mesh scenarios/API smoke incl. sim demo path; 3 frontend: SOS countdown/cancel, offline activation → outbox, resolve)
+**Tests:** 102 passing (31 shared, 63 backend, 8 frontend), covering crypto, validation, mesh scenarios, API smoke, AI triage, offline SOS, maps/resource ranking, and sync.
 **Known limitations:** native background BLE/Wi-Fi Direct, SMS/push delivery, and sensor-stream fusion remain production integrations `[R]`; the web PWA provides foreground/browser-safe fallbacks.
 **Next step:** native client integration for background radios and sensors; no web-only implementation can provide those platform capabilities honestly.
 
@@ -193,7 +193,7 @@ The frontend is a web PWA. Browser Bluetooth cannot do background BLE mesh; iOS/
 - [x] Network simulation tests (A→B→C→G relay, dedupe, TTL, retry, ACK, link-down/recovery)
 - [x] Gateway sync + responders + broadcasts integration suite (8 tests: real DB write, idempotency, family fan-out, RBAC 403s, ACK dedupe, nearby sort, broadcast RBAC, E2E sim flood→gateway→DB)
 - [x] Field-encryption tests (roundtrip, idempotency, tamper fail-closed, profile codec)
-- [x] AI classifier tests (8: categories, severity ladders, immobility, battery-context, determinism)
+- [x] AI classifier and triage tests (11: categories, severity ladders, immobility, battery-context, determinism, map/SOS/chat routing)
 - [x] Battery-tier boundary tests (20%/50% edges exact; engine-level forwarding gate verified — fixed real bug: low-battery devices previously could not RECEIVE packets, now reception is never blocked and only onward relay is gated per §29)
 - [x] E2E offline flow test (API-level: sync.test.ts offline→push→idempotent; browser-level: sos.test.tsx offline→online→outbox drained with fetch-mocked sync ack)
 
@@ -208,7 +208,7 @@ The frontend is a web PWA. Browser Bluetooth cannot do background BLE mesh; iOS/
 - [x] docs/ (architecture.md, api-contract.md, security.md, offline-network.md, ai-architecture.md, demo.md)
 - [x] Demo instructions (docs/demo.md)
 - [x] Settings page (§29/§37: relay consent, low-power mode, scan interval, battery thresholds, transport status + pairing, reset)
-- [x] Final README (refreshed with full feature set, 65-test count, verified Docker path)
+- [x] Final README (refreshed with full feature set, current test count, verified Docker path)
 - [x] Docker image build verification — **DONE 2026-09-15**: image builds (node:24-alpine), compose stack boots healthy, live E2E inside the container: register → topology → inject → 3-hop flood → gateway → `IQ-DOCKERE1` row with `received_via: mesh:3-hops` in the persisted volume. Fixed Dockerfile bug found during verification: `shared/dist` was not shipped to the runtime layer (ERR_MODULE_NOT_FOUND) and WORKDIR did not match the schema path.
 
 # Phase 13 — 3-Mode Architecture — **COMPLETE 2026-09-18**
@@ -217,7 +217,7 @@ The frontend is a web PWA. Browser Bluetooth cannot do background BLE mesh; iOS/
 - [x] Emergency Mode: Triggered by SOS button or AI detection (fall, accident, distress signals), device-to-device Bluetooth mesh for multi-hop alerts, shares emergency profile + location with trusted contacts, prioritizes critical alerts using local AI classification — deriveMode() raises EMERGENCY on an active SOS; WebBluetooth [P] + transports carry multi-hop packets; AI classification attaches to every packet
 - [x] Disaster Mode: Activated when multiple emergencies are detected in a region or disaster signals (earthquake, flood, fire) are identified — deriveMode() (shared/modes.ts): official DISASTER_BROADCAST or ≥5 distinct emergencies on the live feed ⇒ DISASTER; app-wide banner shows mode + reason
 - [x] Disaster Mode - Community mesh expansion: Devices form a larger ad-hoc network for group coordination — mesh engine opens in disaster mode on CRITICAL broadcast (outbox drains CRITICAL-first; sim engine state visible on Network page)
-- [x] Disaster Mode - Resource mapping: AI identifies safe zones, shelters, medical aid points from local data — /api/resources/nearby (reviewed seed dataset, haversine-ranked MEDICAL-first, verifiedAt + source per point; honest scope, no fake live feed)
+- [x] Disaster Mode - Resource mapping: AI identifies safe zones, shelters, medical aid points from local data — /api/resources/nearby (reviewed seed dataset, haversine-ranked nearest-first with kind tie-breaker, verifiedAt + source per point; honest scope, no fake live feed)
 - [P/R] Disaster Mode - Crowdsourced situational awareness: community bulletins and location-tagged reports are implemented; smoke/noise/sensor-stream fusion requires native hardware integration
 - [x] Disaster Mode - Priority routing: Critical alerts (injuries, trapped individuals) are given bandwidth priority — priorityForMode() promotes one notch in disaster mode (CRITICAL never degrades); engine outbox drains priority-ranked; covered by unit tests
 - [x] Disaster Mode - Offline disaster bulletin: Updates propagate through mesh (e.g., "Bridge collapsed ahead", "Shelter open at school") — sitreps flow like packets (shared format + validation), STALE flag after 6 h, live feed + post UI on /situations

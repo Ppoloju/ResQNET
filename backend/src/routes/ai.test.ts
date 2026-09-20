@@ -81,4 +81,22 @@ describe('AI assistance endpoint', () => {
     expect(response.body.error).toBe('validation failed');
     expect(response.body.issues.length).toBeGreaterThanOrEqual(2);
   });
+
+  it('routes Quick Help choices through the shared triage contract', async () => {
+    const choices = [
+      ['I am lost and need directions', 'OFFLINE_MAP'],
+      ['I have severe bleeding and cannot move', 'SOS'],
+      ['I need assistance carrying my bag', 'CHAT'],
+    ] as const;
+
+    for (const [text, action] of choices) {
+      const response = await request(app)
+        .post('/api/ai/triage')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ text });
+      expect(response.status).toBe(200);
+      expect(response.body.triage.action).toBe(action);
+      expect(response.body.triage.engine).toBe('iqoo-rules-v1');
+    }
+  });
 });

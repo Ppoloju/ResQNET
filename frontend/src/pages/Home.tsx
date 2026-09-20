@@ -534,11 +534,13 @@ function QuickHelpCard({ onClose }: { onClose: () => void }) {
   const { startSos } = useMesh();
   const navigate = useNavigate();
   const [plan, setPlan] = useState<HelpTriage | null>(null);
+  const [selectedMessage, setSelectedMessage] = useState('');
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState('');
 
   async function triage(message: string) {
     setBusy(true); setNote('');
+    setSelectedMessage(message);
     const localPlan = triageHelp(message, battery);
     try {
       if (online && user) {
@@ -558,7 +560,7 @@ function QuickHelpCard({ onClose }: { onClose: () => void }) {
 
   const quickActions = [
     'I am lost and need directions',
-    'I am bleeding and need medical help',
+    'I have severe bleeding and cannot move',
     'Someone is following me',
     'There is a fire nearby',
     'I need assistance',
@@ -578,7 +580,7 @@ function QuickHelpCard({ onClose }: { onClose: () => void }) {
         <div className={`quick-help-result action-${plan.action.toLowerCase()}`} role="status">
           <div className="row wrap spread"><strong>{plan.action === 'SOS' ? 'SOS recommended' : plan.action === 'OFFLINE_MAP' ? 'Map help recommended' : 'Assistant recommended'}</strong><span className={`sev-pill ${SEVERITY_CLASS[plan.severity]}`}>{plan.severity}</span></div>
           <p>{plan.reason}</p>
-          {plan.action === 'SOS' && <button className="btn-help" type="button" onClick={() => startSos(plan.matched.join(', '), plan)}><Siren size={17} /> Activate SOS</button>}
+          {plan.action === 'SOS' && <button className="btn-help" type="button" onClick={() => startSos(selectedMessage, plan)}><Siren size={17} /> Activate SOS</button>}
           {plan.action === 'OFFLINE_MAP' && <button className="btn-secondary" type="button" onClick={() => navigate('/family-map')}><MapPinned size={17} /> Open map and nearby resources</button>}
           {plan.action === 'CHAT' && (
             <div className="quick-help-chat">
