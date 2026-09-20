@@ -1,23 +1,9 @@
 import { useEffect, useState } from 'react';
 import { apiFetch, useSession } from '../state/SessionContext';
+import MedicalCard from '../components/MedicalCard';
+import { medicalFromProfile, saveMedicalInfo, type EmergencyProfilePayload } from '../state/medicalProfile';
 
-interface ProfileData {
-  name: string;
-  age?: number;
-  gender?: string;
-  bloodGroup?: string;
-  medicalConditions?: string;
-  allergies?: string;
-  medications?: string;
-  emergencyNotes?: string;
-  phonePrimary?: string;
-  phoneSecondary?: string;
-  emergencyContactName?: string;
-  emergencyContactPhone?: string;
-  accessibilityNeeds?: string;
-  visibility: 'PRIVATE' | 'FAMILY' | 'RESPONDERS' | 'NEARBY_HELPERS';
-  consentMedicalShare: boolean;
-}
+type ProfileData = EmergencyProfilePayload;
 
 const VISIBILITY_HELP: Record<ProfileData['visibility'], string> = {
   PRIVATE: 'Only you. Nothing is shared, even during SOS.',
@@ -53,9 +39,11 @@ export default function Profile() {
   };
 
   async function save() {
+    if (!p) return;
     setStatus('');
     try {
       await apiFetch('/emergency-profiles/me', { method: 'PUT', body: JSON.stringify(p) });
+      saveMedicalInfo(medicalFromProfile(p));
       setStatus('Saved ✓');
     } catch (e) {
       setStatus(e instanceof Error ? e.message : 'save failed');
@@ -136,21 +124,9 @@ export default function Profile() {
       </div>
 
       <div className="card">
-        <h2>Emergency Card preview</h2>
-        <p className="muted">What a helper would see if your profile is shared:</p>
-        <div className="list-item mono" style={{ display: 'block', fontSize: '0.9rem' }}>
-          <div><strong>{p.name}</strong>{p.age ? `, ${p.age}` : ''} · {p.bloodGroup || 'blood --'}</div>
-          {p.consentMedicalShare && p.visibility !== 'PRIVATE' && (
-            <>
-              {p.allergies && <div>Allergies: {p.allergies}</div>}
-              {p.medicalConditions && <div>Conditions: {p.medicalConditions}</div>}
-              {p.medications && <div>Meds: {p.medications}</div>}
-            </>
-          )}
-          {p.emergencyContactName && (
-            <div>Emergency contact: {p.emergencyContactName} {p.emergencyContactPhone}</div>
-          )}
-        </div>
+        <h2>Medical card</h2>
+        <p className="muted">Show this card or QR to medical responders. The QR encodes your details as text so it works without internet.</p>
+        <MedicalCard info={medicalFromProfile(p)} />
       </div>
 
       <button className="btn-primary" style={{ width: '100%' }} onClick={() => void save()}>

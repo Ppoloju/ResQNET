@@ -124,6 +124,7 @@ select {
 input[type="text"],
 input[type="email"],
 input[type="password"],
+input[type="number"],
 textarea {
     background: rgba(255, 255, 255, 0.02);
     border: 1px solid var(--line);
@@ -893,6 +894,118 @@ p {
     }
     .settings-account-grid {
         grid-template-columns: 1fr;
+    }
+}
+
+.medical-card {
+    overflow: hidden;
+    margin-top: 8px;
+    border: 1px solid rgba(255, 45, 85, 0.35);
+    border-radius: 16px;
+    background: linear-gradient(180deg, rgba(255, 45, 85, 0.08), var(--surface));
+}
+
+.medical-card-band {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+    color: #fff;
+    background: linear-gradient(90deg, #c41e3a, #ff2d55);
+    letter-spacing: 0.12em;
+    font-size: 0.72rem;
+    font-weight: 700;
+}
+
+.medical-card-band strong {
+    margin-left: auto;
+    letter-spacing: 0.18em;
+}
+
+.medical-card-body {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 220px;
+    gap: 16px;
+    padding: 16px;
+    align-items: start;
+}
+
+.medical-card-name {
+    margin: 0 0 10px;
+    font-size: 1.35rem;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+}
+
+.medical-card-fields dl {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px 12px;
+    margin: 0;
+}
+
+.medical-card-fields dt {
+    color: var(--text-dim);
+    font-size: 0.62rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+}
+
+.medical-card-fields dd {
+    margin: 2px 0 0;
+    font-size: 0.92rem;
+    font-weight: 650;
+    overflow-wrap: anywhere;
+}
+
+.medical-card-fields .span2 {
+    grid-column: 1 / -1;
+}
+
+.medical-card-qr {
+    text-align: center;
+}
+
+.medical-card-qr canvas {
+    display: block;
+    width: 220px;
+    height: 220px;
+    margin: 0 auto 8px;
+    border-radius: 12px;
+    background: #fff;
+}
+
+.medical-card-qr-empty {
+    display: grid;
+    place-items: center;
+    width: 220px;
+    height: 220px;
+    margin: 0 auto 8px;
+    border: 1px dashed var(--line);
+    border-radius: 12px;
+    color: var(--text-dim);
+    font-size: 0.85rem;
+    text-align: center;
+    padding: 16px;
+}
+
+.medical-card-foot {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 10px 14px 14px;
+    color: var(--text-dim);
+    font-size: 0.75rem;
+}
+
+@media (max-width: 720px) {
+    .medical-card-body {
+        grid-template-columns: 1fr;
+        justify-items: center;
+    }
+
+    .medical-card-fields {
+        width: 100%;
     }
 }
 

@@ -2,7 +2,6 @@ import { type ReactNode } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { Settings as SettingsIcon } from 'lucide-react';
 import { useStatus } from './state/StatusContext';
-import { useSettings } from './state/SettingsContext';
 import { useMode } from './state/ModeContext';
 
 function StatusBar() {
@@ -15,23 +14,6 @@ function StatusBar() {
       </span>
       <span className="pill on">ResQNET</span>
     </div>
-  );
-}
-
-/** Theme quick-toggle: cycles system → light → dark. Icon shows the current mode. */
-function ThemeToggle() {
-  const { theme, update } = useSettings();
-  const next = theme === 'system' ? 'light' : theme === 'light' ? 'dark' : 'system';
-  const label = theme === 'system' ? 'System theme' : theme === 'light' ? 'Light mode' : 'Dark mode';
-  return (
-    <button
-      className="icon-btn"
-      onClick={() => update({ theme: next })}
-      aria-label={`Color theme: ${label}. Switch to ${next}`}
-      title={`${label} — tap to change`}
-    >
-      {theme === 'system' ? 'SYS' : theme === 'light' ? 'LIGHT' : 'DARK'}
-    </button>
   );
 }
 
@@ -82,7 +64,6 @@ export default function App({ children }: { children: ReactNode }) {
           <span>ResQNET</span>
         </span>
         <div className="topbar-actions">
-          <ThemeToggle />
           <NavLink className="icon-btn settings-link" to="/settings" aria-label="Open settings" title="Settings">
             <SettingsIcon size={20} aria-hidden="true" />
           </NavLink>

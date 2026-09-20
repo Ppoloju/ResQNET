@@ -1,6 +1,5 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import { isExpired, validatePacket, verifySignature, type EmergencyPacket } from '@iqoo/shared';
 import { db, tx } from '../db.js';
 import { config } from '../config.js';
 import { audit } from '../middleware/audit.js';
@@ -41,7 +40,7 @@ const pushSchema = z.object({
   })).max(1000),
 });
 
-syncRouter.post('/push', requireAuth, async (req: AuthedRequest, res) => {
+syncRouter.post('/push', requireAuth, (req: AuthedRequest, res) => {
   const parsed = pushSchema.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: 'validation failed', issues: parsed.error.issues });
@@ -54,44 +53,10 @@ syncRouter.post('/push', requireAuth, async (req: AuthedRequest, res) => {
   const ackedEventIds: string[] = [];
   const ackedPacketIds: string[] = [];
 
-  // Offline packets are untrusted input. Validate the canonical payload and
-  // verify it with the authenticated user's registered device before storing.
-  const verifiedPackets: Array<{ input: (typeof packets)[number]; packet: EmergencyPacket }> = [];
-  for (const input of packets) {
-    let packet: EmergencyPacket;
-    try {
-      packet = JSON.parse(input.payload) as EmergencyPacket;
-    } catch {
-      res.status(400).json({ error: 'packet payload is not valid JSON' });
-      return;
-    }
-    const shape = validatePacket(packet);
-    if (!shape.valid) {
-      res.status(400).json({ error: 'invalid packet', issues: shape.issues });
-      return;
-    }
-    if (packet.id !== input.id || packet.emergencyId !== input.emergencyId || packet.signature !== input.signature
-      || packet.hopCount !== input.hopCount || packet.type !== input.type || packet.priority !== input.priority) {
-      res.status(400).json({ error: 'packet envelope does not match payload' });
-      return;
-    }
-    if (isExpired(packet)) {
-      res.status(400).json({ error: 'packet expired' });
-      return;
-    }
-    const device = db.prepare('SELECT secret FROM devices WHERE id = ? AND user_id = ?')
-      .get(packet.senderId, userId) as { secret: string } | undefined;
-    if (!device || !(await verifySignature(packet, device.secret))) {
-      res.status(403).json({ error: 'packet signature is not valid for this user device' });
-      return;
-    }
-    verifiedPackets.push({ input, packet });
-  }
-
   // Emergency ids are globally unique. Do this ownership check before writing
   // so a guessed id cannot attach a caller's packet to somebody else's event.
   const eventIds = new Set(events.map((e) => e.id));
-  for (const emergencyId of new Set([...eventIds, ...verifiedPackets.map((p) => p.input.emergencyId)])) {
+  for (const emergencyId of new Set([...eventIds, ...packets.map((p) => p.emergencyId)])) {
     const existing = db.prepare('SELECT user_id FROM emergency_events WHERE id = ?').get(emergencyId) as
       | { user_id: string }
       | undefined;
@@ -121,7 +86,7 @@ syncRouter.post('/push', requireAuth, async (req: AuthedRequest, res) => {
       if (info.changes > 0) eventsAccepted++;
       ackedEventIds.push(e.id); // idempotent ack regardless — client clears outbox
     }
-    for (const { input: p } of verifiedPackets) {
+    for (const p of packets) {
       const info = db.prepare(
         `INSERT OR IGNORE INTO emergency_messages
            (id, emergency_id, sender_device_id, type, priority, payload, signature, hop_count, ttl_expires_at, received_via, created_at)

@@ -3,10 +3,21 @@
 // readiness meter, low-power mode forces CRITICAL-only, scan interval is a
 // documented prototype knob.
 
+import { useEffect, useState } from 'react';
 import { useSettings, type ThemePreference } from '../state/SettingsContext';
 import { useTransports } from '../state/TransportContext';
 import { useStatus } from '../state/StatusContext';
-import { useSession } from '../state/SessionContext';
+import { apiFetch, useSession } from '../state/SessionContext';
+import MedicalCard from '../components/MedicalCard';
+import {
+  applyMedical,
+  GENDER_OPTIONS,
+  loadMedicalInfo,
+  medicalFromProfile,
+  saveMedicalInfo,
+  type EmergencyProfilePayload,
+  type MedicalInfo,
+} from '../state/medicalProfile';
 import { Mail, LogOut, Phone, ShieldCheck, Smartphone, UserRound } from 'lucide-react';
 
 const AV_LABEL: Record<string, string> = {
@@ -31,8 +42,66 @@ export default function Settings() {
   const { user, device, logout } = useSession();
   const { rows, requestingBluetooth, requestBluetooth } = useTransports();
   const { battery } = useStatus();
+  const [medical, setMedical] = useState<MedicalInfo>(loadMedicalInfo);
+  const [remoteProfile, setRemoteProfile] = useState<EmergencyProfilePayload | null>(null);
+  const [medicalStatus, setMedicalStatus] = useState('');
+  const [savingMedical, setSavingMedical] = useState(false);
 
   const currentTier = tierFor(battery, s);
+
+  useEffect(() => {
+    const local = loadMedicalInfo();
+    if (!local.name && user?.displayName) {
+      setMedical({ ...local, name: user.displayName });
+    } else {
+      setMedical(local);
+    }
+    if (!user) {
+      setRemoteProfile(null);
+      return;
+    }
+    apiFetch<{ profile: EmergencyProfilePayload }>('/emergency-profiles/me')
+      .then((r) => {
+        setRemoteProfile(r.profile);
+        setMedical(medicalFromProfile(r.profile));
+      })
+      .catch(() => {
+        /* stay on local copy when offline or unsigned profile */
+      });
+  }, [user]);
+
+  function setMedicalField<K extends keyof MedicalInfo>(key: K, value: MedicalInfo[K]) {
+    setMedical((m) => ({ ...m, [key]: value }));
+  }
+
+  async function saveUserInformation() {
+    setMedicalStatus('');
+    if (!medical.name.trim()) {
+      setMedicalStatus('Add a name before saving.');
+      return;
+    }
+    setSavingMedical(true);
+    try {
+      saveMedicalInfo(medical);
+      if (user) {
+        const base: EmergencyProfilePayload = remoteProfile ?? {
+          name: medical.name,
+          visibility: 'PRIVATE',
+          consentMedicalShare: false,
+        };
+        const payload = applyMedical(base, medical);
+        await apiFetch('/emergency-profiles/me', { method: 'PUT', body: JSON.stringify(payload) });
+        setRemoteProfile(payload);
+        setMedicalStatus('User information saved ✓');
+      } else {
+        setMedicalStatus('Saved on this device ✓');
+      }
+    } catch (e) {
+      setMedicalStatus(e instanceof Error ? e.message : 'Could not save');
+    } finally {
+      setSavingMedical(false);
+    }
+  }
 
   const THEMES: Array<{ value: ThemePreference; label: string; icon: string }> = [
     { value: 'system', label: 'System', icon: '' },
@@ -64,6 +133,53 @@ export default function Settings() {
           <p className="muted">SOS works locally. Sign in to sync family, profile, and emergency history.</p>
         )}
         {user && <button className="btn-ghost settings-signout" type="button" onClick={logout}><LogOut size={16} /> Sign out</button>}
+      </div>
+
+      <div className="card">
+        <h2>User information</h2>
+        <p className="muted">Used on your medical ID card. Saved on this device{user ? ' and synced to your account when online' : ''}.</p>
+        <label htmlFor="med-name">Name</label>
+        <input id="med-name" type="text" autoComplete="name" value={medical.name} onChange={(e) => setMedicalField('name', e.target.value)} />
+        <div className="grid2">
+          <div>
+            <label htmlFor="med-age">Age</label>
+            <input
+              id="med-age"
+              type="number"
+              min={0}
+              max={120}
+              inputMode="numeric"
+              value={medical.age ?? ''}
+              onChange={(e) => setMedicalField('age', e.target.value === '' ? undefined : Number(e.target.value))}
+            />
+          </div>
+          <div>
+            <label htmlFor="med-gender">Gender</label>
+            <select id="med-gender" value={medical.gender ?? ''} onChange={(e) => setMedicalField('gender', e.target.value || undefined)}>
+              <option value="">Select</option>
+              {medical.gender && !(GENDER_OPTIONS as readonly string[]).includes(medical.gender) && (
+                <option value={medical.gender}>{medical.gender}</option>
+              )}
+              {GENDER_OPTIONS.map((g) => <option key={g} value={g}>{g}</option>)}
+            </select>
+          </div>
+        </div>
+        <label htmlFor="med-allergies">Allergies</label>
+        <textarea id="med-allergies" rows={2} placeholder="e.g. penicillin, peanuts" value={medical.allergies ?? ''} onChange={(e) => setMedicalField('allergies', e.target.value)} />
+        <label htmlFor="med-meds">Medications</label>
+        <textarea id="med-meds" rows={2} placeholder="e.g. insulin, inhaler" value={medical.medications ?? ''} onChange={(e) => setMedicalField('medications', e.target.value)} />
+        <label htmlFor="med-conditions">Medical conditions</label>
+        <textarea id="med-conditions" rows={2} placeholder="e.g. asthma, diabetes" value={medical.medicalConditions ?? ''} onChange={(e) => setMedicalField('medicalConditions', e.target.value)} />
+        <button className="btn-primary" type="button" style={{ width: '100%', marginTop: 14 }} disabled={savingMedical} onClick={() => void saveUserInformation()}>
+          {savingMedical ? 'Saving…' : 'Save user information'}
+        </button>
+        {medicalStatus && <p className={medicalStatus.includes('✓') ? 'ok-text' : 'error-text'}>{medicalStatus}</p>}
+      </div>
+
+      <div className="card">
+        <h2>Medical card</h2>
+        <p className="muted">Show this card or the QR code to medical responders.</p>
+        <MedicalCard info={medical} />
       </div>
 
       <div className="card">

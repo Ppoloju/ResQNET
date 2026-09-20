@@ -74,7 +74,7 @@ The frontend is a web PWA. Browser Bluetooth cannot do background BLE mesh; iOS/
 - [x] Backend health, error middleware, request logging, RBAC helper, rate limits
 - [x] Shared core (packet schema, validation, TTL/hop rules, canonical JSON, HMAC sign/verify)
 - [x] Frontend shell (status bar with real `online`/Battery API, footer nav, 4 screens, PWA manifest)
-- [x] SOS core on device (hold-to-activate safety gesture, geolocation w/ accuracy, battery snapshot, signed packet, offline outbox, crash-safe restore, resolve flow, black-box timeline)
+- [x] SOS core on device (3-2-1 countdown with cancel, geolocation w/ accuracy, battery snapshot, signed packet, offline outbox, crash-safe restore, resolve flow, black-box timeline)
 - [x] Anonymous device identity (SOS works logged-out; public ID carries no personal info)
 
 **Status:** Complete
@@ -104,7 +104,7 @@ The frontend is a web PWA. Browser Bluetooth cannot do background BLE mesh; iOS/
 
 # Phase 4 — SOS
 
-- [x] Hold-to-activate SOS (visible 3-2-1 progression, early release cancels)
+- [x] Countdown (3-2-1) with cancel, aria-live, alertdialog role
 - [x] Emergency ID generation (IQ-XXXXXXXX, unambiguous alphabet)
 - [x] Location capture with honest state + accuracy
 - [x] Battery capture (Battery API; null when unavailable — never fabricated)

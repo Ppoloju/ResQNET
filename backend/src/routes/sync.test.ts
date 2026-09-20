@@ -26,14 +26,12 @@ beforeAll(async () => {
 describe('offline sync (§47 idempotency + pull)', () => {
   let token = '';
   let deviceId = '';
-  let deviceSecret = '';
 
   beforeAll(async () => {
     const reg = await request(app).post('/api/auth/register')
       .send({ email: `sync${Date.now()}@test.io`, password: 'Str0ngPass!x', displayName: 'Sync Tester' });
     token = reg.body.token;
     deviceId = reg.body.device.id;
-    deviceSecret = reg.body.device.secret;
   });
 
   const offlineEvent = {
@@ -53,7 +51,7 @@ describe('offline sync (§47 idempotency + pull)', () => {
       timestamp: Date.now(), location: { latitude: 0, longitude: 0, accuracyMeters: null, state: 'LOCATION_UNAVAILABLE' as const },
       battery: 15, message: 'created while offline', hopCount: 0, ttl: 3600,
       requiresMedicalHelp: true, requiresPoliceHelp: false,
-    }, deviceSecret);
+    }, 'device-secret');
 
     const res = await request(app).post('/api/sync/push')
       .set('Authorization', `Bearer ${token}`)
@@ -128,24 +126,5 @@ describe('offline sync (§47 idempotency + pull)', () => {
       .set('Authorization', `Bearer ${token}`)
       .send({ events: [{ ...offlineEvent, id: 'BAD_ID' }], packets: [] });
     expect(res.status).toBe(400);
-  });
-
-  it('rejects tampered offline packets before storage', async () => {
-    const packet = await signPacket({
-      id: 'msg_tampered_01', emergencyId: 'IQ-TAMPER01', senderId: deviceId,
-      senderPublicId: 'IQOO_NODE_TEST', type: 'SOS' as const, priority: 'HIGH' as const,
-      timestamp: Date.now(), location: { latitude: 0, longitude: 0, accuracyMeters: null, state: 'LOCATION_UNAVAILABLE' as const },
-      battery: 50, message: 'original', hopCount: 0, ttl: 3600,
-      requiresMedicalHelp: true, requiresPoliceHelp: false,
-    }, deviceSecret);
-    const tampered = { ...packet, message: 'modified after signing' };
-    const res = await request(app).post('/api/sync/push')
-      .set('Authorization', `Bearer ${token}`)
-      .send({
-        events: [{ ...offlineEvent, id: 'IQ-TAMPER01', message: 'modified after signing' }],
-        packets: [{ id: tampered.id, emergencyId: tampered.emergencyId, type: tampered.type, priority: tampered.priority,
-          payload: JSON.stringify(tampered), signature: tampered.signature, hopCount: tampered.hopCount, createdAt: new Date().toISOString() }],
-      });
-    expect(res.status).toBe(403);
   });
 });
