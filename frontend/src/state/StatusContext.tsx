@@ -1,12 +1,15 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
+import { API_BASE } from './SessionContext';
+import { drainCheckIns } from './checkInQueue';
 
 interface StatusState {
   online: boolean;
+  backendReachable: boolean;
   battery: number | null;
   charging: boolean | null;
 }
 
-const StatusContext = createContext<StatusState>({ online: navigator.onLine, battery: null, charging: null });
+const StatusContext = createContext<StatusState>({ online: navigator.onLine, backendReachable: false, battery: null, charging: null });
 
 /**
  * Real connectivity + power state (§44, §29).
@@ -16,15 +19,27 @@ const StatusContext = createContext<StatusState>({ online: navigator.onLine, bat
 export function StatusProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<StatusState>({
     online: navigator.onLine,
+    backendReachable: false,
     battery: null,
     charging: null,
   });
 
   useEffect(() => {
-    const onOnline = () => setState((s) => ({ ...s, online: true }));
+    const probeBackend = async () => {
+      if (!navigator.onLine) { setState((s) => ({ ...s, backendReachable: false })); return; }
+      try {
+        const response = await fetch(`${API_BASE}/healthz`, { cache: 'no-store' });
+        const reachable = response.ok;
+        setState((s) => ({ ...s, backendReachable: reachable }));
+        if (reachable) void drainCheckIns();
+      } catch { setState((s) => ({ ...s, backendReachable: false })); }
+    };
+    const onOnline = () => { setState((s) => ({ ...s, online: true })); void probeBackend(); };
     const onOffline = () => setState((s) => ({ ...s, online: false }));
     window.addEventListener('online', onOnline);
     window.addEventListener('offline', onOffline);
+    void probeBackend();
+    const backendTimer = window.setInterval(probeBackend, 15_000);
 
     let batteryInterval: ReturnType<typeof setInterval> | undefined;
     type BatteryLike = { level: number; charging: boolean; addEventListener?: (t: string, cb: () => void) => void };
@@ -43,6 +58,7 @@ export function StatusProvider({ children }: { children: ReactNode }) {
     return () => {
       window.removeEventListener('online', onOnline);
       window.removeEventListener('offline', onOffline);
+      window.clearInterval(backendTimer);
       if (batteryInterval) clearInterval(batteryInterval);
     };
   }, []);

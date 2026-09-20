@@ -9,6 +9,7 @@ import { requireAuth, type AuthedRequest } from '../middleware/auth.js';
 import { logger } from '../logger.js';
 import { broadcastEvent } from './realtime.js';
 import { encryptIfPresent, decryptIfEncrypted } from '../security/fieldCrypto.js';
+import { enqueueEmergencyNotifications } from '../notifications.js';
 
 export const emergenciesRouter = Router();
 
@@ -138,6 +139,15 @@ emergenciesRouter.post('/', requireAuth, async (req: AuthedRequest, res) => {
 
     audit(userId, 'emergency.create', 'emergency_event', emergencyId, { type: input.type, severity: input.severity });
     logger.info({ emergencyId, type: input.type }, 'emergency created');
+    enqueueEmergencyNotifications({
+      emergencyId,
+      ownerUserId: userId,
+      severity: input.severity,
+      message: input.message,
+      requiresMedicalHelp: input.requiresMedicalHelp,
+      requiresPoliceHelp: input.requiresPoliceHelp,
+      includeEmergencyService: true,
+    });
     res.status(201).json({
       emergencyId,
       status: 'ACTIVE',
@@ -226,13 +236,12 @@ emergenciesRouter.post('/:id/safe-ping', requireAuth, (req: AuthedRequest, res) 
   const members = db.prepare('SELECT id FROM family_members WHERE owner_user_id = ? ORDER BY priority ASC')
     .all(req.user!.userId) as Array<{ id: string }>;
   const now = new Date().toISOString();
-  tx(() => {
-    for (const member of members) {
-      db.prepare(`INSERT INTO notifications
-        (id, user_id, emergency_id, family_member_id, channel, delivery_state, created_at)
-        VALUES (?, ?, ?, ?, 'SSE', 'SENT', ?)`)
-        .run(`ntf_${randomUUID()}`, req.user!.userId, emergency.id, member.id, now);
-    }
+  enqueueEmergencyNotifications({
+    emergencyId: emergency.id,
+    ownerUserId: req.user!.userId,
+    severity: 'HIGH',
+    message: parsed.data.message.trim(),
+    includeEmergencyService: false,
   });
   audit(req.user!.userId, 'emergency.safe_ping', 'emergency_event', emergency.id, { notifiedCount: members.length });
   broadcastEvent('family_safe_ping', { emergencyId: emergency.id, message: parsed.data.message.trim(), notifiedCount: members.length, createdAt: now });

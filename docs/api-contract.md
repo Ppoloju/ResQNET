@@ -25,6 +25,9 @@ All bodies JSON. Errors: `{ "error": string, "issues"?: [...] }`.
 
 Visibility tiers: `PRIVATE | FAMILY | RESPONDERS | NEARBY_HELPERS`.
 `consentMedicalShare=false` strips allergies/conditions/medications even for responders.
+The permitted card fields include name, age, gender, blood group, primary and secondary
+phone, emergency contact, accessibility needs, and emergency notes. Emergency notes and
+medical fields are removed when the consent gate does not allow disclosure.
 
 ## family
 `GET /family` · `POST /family` · `PUT /family/:id` · `DELETE /family/:id`
@@ -45,6 +48,15 @@ coordinate-bearing `lastLocation` for the linked account.
 ## check-ins
 `POST /check-ins` `{status: SAFE|AT_RISK|NEEDS_HELP, note?, lat?, lon?}` ·
 `GET /check-ins/family-status` — latest per linked family member.
+
+## notifications
+`GET /notifications` — authenticated notification rows for the current recipient,
+including `channel` (`SSE`, `SMS`, `PUSH`, `EMERGENCY_SERVICE`), `delivery_state`,
+attempt count, and provider error when applicable.
+
+`POST /notifications/:id/ack` — idempotently acknowledge a delivered notification.
+External channels are queued and delivered through configured backend webhooks;
+without provider configuration they remain `PENDING` and are never reported as sent.
 
 ## sync (offline-first, §47)
 | Method | Path | Notes |

@@ -272,8 +272,11 @@ CREATE TABLE IF NOT EXISTS notifications (
   user_id       TEXT NOT NULL,
   emergency_id  TEXT NOT NULL REFERENCES emergency_events(id) ON DELETE CASCADE,
   family_member_id TEXT REFERENCES family_members(id) ON DELETE SET NULL,
-  channel       TEXT NOT NULL DEFAULT 'MESH' CHECK (channel IN ('MESH','SSE','SMS')),
+  channel       TEXT NOT NULL DEFAULT 'MESH' CHECK (channel IN ('MESH','SSE','SMS','PUSH','EMERGENCY_SERVICE')),
   delivery_state TEXT NOT NULL DEFAULT 'PENDING' CHECK (delivery_state IN ('PENDING','SENT','DELIVERED','FAILED')),
+  attempts       INTEGER NOT NULL DEFAULT 0,
+  last_attempt_at TEXT,
+  provider_error TEXT,
   created_at    TEXT NOT NULL,
   delivered_at  TEXT
 );

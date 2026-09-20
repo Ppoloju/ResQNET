@@ -6,6 +6,7 @@ export * from './triage.js';
 export * from './net.js';
 export * from './replay.js';
 export * from './transport.js';
+export * from './meshFrame.js';
 export * from './deviceKeys.js';
 export * from './modes.js';
 export * from './guidance.js';

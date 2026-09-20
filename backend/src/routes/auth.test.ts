@@ -98,6 +98,18 @@ describe('auth + API smoke', () => {
     expect(reread.body.settings.criticalThresholdPct).toBe(25);
   });
 
+  it('accepts an offline check-in retry without duplicating it', async () => {
+    const checkInId = '11111111-1111-4111-8111-111111111111';
+    const payload = { checkInId, status: 'SAFE', note: 'queued', createdAt: new Date().toISOString() };
+    const first = await request(app).post('/api/check-ins').set('Authorization', `Bearer ${token}`).send(payload);
+    const second = await request(app).post('/api/check-ins').set('Authorization', `Bearer ${token}`).send(payload);
+    expect(first.status).toBe(201);
+    expect(second.status).toBe(201);
+    const { db } = await import('../db.js');
+    const count = db.prepare('SELECT COUNT(*) AS count FROM check_ins WHERE id = ?').get(checkInId) as { count: number };
+    expect(count.count).toBe(1);
+  });
+
   it('creates an emergency with a server-signed packet (§10)', async () => {
     const res = await request(app).post('/api/emergencies')
       .set('Authorization', `Bearer ${token}`)

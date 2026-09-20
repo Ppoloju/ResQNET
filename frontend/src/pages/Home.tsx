@@ -5,6 +5,7 @@ import { useStatus } from '../state/StatusContext';
 import { useMesh } from '../state/MeshContext';
 import { useAI } from '../state/AIContext';
 import { useMeshEvents, type BroadcastEvent } from '../state/RealtimeContext';
+import { queueCheckIn } from '../state/checkInQueue';
 import { findGuidance, guidanceForCategory, triageHelp, type GuidanceTopic, type HelpTriage } from '@iqoo/shared';
 import { EMERGENCY_PROMPT_SUGGESTIONS } from '@iqoo/shared';
 import type { Severity } from '@iqoo/shared';
@@ -41,12 +42,14 @@ function CheckInCard() {
   const checkIn = async (status: 'SAFE' | 'AT_RISK') => {
     setNote('');
     try {
-      await apiFetch('/check-ins', { method: 'POST', body: JSON.stringify({ status }) });
+      await apiFetch('/check-ins', { method: 'POST', body: JSON.stringify({ status, checkInId: crypto.randomUUID() }) });
       setLast({ status, createdAt: new Date().toISOString() });
       setNote('✓ Recorded');
       if (status === 'SAFE') showSafePulse();
     } catch {
+      const queued = queueCheckIn({ status });
       setNote('Offline — will sync when connected');
+      setLast({ status, createdAt: queued.createdAt });
       if (status === 'SAFE') showSafePulse();
     }
   };

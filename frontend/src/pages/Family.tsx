@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import { apiFetch, useSession } from '../state/SessionContext';
 import { useStatus } from '../state/StatusContext';
+import { queueCheckIn } from '../state/checkInQueue';
 
 interface Member {
   id: string;
@@ -88,14 +89,15 @@ export default function Family() {
     setTesting(true); setTestNote('');
     try {
       const r = await apiFetch<{ checkInId: string }>('/check-ins', {
-        method: 'POST', body: JSON.stringify({ status: 'SAFE', note: 'Communication test from Family page' }),
+        method: 'POST', body: JSON.stringify({ status: 'SAFE', checkInId: crypto.randomUUID(), note: 'Communication test from Family page' }),
       });
       await apiFetch('/check-ins/family-status');
       setTestOk(true);
       setTestNote(`Test check-in ${r.checkInId.slice(0, 8)}... recorded and readable.`);
       load();
     } catch (e) {
-      setTestOk(false); setTestNote(e instanceof Error ? e.message : 'Test failed - queued for retry when online');
+      const queued = queueCheckIn({ status: 'SAFE', note: 'Communication test from Family page' });
+      setTestOk(false); setTestNote(`${e instanceof Error ? e.message : 'Offline'} — queued as ${queued.id.slice(0, 8)}...`);
     } finally { setTesting(false); }
   }
 

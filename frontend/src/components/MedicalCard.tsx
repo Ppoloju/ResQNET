@@ -37,9 +37,17 @@ export default function MedicalCard({ info }: { info: MedicalInfo }) {
           <dl>
             <div><dt>Age</dt><dd>{info.age ?? '—'}</dd></div>
             <div><dt>Gender</dt><dd>{info.gender || '—'}</dd></div>
+            <div><dt>Blood group</dt><dd>{info.bloodGroup || 'Not listed'}</dd></div>
+            <div><dt>Primary phone</dt><dd>{info.phonePrimary || 'Not listed'}</dd></div>
+            <div><dt>Secondary phone</dt><dd>{info.phoneSecondary || 'Not listed'}</dd></div>
             <div className="span2"><dt>Allergies</dt><dd>{info.allergies?.trim() || 'None listed'}</dd></div>
             <div className="span2"><dt>Medications</dt><dd>{info.medications?.trim() || 'None listed'}</dd></div>
             <div className="span2"><dt>Conditions</dt><dd>{info.medicalConditions?.trim() || 'None listed'}</dd></div>
+            <div className="span2"><dt>Emergency contact</dt><dd>{info.emergencyContactName || 'Not listed'}{info.emergencyContactPhone ? ` · ${info.emergencyContactPhone}` : ''}</dd></div>
+            <div className="span2"><dt>Accessibility</dt><dd>{info.accessibilityNeeds || 'None listed'}</dd></div>
+            <div className="span2"><dt>Emergency notes</dt><dd>{info.emergencyNotes || 'None listed'}</dd></div>
+            <div><dt>Visibility</dt><dd>{info.visibility || 'LOCAL ONLY'}</dd></div>
+            <div><dt>Medical consent</dt><dd>{info.consentMedicalShare ? 'GRANTED' : 'NOT GRANTED'}</dd></div>
           </dl>
         </div>
 

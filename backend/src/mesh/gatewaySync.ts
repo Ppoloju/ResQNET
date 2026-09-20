@@ -9,6 +9,7 @@ import { ReplayCache } from '@iqoo/shared';
 import { db, tx } from '../db.js';
 import { logger } from '../logger.js';
 import { broadcastEvent } from '../routes/realtime.js';
+import { enqueueEmergencyNotifications } from '../notifications.js';
 
 // Gateway-level replay rejection (§32/§33): a packet id accepted once is never
 // accepted again within the TTL window, even if signature+TTL are both valid.
@@ -97,30 +98,14 @@ export function syncEmergencyFromGateway(packet: EmergencyPacket, ownerUserId?: 
   broadcastEvent('mesh_event', {
     id: packet.id, emergencyId, type: 'SYNCED', from: 'GATEWAY', to: 'BACKEND', ts: Date.now(),
   });
-  fanOutFamily(emergencyId, severity, gatewayUserId);
+  enqueueEmergencyNotifications({
+    emergencyId,
+    ownerUserId: gatewayUserId,
+    severity,
+    message: packet.message ?? 'Emergency received through the mesh gateway',
+    requiresMedicalHelp: packet.requiresMedicalHelp,
+    requiresPoliceHelp: packet.requiresPoliceHelp,
+    includeEmergencyService: true,
+  });
   return emergencyId;
-}
-
-/**
- * Family fan-out (§52 step 8): one notification row per family member of the
- * emergency owner. SSE is delivered immediately to signed-in devices; SMS/real
- * push is a documented production integration [R].
- */
-function fanOutFamily(emergencyId: string, severity: string, ownerUserId: string): void {
-  const owner = db.prepare('SELECT user_id FROM emergency_events WHERE id = ?').get(emergencyId) as { user_id: string } | undefined;
-  if (!owner) return;
-  const members = db.prepare('SELECT id, name FROM family_members WHERE owner_user_id = ? ORDER BY priority ASC').all(ownerUserId) as Array<{ id: string; name: string }>;
-  const now = new Date().toISOString();
-  for (const m of members) {
-    db.prepare(`INSERT INTO notifications (id, user_id, emergency_id, family_member_id, channel, delivery_state, created_at)
-                VALUES (?, ?, ?, ?, 'SSE', 'SENT', ?)`)
-      .run(`ntf_${randomUUID()}`, owner.user_id, emergencyId, m.id, now);
-  }
-  if (members.length > 0) {
-    broadcastEvent('mesh_event', {
-      id: `ntf_${randomUUID()}`, emergencyId, type: 'FAMILY_NOTIFIED',
-      from: 'BACKEND', to: `FAMILY(${members.length})`, ts: Date.now(),
-    });
-    logger.info({ emergencyId, familyMembers: members.length }, 'family notified via gateway sync');
-  }
 }

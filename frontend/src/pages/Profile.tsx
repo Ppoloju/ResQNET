@@ -74,6 +74,10 @@ export default function Profile() {
             <label htmlFor="pphone">Phone</label>
             <input id="pphone" value={p.phonePrimary ?? ''} onChange={set('phonePrimary')} />
           </div>
+          <div>
+            <label htmlFor="pphone2">Secondary phone</label>
+            <input id="pphone2" value={p.phoneSecondary ?? ''} onChange={set('phoneSecondary')} />
+          </div>
         </div>
 
         <label htmlFor="pconditions">Medical conditions</label>

@@ -14,13 +14,13 @@ import MedicalCard from './components/MedicalCard';
 import { loadMedicalInfo, medicalFromProfile, type EmergencyProfilePayload, type MedicalInfo } from './state/medicalProfile';
 
 function StatusBar() {
-  const { online, battery, charging } = useStatus();
+  const { online, backendReachable, battery, charging } = useStatus();
   const batteryLabel = battery === null
     ? 'Battery level unavailable'
     : `Battery ${battery}%${charging ? ', charging' : ''}`;
   return (
     <div className="statusbar" role="status" aria-live="polite">
-      <span className={`pill ${online ? 'on' : 'off'}`}>{online ? 'ONLINE' : 'OFFLINE'}</span>
+      <span className={`pill ${backendReachable ? 'on' : online ? 'warn' : 'off'}`}>{backendReachable ? 'BACKEND ONLINE' : online ? 'NETWORK ONLY' : 'OFFLINE'}</span>
       <span
         className={`pill battery-pill ${battery === null ? '' : battery <= 20 ? 'off' : battery <= 50 ? 'warn' : 'on'}${charging ? ' is-charging' : ''}`}
         aria-label={batteryLabel}

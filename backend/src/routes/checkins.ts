@@ -8,6 +8,8 @@ import { requireAuth, type AuthedRequest } from '../middleware/auth.js';
 export const checkinsRouter = Router();
 
 const checkinSchema = z.object({
+  checkInId: z.string().uuid().optional(),
+  createdAt: z.string().datetime().optional(),
   status: z.enum(['SAFE', 'AT_RISK', 'NEEDS_HELP']).default('SAFE'),
   note: z.string().max(500).optional(),
   lat: z.number().min(-90).max(90).optional(),
@@ -21,10 +23,10 @@ checkinsRouter.post('/', requireAuth, (req: AuthedRequest, res) => {
     return;
   }
   const c = parsed.data;
-  const id = randomUUID();
+  const id = c.checkInId ?? randomUUID();
   db.prepare(
-    'INSERT INTO check_ins (id, user_id, status, note, lat, lon, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
-  ).run(id, req.user!.userId, c.status, c.note ?? null, c.lat ?? null, c.lon ?? null, new Date().toISOString());
+    'INSERT OR IGNORE INTO check_ins (id, user_id, status, note, lat, lon, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
+  ).run(id, req.user!.userId, c.status, c.note ?? null, c.lat ?? null, c.lon ?? null, c.createdAt ?? new Date().toISOString());
   audit(req.user!.userId, 'checkin.create', 'check_in', id, { status: c.status });
   res.status(201).json({ ok: true, checkInId: id, status: c.status });
 });
