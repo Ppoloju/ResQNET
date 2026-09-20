@@ -7,7 +7,7 @@
 
 import { haversineMeters } from './net.js';
 
-export type ResourceKind = 'SHELTER' | 'MEDICAL' | 'SAFE_ZONE' | 'WATER' | 'SUPPLIES';
+export type ResourceKind = 'SHELTER' | 'MEDICAL' | 'POLICE' | 'SAFE_ZONE' | 'WATER' | 'SUPPLIES';
 
 export interface ResourcePoint {
   id: string;
@@ -24,7 +24,7 @@ export interface ResourcePoint {
 
 /** Severity ranking for stable list ordering. */
 const KIND_ORDER: Record<ResourceKind, number> = {
-  MEDICAL: 0, SHELTER: 1, SAFE_ZONE: 2, WATER: 3, SUPPLIES: 4,
+  MEDICAL: 0, POLICE: 1, SHELTER: 2, SAFE_ZONE: 3, WATER: 4, SUPPLIES: 5,
 };
 
 /**

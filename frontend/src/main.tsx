@@ -13,6 +13,7 @@ import Home, { SosPage } from './pages/Home';
 import Login from './pages/Login';
 import Profile from './pages/Profile';
 import Family from './pages/Family';
+import FamilyMap from './pages/FamilyMap';
 import Network from './pages/Network';
 import Responders from './pages/Responders';
 import History from './pages/History';
@@ -41,6 +42,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
                       <Route path="/login" element={<Login />} />
                       <Route path="/profile" element={<Profile />} />
                       <Route path="/family" element={<Family />} />
+                      <Route path="/family-map" element={<FamilyMap />} />
                       <Route path="/network" element={<Network />} />
                       <Route path="/responders" element={<Responders />} />
                       <Route path="/history" element={<History />} />

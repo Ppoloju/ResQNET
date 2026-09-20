@@ -49,13 +49,13 @@ checkinsRouter.get('/family-status', requireAuth, (req: AuthedRequest, res) => {
   ).all(req.user!.userId) as Array<{ id: string; name: string; iqoo_account_id: string | null }>;
 
   const latest = db.prepare(
-    `SELECT status, created_at FROM check_ins WHERE user_id = ? ORDER BY created_at DESC LIMIT 1`,
+    `SELECT status, lat, lon, created_at FROM check_ins WHERE user_id = ? ORDER BY created_at DESC LIMIT 1`,
   );
 
   res.json({
     members: members.map((m) => {
       const row = m.iqoo_account_id
-        ? (latest.get(m.iqoo_account_id) as { status: string; created_at: string } | undefined)
+        ? (latest.get(m.iqoo_account_id) as { status: string; lat: number | null; lon: number | null; created_at: string } | undefined)
         : undefined;
       return {
         id: m.id,
@@ -63,6 +63,7 @@ checkinsRouter.get('/family-status', requireAuth, (req: AuthedRequest, res) => {
         linked: !!m.iqoo_account_id,
         checkInStatus: row?.status ?? null,
         lastCheckInAt: row?.created_at ?? null,
+        lastLocation: row?.lat != null && row?.lon != null ? { latitude: row.lat, longitude: row.lon } : null,
       };
     }),
   });

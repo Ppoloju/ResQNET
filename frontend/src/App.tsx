@@ -1,6 +1,11 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
-import { Battery, BatteryCharging, Menu, Settings as SettingsIcon, X } from 'lucide-react';
+import {
+  Bell, Brain, History, Home as HomeIcon, Map, MapPinned, Menu, Network as NetworkIcon,
+  Play, Settings as SettingsIcon, ShieldCheck, UserRound, UserSearch, Users, X,
+  type LucideIcon,
+} from 'lucide-react';
+import { Battery, BatteryCharging } from 'lucide-react';
 import { useStatus } from './state/StatusContext';
 import { useMode } from './state/ModeContext';
 
@@ -41,20 +46,21 @@ function ModeBanner() {
 }
 
 const NAV = [
-  { to: '/', label: 'Home', end: true },
-  { to: '/family', label: 'Family' },
-  { to: '/ai-assistance', label: 'AI Assistance' },
-  { to: '/network', label: 'Network' },
+  { to: '/', label: 'Home', end: true, icon: HomeIcon },
+  { to: '/family', label: 'Family', icon: Users },
+  { to: '/ai-assistance', label: 'AI Assistance', icon: Brain },
+  { to: '/network', label: 'Network', icon: NetworkIcon },
 ];
 
 const MENU = [
-  { to: '/situations', label: 'Alerts' },
-  { to: '/profile', label: 'Profile' },
-  { to: '/demo', label: 'Demo Mode' },
-  { to: '/disaster-demo', label: 'Disaster Demo' },
-  { to: '/responders', label: 'Responders' },
-  { to: '/history', label: 'History' },
-  { to: '/missing', label: 'Missing Person' },
+  { to: '/situations', label: 'Alerts', icon: Bell },
+  { to: '/family-map', label: 'Family Map', icon: MapPinned },
+  { to: '/profile', label: 'Profile', icon: UserRound },
+  { to: '/demo', label: 'Demo Mode', icon: Play },
+  { to: '/disaster-demo', label: 'Disaster Demo', icon: Map },
+  { to: '/responders', label: 'Responders', icon: ShieldCheck },
+  { to: '/history', label: 'History', icon: History },
+  { to: '/missing', label: 'Missing Person', icon: UserSearch },
 ];
 
 export default function App({ children }: { children: ReactNode }) {
@@ -72,7 +78,9 @@ export default function App({ children }: { children: ReactNode }) {
         to={n.to}
         end={n.end}
         className={({ isActive }) => (isActive ? 'active' : '')}
+        title={n.label}
       >
+        <n.icon size={18} aria-hidden="true" />
         <span className="nav-label">{n.label}</span>
       </NavLink>
     ));
@@ -107,6 +115,7 @@ export default function App({ children }: { children: ReactNode }) {
         <nav>
           {MENU.map((item) => (
             <NavLink key={item.to} to={item.to}>
+              <item.icon className="ico" size={19} aria-hidden="true" />
               <span>{item.label}</span>
             </NavLink>
           ))}

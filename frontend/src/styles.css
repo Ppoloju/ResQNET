@@ -1086,6 +1086,11 @@ p {
     text-align: center;
 }
 
+.drawer a .ico {
+    color: var(--blue);
+    flex: 0 0 auto;
+}
+
 .drawer-foot {
     margin-top: auto;
     padding-top: 12px;
@@ -3183,10 +3188,33 @@ label.row {
 .footer-nav a {
     position: relative;
     isolation: isolate;
-    min-width: 96px;
+    min-width: 88px;
+    min-height: 52px;
     justify-content: center;
+    flex-direction: column;
+    gap: 2px;
     overflow: hidden;
     transition: color 0.2s ease, transform 0.2s ease, background 0.2s ease;
+}
+
+.footer-nav a svg {
+    position: relative;
+    z-index: 1;
+    color: var(--blue);
+    transition: transform 0.2s ease, color 0.2s ease;
+}
+
+.footer-nav a.active svg {
+    color: var(--red-strong);
+    transform: translateY(-1px) scale(1.08);
+}
+
+.footer-nav .nav-label {
+    position: relative;
+    z-index: 1;
+    font-size: 0.68rem;
+    line-height: 1.1;
+    white-space: nowrap;
 }
 
 .footer-nav a::before,
@@ -3231,7 +3259,276 @@ label.row {
 }
 
 .footer-nav a.active::after {
+    width: 6px;
+    height: 6px;
+    top: 5px;
+    right: 14%;
+    background: var(--red-strong);
+    box-shadow: 0 0 0 3px var(--tint-red-bg), 0 0 14px var(--red);
+    opacity: 1;
     animation: nav-bubble 1.8s ease-in-out infinite;
+}
+
+.family-map-page {
+    max-width: 980px;
+}
+
+.family-map-heading,
+.family-map-status,
+.family-map-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+}
+
+.family-map-heading {
+    margin-bottom: 18px;
+}
+
+.family-map-heading h1 {
+    margin-bottom: 4px;
+}
+
+.family-map-status {
+    flex-wrap: wrap;
+    margin-bottom: 14px;
+    padding: 10px 12px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    color: var(--text-dim);
+    font-size: 0.76rem;
+}
+
+.family-map-status span,
+.family-map-row span,
+.family-map-status .is-live,
+.family-map-status .is-muted {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.family-live-map {
+    position: relative;
+    min-height: 480px;
+    overflow: hidden;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    background: #0b1219;
+    box-shadow: var(--shadow);
+}
+
+.family-map-grid {
+    position: absolute;
+    inset: 0;
+    opacity: 0.65;
+    background-image: linear-gradient(rgba(88, 166, 255, 0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(88, 166, 255, 0.08) 1px, transparent 1px), radial-gradient(circle at 50% 50%, rgba(88, 166, 255, 0.16), transparent 55%);
+    background-size: 42px 42px, 42px 42px, 100% 100%;
+}
+
+.family-map-marker {
+    position: absolute;
+    z-index: 1;
+    display: flex;
+    min-width: 80px;
+    transform: translate(-50%, -50%);
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    color: var(--blue-soft);
+    text-align: center;
+}
+
+.family-map-marker.resource {
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.family-map-marker.resource:hover .family-map-arrow {
+    transform: scale(1.14);
+}
+
+.family-map-marker strong {
+    font-size: 0.72rem;
+    color: var(--text);
+    text-shadow: 0 1px 8px #000;
+}
+
+.family-map-marker small {
+    color: var(--text-dim);
+    font-size: 0.56rem;
+    white-space: nowrap;
+}
+
+.family-map-arrow {
+    display: grid;
+    place-items: center;
+    width: 38px;
+    height: 38px;
+    border: 1px solid var(--blue);
+    border-radius: 50%;
+    background: rgba(12, 30, 48, 0.94);
+    box-shadow: 0 0 0 6px rgba(88, 166, 255, 0.1), 0 0 22px rgba(88, 166, 255, 0.5);
+    animation: family-location-pulse 2.4s ease-in-out infinite;
+}
+
+.family-map-marker.self .family-map-arrow {
+    color: var(--red-soft);
+    border-color: var(--red);
+    background: rgba(66, 18, 25, 0.94);
+    box-shadow: 0 0 0 6px rgba(248, 81, 73, 0.1), 0 0 22px rgba(248, 81, 73, 0.5);
+}
+
+.family-map-marker.danger .family-map-arrow {
+    color: var(--red-soft);
+    border-color: var(--red);
+}
+
+.family-map-marker.resource .family-map-arrow {
+    animation: none;
+}
+
+.family-map-marker.hospital .family-map-arrow {
+    color: var(--green-soft);
+    border-color: var(--green);
+    background: rgba(13, 55, 39, 0.94);
+    box-shadow: 0 0 0 5px rgba(99, 231, 165, 0.1), 0 0 18px rgba(99, 231, 165, 0.38);
+}
+
+.family-map-marker.police .family-map-arrow {
+    color: var(--amber-soft);
+    border-color: var(--amber);
+    background: rgba(64, 42, 13, 0.94);
+    box-shadow: 0 0 0 5px rgba(255, 191, 107, 0.1), 0 0 18px rgba(255, 191, 107, 0.38);
+}
+
+.family-map-legend {
+    position: absolute;
+    left: 14px;
+    bottom: 12px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    color: var(--text-dim);
+    font-size: 0.62rem;
+}
+
+.family-map-legend span {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.family-map-legend i {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--blue);
+}
+
+.family-map-legend i.self {
+    background: var(--red);
+}
+
+.family-map-legend i.hospital {
+    background: var(--green);
+}
+
+.family-map-legend i.police {
+    background: var(--amber);
+}
+
+@keyframes family-location-pulse {
+    0%,
+    100% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.08);
+    }
+}
+
+.family-map-empty {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    flex-direction: column;
+    padding: 24px;
+    color: var(--text-dim);
+    text-align: center;
+}
+
+.family-map-empty strong {
+    color: var(--text);
+}
+
+.family-map-empty span {
+    max-width: 360px;
+    font-size: 0.82rem;
+}
+
+.family-map-scale {
+    position: absolute;
+    right: 14px;
+    bottom: 12px;
+    color: var(--text-dim);
+    font-size: 0.58rem;
+    letter-spacing: 0.08em;
+}
+
+.family-map-list {
+    margin-top: 16px;
+    padding: 16px;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    background: var(--surface);
+}
+
+.family-map-row {
+    padding: 12px 0;
+    border-top: 1px solid var(--line);
+}
+
+.family-map-row div {
+    display: grid;
+    gap: 3px;
+}
+
+.family-map-row span {
+    color: var(--text-dim);
+    font-size: 0.75rem;
+}
+
+.family-map-row b {
+    font-size: 0.66rem;
+    letter-spacing: 0.06em;
+}
+
+.family-map-resource-link {
+    color: inherit;
+    text-decoration: none;
+}
+
+.family-map-resource-link:hover {
+    border-color: var(--blue);
+    background: var(--tint-blue-bg);
+}
+
+@media (max-width: 600px) {
+    .family-live-map {
+        min-height: 380px;
+    }
+    .family-map-heading {
+        align-items: flex-start;
+    }
+    .family-map-status {
+        align-items: flex-start;
+        flex-direction: column;
+    }
 }
 
 @keyframes nav-bubble {
@@ -5437,4 +5734,16 @@ select {
 
 .page-host>div .card:nth-child(5) {
     animation-delay: 200ms;
+}
+
+@media (max-width: 600px) {
+    .footer-nav {
+        gap: 2px;
+        padding-inline: 6px;
+    }
+    .footer-nav a {
+        min-width: 0;
+        flex: 1;
+        padding-inline: 6px;
+    }
 }

@@ -36,22 +36,22 @@ function Classifier() {
     <>
       <section className="ai-engine-banner">
         <div>
-          <span className="ai-live-dot" /> NPU ENGINE ACTIVE / ZERO CLOUD LATENCY
+          <span className="ai-live-dot" /> LOCAL RULE ENGINE ACTIVE / OFFLINE
         </div>
-        <span>INT8 / 4-BIT QUANT</span>
-        <div className="ai-engine-detail"><span>Edge LLM + ResQ-Vision-1.4B loaded</span><strong>38ms TOK/SEC</strong></div>
+        <span>NO CLOUD UPLOAD</span>
+        <div className="ai-engine-detail"><span>Deterministic emergency classifier</span><strong>TEXT + OPTIONAL VOICE</strong></div>
       </section>
 
-      <section className="card ai-audio-card" aria-label="Ambient audio triage">
+      <section className="card ai-audio-card" aria-label="Optional voice input">
         <div className="ai-section-heading">
           <div>
-            <span className="eyebrow">OFFLINE AMBIENT AUDIO TRIAGE</span>
-            <p>Acoustic trauma and stress detector</p>
+            <span className="eyebrow">OPTIONAL VOICE INPUT</span>
+            <p>Speak a description for local classification</p>
           </div>
           {ai.speechSupported && <button className="btn-secondary ai-action-button" type="button" onClick={() => void ai.startVoice()} disabled={ai.voiceState === 'RECORDING'}>{ai.voiceState === 'RECORDING' ? 'ACTIVE' : 'START'}</button>}
         </div>
         <Waveform />
-        <div className="ai-local-note">Processed locally in secure enclave memory. No audio is recorded or stored.</div>
+        <div className="ai-local-note">Microphone starts only after you press START. Audio is not uploaded or stored.</div>
       </section>
 
       <section className="card ai-transcript-card" data-testid="ai-assistance-classifier">
