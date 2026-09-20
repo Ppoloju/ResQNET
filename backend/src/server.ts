@@ -22,6 +22,7 @@ import { respondersRouter } from './routes/responders.js';
 import { realtimeRouter } from './routes/realtime.js';
 import { notificationsRouter } from './routes/notifications.js';
 import { aiRouter } from './routes/ai.js';
+import { settingsRouter } from './routes/settings.js';
 
 const app = express();
 app.set('trust proxy', 1);
@@ -55,6 +56,7 @@ app.use('/api/missing-persons', missingRouter);
 app.use('/api/responders', respondersRouter);
 app.use('/api/notifications', notificationsRouter);
 app.use('/api/ai', aiRouter);
+app.use('/api/settings', settingsRouter);
 app.use('/api/sitreps', sitrepsRouter);
 app.use('/api/resources', resourcesRouter);
 app.use('/api/realtime', realtimeRouter);

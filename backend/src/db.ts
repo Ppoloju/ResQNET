@@ -18,6 +18,17 @@ db.exec('PRAGMA foreign_keys = ON;');
 const schemaPath = path.resolve(__dirname, '../../database/schema.sql');
 db.exec(fs.readFileSync(schemaPath, 'utf8'));
 
+// Older development databases may already have the template-only settings
+// columns. Add the functional relay columns without requiring data loss.
+for (const column of [
+  'relay_consent INTEGER NOT NULL DEFAULT 1',
+  'low_power_mode INTEGER NOT NULL DEFAULT 0',
+  'critical_threshold_pct INTEGER NOT NULL DEFAULT 20',
+  'relay_hero_mode INTEGER NOT NULL DEFAULT 0',
+]) {
+  try { db.exec(`ALTER TABLE device_settings ADD COLUMN ${column}`); } catch { /* already present */ }
+}
+
 /**
  * better-sqlite3-style synchronous transaction helper.
  * Runs fn inside BEGIN/COMMIT; rolls back on throw.

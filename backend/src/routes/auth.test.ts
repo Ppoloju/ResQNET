@@ -82,6 +82,22 @@ describe('auth + API smoke', () => {
     expect(get.body.profile.visibility).toBe('RESPONDERS');
   });
 
+  it('persists device hardware settings', async () => {
+    const initial = await request(app).get('/api/settings').set('Authorization', `Bearer ${token}`);
+    expect(initial.status).toBe(200);
+    expect(initial.body.settings.relayConsent).toBe(true);
+
+    const updated = { ...initial.body.settings, relayConsent: false, criticalThresholdPct: 25 };
+    const put = await request(app).put('/api/settings')
+      .set('Authorization', `Bearer ${token}`)
+      .send(updated);
+    expect(put.status).toBe(200);
+
+    const reread = await request(app).get('/api/settings').set('Authorization', `Bearer ${token}`);
+    expect(reread.body.settings.relayConsent).toBe(false);
+    expect(reread.body.settings.criticalThresholdPct).toBe(25);
+  });
+
   it('creates an emergency with a server-signed packet (§10)', async () => {
     const res = await request(app).post('/api/emergencies')
       .set('Authorization', `Bearer ${token}`)

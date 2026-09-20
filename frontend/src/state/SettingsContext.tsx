@@ -3,6 +3,7 @@
 // §29 ("Make this configurable"); they feed Relay Readiness and the Network UI.
 
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { apiFetch, useSession } from './SessionContext';
 
 export type ThemePreference = 'system' | 'light' | 'dark';
 
@@ -11,12 +12,8 @@ export interface IqooSettings {
   relayConsent: boolean;
   /** Low-power mode: relay only CRITICAL regardless of battery (§29). */
   lowPowerMode: boolean;
-  /** BLE/discovery scan interval in seconds (prototype knob [P]). */
-  scanIntervalSec: number;
   /** Battery below this → CRITICAL-only relay. */
   criticalThresholdPct: number;
-  /** Battery at/above this → normal relay. Between → reduced. */
-  normalThresholdPct: number;
   /**
    * Relay Hero (§29 iQOO enhancement): volunteer this device as the mesh's
    * backbone relay. Honest on iQOO-class hardware (large cell + bypass
@@ -30,9 +27,7 @@ export interface IqooSettings {
 const DEFAULTS: IqooSettings = {
   relayConsent: true,
   lowPowerMode: false,
-  scanIntervalSec: 30,
   criticalThresholdPct: 20,
-  normalThresholdPct: 50,
   relayHeroMode: false,
   theme: 'system',
 };
@@ -52,12 +47,23 @@ function load(): IqooSettings {
 interface SettingsState extends IqooSettings {
   update: (patch: Partial<IqooSettings>) => void;
   reset: () => void;
+  syncStatus: 'local' | 'syncing' | 'synced' | 'offline';
 }
 
 const SettingsContext = createContext<SettingsState>(null as unknown as SettingsState);
 
 export function SettingsProvider({ children }: { children: ReactNode }) {
+  const { user } = useSession();
   const [settings, setSettings] = useState<IqooSettings>(load);
+  const [syncStatus, setSyncStatus] = useState<SettingsState['syncStatus']>('local');
+
+  useEffect(() => {
+    if (!user) return;
+    setSyncStatus('syncing');
+    apiFetch<{ settings: Partial<IqooSettings> }>('/settings')
+      .then(({ settings: remote }) => { setSettings((current) => ({ ...current, ...remote })); setSyncStatus('synced'); })
+      .catch(() => setSyncStatus('offline'));
+  }, [user]);
 
   // Apply the theme to <html data-theme="…"> and follow OS changes while on 'system'.
   useEffect(() => {
@@ -79,14 +85,29 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       setSettings((s) => {
         const next = { ...s, ...patch };
         try { localStorage.setItem(KEY, JSON.stringify(next)); } catch { /* storage full */ }
+        if (user) {
+          const { theme: _theme, ...remote } = next;
+          setSyncStatus('syncing');
+          void apiFetch('/settings', { method: 'PUT', body: JSON.stringify(remote) })
+            .then(() => setSyncStatus('synced'))
+            .catch(() => setSyncStatus('offline'));
+        }
         return next;
       });
     },
     reset() {
       try { localStorage.removeItem(KEY); } catch { /* ignore */ }
       setSettings(DEFAULTS);
+      if (user) {
+        const { theme: _theme, ...remote } = DEFAULTS;
+        setSyncStatus('syncing');
+        void apiFetch('/settings', { method: 'PUT', body: JSON.stringify(remote) })
+          .then(() => setSyncStatus('synced'))
+          .catch(() => setSyncStatus('offline'));
+      }
     },
-  }), [settings]);
+    syncStatus,
+  }), [settings, user, syncStatus]);
 
   return <SettingsContext.Provider value={value}>{children}</SettingsContext.Provider>;
 }

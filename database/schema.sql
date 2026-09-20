@@ -32,6 +32,15 @@ CREATE TABLE IF NOT EXISTS devices (
 
 CREATE INDEX IF NOT EXISTS idx_devices_user ON devices(user_id);
 
+CREATE TABLE IF NOT EXISTS device_settings (
+  device_id                    TEXT PRIMARY KEY REFERENCES devices(id) ON DELETE CASCADE,
+  relay_consent                INTEGER NOT NULL DEFAULT 1,
+  low_power_mode               INTEGER NOT NULL DEFAULT 0,
+  critical_threshold_pct       INTEGER NOT NULL DEFAULT 20,
+  relay_hero_mode              INTEGER NOT NULL DEFAULT 0,
+  updated_at                   TEXT NOT NULL
+);
+
 -- ------------------------------------------------------------
 -- Emergency profile (§7). Sensitive medical fields are stored
 -- encrypted-at-rest when MSG_SIGNING_PEPPER-derived key present;
