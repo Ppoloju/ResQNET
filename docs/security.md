@@ -10,7 +10,7 @@
 | Replay | ±5 min clock-skew window + emergency dedupe by id (§33/§47) | ✅ |
 | Flooding | TTL ≤ 6h, ≤ 8 hops, duplicate suppression, rate limits (10/min auth, 120/min API) | ✅ |
 | Medical data exposure | AES-256-GCM field encryption at rest + consent gate + visibility tiers + log redaction | ✅ |
-| Malicious relay | Signature verification at every hop, battery-tier relay gating, reputation-ready design | ✅ |
+| Malicious relay | Signature verification and battery-tier relay gating in the simulator; native relay verification remains required | [P/R] |
 | Privilege escalation | RBAC (`user`/`responder`/`admin`) enforced per-route | ✅ |
 | Privacy leak over radio | Anonymous `IQOO_NODE_XXXX` aliases, rotation-ready (§34) | ✅ |
 | Tamper evidence | Append-only audit log with per-actor rows | ✅ |
@@ -34,9 +34,11 @@
 2. **In transit** — HTTPS (TLS) in any real deployment; JWT on every call.
 3. **In logs** — pino `redact` on password/token/secret/medical paths; the audit
    middleware records *who/what/action*, never medical payloads.
-4. **On the wire (mesh)** — packets carry the minimum: id, type, severity,
-   timestamp, coarse location, battery, TTL/hops, signature. Medical data only
-   with explicit consent, and only in gateway-synced snapshots.
+4. **On the wire (mesh)** — the current simulator and browser prototype carry the
+  minimum packet fields: id, type, severity, timestamp, coarse location, battery,
+  TTL/hops, and an HMAC signature. HMAC authenticates and detects tampering; it does
+  **not** encrypt packet contents. Confidential end-to-end radio payloads require a
+  key-exchange protocol and native transport integration before physical mesh launch.
 
 ## Emergency-card disclosure rules (§28)
 
@@ -48,7 +50,8 @@ honors two independent gates:
 
 ## What is intentionally NOT claimed
 
-- Real BLE/Wi-Fi-Direct encryption-in-transit is a native-layer concern `[R]`.
+- Real BLE/Wi-Fi-Direct multi-hop forwarding and encryption-in-transit are native-layer
+  concerns `[R]`; the browser adapter is foreground-only and single-peer.
 - SMS/push family fan-out is a production bridge `[R]` (SSE + DB rows now).
 - Facial recognition for missing persons is explicitly **not implemented** —
   matching is human-reviewed by design (§27).

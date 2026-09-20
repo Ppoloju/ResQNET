@@ -115,7 +115,12 @@ Device-to-device relay mechanism:
 Person in danger → Nearby User → Another User → Emergency Contact/Responder
 ```
 Multi-hop store-and-forward with duplicate detection, TTL + hop limits, per-hop ACKs,
-priority-based retries, and battery-aware relay tiers.
+priority-based retries, and battery-aware relay tiers. The routing behavior is fully
+implemented and tested in the deterministic mesh simulator. The browser PWA's Bluetooth
+adapter is a foreground prototype: Web Bluetooth permits a user-selected GATT connection,
+but does not provide background advertising/scanning or a 100-device relay network. True
+person-to-person multi-hop over Bluetooth requires a native Android/iOS transport with
+advertising, discovery, peer sessions, packet forwarding, and persistent relay service.
 
 ### 6. Intelligent Emergency Prioritization
 Local AI classifies urgency:
@@ -144,8 +149,9 @@ Reception is never blocked.
 | Mesh routing logic (dedupe/TTL/ACK/retry/battery) | **Implemented + tested (simulation)** |
 | Normal + Emergency modes (derived mode + banner + reason) | **Implemented** |
 | Disaster Mode (derivation, priority routing, sitreps, resource map, AI guidance) | **Implemented** |
-| Mesh over real radios | **Prototype** — Web Bluetooth foreground only |
+| Mesh over real radios | **Prototype** — Web Bluetooth foreground single-peer link; no real 100-node relay |
 | Background BLE, Wi-Fi Direct/Near | **Requires native mobile client** |
+| Confidential end-to-end packet encryption | **Requires key exchange/native transport integration**; current HMAC is integrity/authentication, not encryption |
 | Direct police/hospital integration | **Requires Production Integration** |
 | Responder dashboard, demo mode, network map, AI assist | **Implemented** |
 | Situations page (community bulletins + nearby resources) | **Implemented** |

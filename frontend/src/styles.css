@@ -1003,7 +1003,6 @@ p {
         grid-template-columns: 1fr;
         justify-items: center;
     }
-
     .medical-card-fields {
         width: 100%;
     }
@@ -1136,21 +1135,23 @@ p {
 }
 
 .footer-nav {
-    display: none;
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 30;
+    display: flex;
+    justify-content: center;
+    gap: 6px;
+    padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
+    background: rgba(10, 15, 19, 0.92);
+    backdrop-filter: blur(16px);
+    border-top: 1px solid var(--line);
 }
 
 @media (min-width: 768px) {
     .footer-nav {
-        display: flex;
-        position: sticky;
-        bottom: 0;
-        z-index: 30;
-        justify-content: center;
-        gap: 6px;
-        padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
-        background: rgba(10, 15, 19, 0.74);
-        backdrop-filter: blur(16px);
-        border-top: 1px solid var(--line);
+        position: fixed;
     }
     .footer-nav a {
         display: flex;
@@ -1173,7 +1174,7 @@ p {
     }
     .page-host>div,
     .page {
-        padding-bottom: 28px;
+        padding-bottom: 92px;
     }
 }
 
@@ -1402,6 +1403,56 @@ h1 {
     background: var(--tint-red-bg);
     color: var(--tint-red-fg);
     border-color: var(--tint-red-line);
+}
+
+.battery-pill {
+    min-width: 76px;
+    justify-content: center;
+}
+
+.battery-pill svg {
+    flex: 0 0 auto;
+    transition: transform 0.2s ease;
+}
+
+.battery-pill.is-charging svg {
+    animation: battery-charge 1.4s ease-in-out infinite;
+}
+
+.battery-pill.off svg {
+    animation: battery-low 1.2s ease-in-out infinite;
+}
+
+@keyframes battery-charge {
+    0%,
+    100% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.14);
+    }
+}
+
+@keyframes battery-low {
+    0%,
+    100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.45;
+    }
+}
+
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
 }
 
 .pill.small {
@@ -3130,8 +3181,81 @@ label.row {
 }
 
 .footer-nav a {
+    position: relative;
+    isolation: isolate;
     min-width: 96px;
     justify-content: center;
+    overflow: hidden;
+    transition: color 0.2s ease, transform 0.2s ease, background 0.2s ease;
+}
+
+.footer-nav a::before,
+.footer-nav a::after {
+    position: absolute;
+    content: '';
+    pointer-events: none;
+    border-radius: 999px;
+}
+
+.footer-nav a::before {
+    inset: 3px;
+    z-index: -1;
+    background: var(--tint-red-bg);
+    border: 1px solid var(--tint-red-line);
+    opacity: 0;
+    transform: scale(0.72);
+    transition: opacity 0.2s ease, transform 0.25s ease;
+}
+
+.footer-nav a::after {
+    width: 5px;
+    height: 5px;
+    top: 6px;
+    right: 18%;
+    background: var(--red-soft);
+    box-shadow: 0 0 12px var(--red);
+    opacity: 0;
+}
+
+.footer-nav a:hover {
+    transform: translateY(-2px);
+}
+
+.footer-nav a.active {
+    color: var(--tint-red-fg);
+}
+
+.footer-nav a.active::before {
+    opacity: 1;
+    transform: scale(1);
+}
+
+.footer-nav a.active::after {
+    animation: nav-bubble 1.8s ease-in-out infinite;
+}
+
+@keyframes nav-bubble {
+    0%,
+    100% {
+        opacity: 0;
+        transform: translate(0, 3px) scale(0.6);
+    }
+    35% {
+        opacity: 1;
+    }
+    75% {
+        opacity: 0.2;
+        transform: translate(-8px, -8px) scale(1.35);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .footer-nav a,
+    .footer-nav a::before,
+    .footer-nav a::after {
+        animation: none;
+        transition: none;
+    }
 }
 
 @media (min-width: 900px) {
