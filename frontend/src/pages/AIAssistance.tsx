@@ -48,7 +48,7 @@ function Classifier() {
             <span className="eyebrow">OPTIONAL VOICE INPUT</span>
             <p>Speak a description for local classification</p>
           </div>
-          {ai.speechSupported && <button className="btn-secondary ai-action-button" type="button" onClick={() => void ai.startVoice()} disabled={ai.voiceState === 'RECORDING'}>{ai.voiceState === 'RECORDING' ? 'ACTIVE' : 'START'}</button>}
+          {ai.speechSupported && <button className="btn-secondary ai-action-button" type="button" aria-pressed={ai.voiceState === 'RECORDING'} onClick={() => ai.voiceState === 'RECORDING' ? ai.stopVoice() : void ai.startVoice()}>{ai.voiceState === 'RECORDING' ? 'STOP' : 'START'}</button>}
         </div>
         <Waveform />
         <div className="ai-local-note">Microphone starts only after you press START. Audio is not uploaded or stored.</div>
@@ -57,7 +57,7 @@ function Classifier() {
       <section className="card ai-transcript-card" data-testid="ai-assistance-classifier">
         <div className="ai-transcript-heading">
           <span className="eyebrow">LIVE SPEECH TRANSCRIPTION</span>
-          <span className="ai-streaming">{ai.voiceState === 'RECORDING' ? 'STREAMING' : 'READY'}</span>
+          <span className="ai-streaming">{ai.voiceState === 'RECORDING' ? 'STREAMING' : ai.voiceState === 'PROCESSING' ? 'PROCESSING' : 'READY'}</span>
         </div>
         <label htmlFor="ai-assistance-text">Emergency description</label>
         <textarea
@@ -76,7 +76,9 @@ function Classifier() {
           {ai.result ? (
             <>
               <div className="ai-result-title"><strong>{ai.result.category}</strong><span>{Math.round(ai.result.confidence * 100)}%<small> CONF</small></span></div>
-              <p className="ai-dispatch-note">Suggested action: {ai.result.recommendedAction}</p>
+                <p className="ai-dispatch-note">Suggested action: {ai.result.recommendedAction}</p>
+                <p className="ai-match-note">Signals: {ai.result.matched.length > 0 ? ai.result.matched.join(', ') : 'none detected'}</p>
+                <p className="muted small">{ai.disclaimer}</p>
             </>
           ) : (
             <p className="muted">Waiting for an emergency description.</p>

@@ -8,6 +8,7 @@ import {
 import { Battery, BatteryCharging } from 'lucide-react';
 import { useStatus } from './state/StatusContext';
 import { useMode } from './state/ModeContext';
+import { useMesh } from './state/MeshContext';
 
 function StatusBar() {
   const { online, battery, charging } = useStatus();
@@ -65,6 +66,7 @@ const MENU = [
 
 export default function App({ children }: { children: ReactNode }) {
   const location = useLocation();
+  const { phase, active } = useMesh();
   const [menuOpen, setMenuOpen] = useState(false);
 
   useEffect(() => {
@@ -86,7 +88,12 @@ export default function App({ children }: { children: ReactNode }) {
     ));
 
   return (
-    <div className="app">
+    <div className={`app ${phase === 'ACTIVE' ? 'sos-global-active' : ''}`}>
+      {phase === 'ACTIVE' && (
+        <div className="sos-global-frame" role="alert" aria-live="assertive">
+          <span className="sr-only">SOS active{active ? `, emergency ${active.emergencyId}` : ''}</span>
+        </div>
+      )}
       <a href="#main-content" className="skip-link">Skip to content</a>
 
       <header className="topbar">
