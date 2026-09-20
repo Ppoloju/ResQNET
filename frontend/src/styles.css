@@ -106,7 +106,7 @@
             color: var(--text);
             font-family: 'JetBrains Mono', 'Segoe UI', sans-serif;
             line-height: 1.55;
-            font-size: 17px;
+            font-size: 18px;
         }
         
         button {
@@ -5961,6 +5961,7 @@
             padding: 14px 0 96px;
             color: #e8edf3;
             font-family: 'JetBrains Mono', 'Segoe UI', monospace;
+            font-size: 1.04rem;
         }
         
         .hardware-header {
@@ -5982,7 +5983,7 @@
         
         .hardware-header h1 {
             margin: 0;
-            font-size: 1.05rem;
+            font-size: 1.12rem;
             line-height: 1.05;
             text-transform: uppercase;
             letter-spacing: .06em;
@@ -5995,7 +5996,7 @@
         .hardware-row-copy span,
         .hardware-scale,
         .hardware-footer-controls small {
-            font-size: .62rem;
+            font-size: .68rem;
             letter-spacing: .05em;
             text-transform: uppercase;
         }
@@ -6026,7 +6027,7 @@
         
         .hardware-sync small {
             color: #7db8ff;
-            font-size: .54rem;
+            font-size: .6rem;
             line-height: 1.25;
         }
         
@@ -6039,14 +6040,14 @@
             background: #58171e;
             border: 1px solid #9c2e38;
             color: #ff9b9b;
-            font-size: .6rem;
+            font-size: .68rem;
             font-weight: 700;
             letter-spacing: .04em;
         }
         
         .hardware-alert small {
             color: #eaa1a1;
-            font-size: .54rem;
+            font-size: .6rem;
         }
         
         .hardware-section {
@@ -6078,7 +6079,7 @@
         .hardware-section-title h2 {
             margin: 0;
             color: #f2f4f6;
-            font-size: .82rem;
+            font-size: .9rem;
             letter-spacing: .08em;
         }
         
@@ -6087,7 +6088,7 @@
             padding: 4px 6px;
             color: #ffbd80;
             background: #43291d;
-            font-size: .52rem;
+            font-size: .6rem;
             font-weight: 700;
         }
         
@@ -6121,13 +6122,13 @@
         
         .operator-grid strong {
             margin: 4px 0;
-            font-size: .78rem;
+            font-size: .84rem;
         }
         
         .operator-grid span,
         .hardware-metric-grid span {
             color: #8e9aa8;
-            font-size: .58rem;
+            font-size: .64rem;
         }
         
         .operator-grid small,
@@ -6176,7 +6177,7 @@
             display: block;
             margin-top: 14px;
             color: #d7dfe7;
-            font-size: .61rem;
+            font-size: .7rem;
             font-weight: 700;
         }
         
@@ -6196,7 +6197,7 @@
         .hardware-scale {
             margin: 2px 0 10px;
             color: #9ca8b6;
-            font-size: .52rem;
+            font-size: .6rem;
         }
         
         .hardware-row {
@@ -6227,14 +6228,14 @@
         .hardware-row-copy strong {
             display: block;
             color: #e9edf2;
-            font-size: .65rem;
+            font-size: .72rem;
         }
         
         .hardware-row-copy span {
             display: block;
             margin-top: 3px;
             color: #8d98a4;
-            font-size: .52rem;
+            font-size: .6rem;
             text-transform: none;
         }
         
@@ -6315,14 +6316,14 @@
             margin-top: 8px;
             padding: 8px;
             background: #12171d;
-            font-size: .6rem;
+            font-size: .68rem;
         }
         
         .hardware-transport span {
             flex: 1;
             color: #72dba7;
             text-transform: uppercase;
-            font-size: .54rem;
+            font-size: .6rem;
         }
         
         .endurance-callout {
@@ -6401,14 +6402,14 @@
             justify-content: space-between;
             color: #b7c1cc;
             cursor: pointer;
-            font-size: .6rem;
+            font-size: .68rem;
         }
         
         .medical-details label {
             display: block;
             margin-top: 9px;
             color: #9ca8b6;
-            font-size: .58rem;
+            font-size: .66rem;
         }
         
         .medical-details input,
@@ -6417,7 +6418,7 @@
             margin-top: 4px;
             padding: 7px;
             border-radius: 4px;
-            font-size: .72rem;
+            font-size: .82rem;
         }
         
         .medical-details .btn-primary {
