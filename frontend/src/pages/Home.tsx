@@ -27,6 +27,7 @@ function BroadcastBanner() {
 /** Safety check-in (§25): send + show own last status with timestamp. */
 function CheckInCard() {
   const { user } = useSession();
+  const { showSafePulse } = useMesh();
   const [last, setLast] = useState<{ status: string; createdAt: string } | null>(null);
   const [note, setNote] = useState('');
 
@@ -43,8 +44,10 @@ function CheckInCard() {
       await apiFetch('/check-ins', { method: 'POST', body: JSON.stringify({ status }) });
       setLast({ status, createdAt: new Date().toISOString() });
       setNote('✓ Recorded');
+      if (status === 'SAFE') showSafePulse();
     } catch {
       setNote('Offline — will sync when connected');
+      if (status === 'SAFE') showSafePulse();
     }
   };
 

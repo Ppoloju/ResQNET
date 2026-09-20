@@ -57,6 +57,7 @@ function getLocation(): Promise<GeoLocation> {
 interface MeshState {
   phase: SosPhase;
   active: ActiveEmergency | null;
+  safePulse: boolean;
   countdown: number;
   blackBox: BlackBoxEntry[];
   outboxCount: number;
@@ -64,6 +65,7 @@ interface MeshState {
   startSos: (message?: string, ai?: AIResult, options?: { skipCountdown?: boolean }) => void;
   cancelCountdown: () => void;
   resolveActive: () => Promise<void>;
+  showSafePulse: () => void;
 }
 
 const MeshContext = createContext<MeshState>(null as unknown as MeshState);
@@ -101,6 +103,7 @@ export function MeshProvider({ children }: { children: ReactNode }) {
   const { online, battery } = useStatus();
   const [phase, setPhase] = useState<SosPhase>('IDLE');
   const [active, setActive] = useState<ActiveEmergency | null>(null);
+  const [safePulse, setSafePulse] = useState(false);
   const [countdown, setCountdown] = useState(3);
   const [blackBox, setBlackBox] = useState<BlackBoxEntry[]>([]);
   const [outboxCount, setOutboxCount] = useState(0);
@@ -340,6 +343,11 @@ export function MeshProvider({ children }: { children: ReactNode }) {
     log('SOS_CANCELLED');
   }, [log]);
 
+  const showSafePulse = useCallback(() => {
+    setSafePulse(true);
+    window.setTimeout(() => setSafePulse(false), 5000);
+  }, []);
+
   const resolveActive = useCallback(async () => {
     if (!active) return;
     log('RESOLVE_STARTED', active.emergencyId);
@@ -357,12 +365,13 @@ export function MeshProvider({ children }: { children: ReactNode }) {
     }
     setActive(null);
     setPhase('RESOLVED');
-  }, [active, log]);
+    showSafePulse();
+  }, [active, log, showSafePulse]);
 
   const value = useMemo<MeshState>(() => ({
-    phase, active, countdown, blackBox, outboxCount, lastSyncAt,
-    startSos, cancelCountdown, resolveActive,
-  }), [phase, active, countdown, blackBox, outboxCount, lastSyncAt, startSos, cancelCountdown, resolveActive]);
+    phase, active, safePulse, countdown, blackBox, outboxCount, lastSyncAt,
+    startSos, cancelCountdown, resolveActive, showSafePulse,
+  }), [phase, active, safePulse, countdown, blackBox, outboxCount, lastSyncAt, startSos, cancelCountdown, resolveActive, showSafePulse]);
 
   return <MeshContext.Provider value={value}>{children}</MeshContext.Provider>;
 }
