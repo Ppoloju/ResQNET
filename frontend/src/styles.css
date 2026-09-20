@@ -3340,12 +3340,81 @@ label.row {
 
 .family-live-map {
     position: relative;
-    min-height: 480px;
+    height: min(68vh, 620px);
+    min-height: 420px;
     overflow: hidden;
     border: 1px solid var(--line);
     border-radius: 14px;
     background: #0b1219;
     box-shadow: var(--shadow);
+}
+
+.family-leaflet-map {
+    width: 100%;
+    height: 100%;
+    z-index: 0;
+    background: #dbe6ee;
+}
+
+.family-leaflet-map .leaflet-control-zoom a {
+    color: #172431;
+}
+
+.family-leaflet-icon {
+    background: transparent;
+    border: 0;
+}
+
+.family-leaflet-pin {
+    display: grid;
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    border: 2px solid #58a6ff;
+    border-radius: 50% 50% 50% 0;
+    background: #101a25;
+    color: #9ac7ff;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+    font-weight: 900;
+    transform: rotate(-45deg);
+}
+
+.family-leaflet-symbol {
+    transform: rotate(45deg);
+}
+
+.family-leaflet-pin.self {
+    border-color: #f85149;
+    background: #491c24;
+    color: #ffaaa5;
+}
+
+.family-leaflet-pin.medical {
+    border-color: #63e7a5;
+    background: #123c2b;
+    color: #a2f0c3;
+}
+
+.family-leaflet-pin.police {
+    border-color: #ffbf6b;
+    background: #49341a;
+    color: #ffdca0;
+}
+
+.family-leaflet-pin.danger {
+    border-color: #f85149;
+    background: #491c24;
+    color: #ffaaa5;
+}
+
+.leaflet-popup-content-wrapper,
+.leaflet-popup-tip {
+    background: #101820;
+    color: #f4f5f7;
+}
+
+.leaflet-popup-content a {
+    color: #9ac7ff;
 }
 
 .family-map-grid {
@@ -3432,6 +3501,25 @@ label.row {
     box-shadow: 0 0 0 5px rgba(255, 191, 107, 0.1), 0 0 18px rgba(255, 191, 107, 0.38);
 }
 
+.family-leaflet-pin.shelter,
+.family-leaflet-pin.safe_zone {
+    border-color: #a99dff;
+    background: #29234d;
+    color: #d2ccff;
+}
+
+.family-leaflet-pin.water {
+    border-color: #58a6ff;
+    background: #132f4e;
+    color: #9ac7ff;
+}
+
+.family-leaflet-pin.supplies {
+    border-color: #ffbf6b;
+    background: #49341a;
+    color: #ffdca0;
+}
+
 .family-map-legend {
     position: absolute;
     left: 14px;
@@ -3466,6 +3554,10 @@ label.row {
 
 .family-map-legend i.police {
     background: var(--amber);
+}
+
+.family-map-legend i.shelter {
+    background: var(--purple);
 }
 
 @keyframes family-location-pulse {
@@ -3549,7 +3641,8 @@ label.row {
 
 @media (max-width: 600px) {
     .family-live-map {
-        min-height: 380px;
+        height: 58vh;
+        min-height: 360px;
     }
     .family-map-heading {
         align-items: flex-start;
