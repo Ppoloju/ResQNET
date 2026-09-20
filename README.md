@@ -52,7 +52,7 @@ npm install
 npm run dev:backend
 npm run dev:frontend   # second terminal
 
-# 3) run all tests (65+ passing: crypto, mesh scenarios, gateway sync, RBAC,
+# 3) run all tests (98 passing: crypto, mesh scenarios, gateway sync, RBAC,
 #    field encryption, AI classifier, replay cache, Ed25519 keys, offline sync,
 #    profile conflicts, SOS UI incl. offline→online drain)
 npm test

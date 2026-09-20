@@ -29,7 +29,8 @@ Visibility tiers: `PRIVATE | FAMILY | RESPONDERS | NEARBY_HELPERS`.
 ## family
 `GET /family` · `POST /family` · `PUT /family/:id` · `DELETE /family/:id`
 Fields: `name, relation(FATHER…OTHER), phone, priority(1=highest), trusted, iqooAccountId?`.
-`GET /family` also returns `linked`, `checkInStatus`, and `lastCheckInAt` for the linked account's latest check-in.
+`GET /family` also returns `linked`, `checkInStatus`, `lastCheckInAt`, and the latest
+coordinate-bearing `lastLocation` for the linked account.
 
 ## emergencies
 | Method | Path | Notes |
@@ -49,7 +50,7 @@ Fields: `name, relation(FATHER…OTHER), phone, priority(1=highest), trusted, iq
 | Method | Path | Notes |
 |---|---|---|
 | POST | `/sync/push` | `{events: [...], packets: [...]}` idempotent — replays never duplicate |
-| GET | `/sync/pull?since=` | delta since cursor |
+| GET | `/sync/pull?cursor=&limit=` | delta since the `created_at` cursor |
 | POST | `/sync/ack` | mark delivery states |
 
 ## responders (§18, RBAC)
@@ -66,8 +67,18 @@ Fields: `name, relation(FATHER…OTHER), phone, priority(1=highest), trusted, iq
 `GET /broadcasts` (any user; only unexpired) · `POST /broadcasts/:id/cancel`.
 
 ## missing-persons (§27)
-`POST /missing-persons` (authorized) `{fullName, age?, gender?, description?, clothing?, lastSeenTime, lastLat?, lastLon?, contactPhone, photoDataUrl?}` — consent + legal controls; **no automatic facial recognition, ever**.
-`GET /missing-persons/active` · `POST /missing-persons/:id/status` `{status}` · `POST /missing-persons/:id/sightings`.
+`POST /missing-persons` (authorized) `{personName, description?, clothing?, lastSeenAt, lastLat?, lastLon?, contactPhone, photo?}` — consent + legal controls; **no automatic facial recognition, ever**.
+`GET /missing-persons` (open reports) · `POST /missing-persons/:id/status` `{status: FOUND|CANCELLED}`.
+
+## resources
+`GET /resources/nearby?lat=&lon=&limit=` — verified demo resource points ranked nearby;
+includes `MEDICAL` hospitals, `POLICE` stations, shelters, safe zones, water, and supplies.
+The dataset is explicitly seed/demo data, not a live government feed.
+
+## sitreps
+`POST /sitreps` (authenticated) `{kind, text, lat?, lon?}` · `GET /sitreps` (public,
+newest first; optional `kind` filter). Public reads are intentional so safety bulletins
+remain visible without an account.
 
 ## simulator (§51) — demo only
 `POST /sim/engine` `{links:[{a,b,lossRate?}], batteryPercent}` (resets topology) ·
