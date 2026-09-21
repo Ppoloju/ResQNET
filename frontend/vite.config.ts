@@ -7,8 +7,7 @@ export default defineConfig({
     host: true,
     port: 5173,
     // Dev proxy: the app calls same-origin /api; in dev Vite forwards to the
-    // backend (Docker compose or local `npm run dev -w backend`). Production
-    // nginx does the same job (docker/frontend.Dockerfile).
+    // separately running backend. Netlify uses VITE_API_URL in production.
     proxy: {
       '/api': {
         target: 'http://localhost:4000',

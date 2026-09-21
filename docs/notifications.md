@@ -4,7 +4,8 @@ ResQNET now creates a delivery record for each notification channel:
 
 - `SSE`: immediate in-app delivery for linked accounts.
 - `SMS`: queued for family members with a phone number.
-- `PUSH`: queued for linked family accounts.
+- `PUSH`: delivered to opted-in browser subscriptions using Web Push/VAPID; Android
+  FCM remains a native-client integration.
 - `EMERGENCY_SERVICE`: queued for critical medical or police-required events.
 
 External channels are provider-agnostic. Configure HTTP webhook adapters with:
@@ -15,6 +16,10 @@ PUSH_WEBHOOK_URL=https://your-push-adapter.example/send
 EMERGENCY_SERVICE_WEBHOOK_URL=https://your-dispatch-adapter.example/dispatch
 NOTIFICATION_WEBHOOK_TOKEN=replace-with-a-secret
 ```
+
+For browser push, configure `WEB_PUSH_SUBJECT`, `WEB_PUSH_PUBLIC_KEY`, and
+`WEB_PUSH_PRIVATE_KEY`. Users then opt in from Settings. The backend removes expired
+subscriptions automatically when a provider returns HTTP 404 or 410.
 
 Each webhook receives a JSON `POST` containing:
 

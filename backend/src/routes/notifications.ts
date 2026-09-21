@@ -6,8 +6,33 @@ import { Router } from 'express';
 import { db } from '../db.js';
 import { audit } from '../middleware/audit.js';
 import { requireAuth, type AuthedRequest } from '../middleware/auth.js';
+import { saveSubscription, removeSubscription, webPushPublicKey, webPushReady } from '../lib/push.js';
+import { z } from 'zod';
 
 export const notificationsRouter = Router();
+
+notificationsRouter.get('/push/config', (_req, res) => {
+  res.json({ ready: webPushReady(), publicKey: webPushPublicKey() });
+});
+
+const subscriptionSchema = z.object({
+  endpoint: z.string().url().max(2048),
+  keys: z.object({ p256dh: z.string().min(16), auth: z.string().min(8) }),
+});
+
+notificationsRouter.post('/push/subscribe', requireAuth, (req: AuthedRequest, res) => {
+  const parsed = subscriptionSchema.safeParse(req.body);
+  if (!parsed.success) { res.status(400).json({ error: 'invalid push subscription' }); return; }
+  saveSubscription(req.user!.userId, parsed.data, req.get('user-agent'));
+  res.status(201).json({ ok: true });
+});
+
+notificationsRouter.delete('/push/subscribe', requireAuth, (req: AuthedRequest, res) => {
+  const parsed = z.object({ endpoint: z.string().url().max(2048) }).safeParse(req.body);
+  if (!parsed.success) { res.status(400).json({ error: 'invalid push endpoint' }); return; }
+  removeSubscription(req.user!.userId, parsed.data.endpoint);
+  res.json({ ok: true });
+});
 
 /** My notifications: emergencies where I'm the owner, newest first. */
 notificationsRouter.get('/', requireAuth, (req: AuthedRequest, res) => {

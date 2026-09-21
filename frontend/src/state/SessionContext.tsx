@@ -21,6 +21,8 @@ export interface LoginResult {
   twoFactorRequired?: boolean;
   maskedEmail?: string;
   maskedPhone?: string | null;
+  emailSent?: boolean;
+  smsSent?: boolean;
   devCode?: string;
 }
 
@@ -33,7 +35,7 @@ interface SessionState {
   /** Step 2: consume the emailed/SMS 6-digit code and open the session. */
   verify2fa: (identifier: string, code: string) => Promise<void>;
   resend2fa: (identifier: string) => Promise<void>;
-  register: (email: string, password: string, displayName: string, phone: string) => Promise<void>;
+  register: (email: string, password: string, displayName: string, phone: string) => Promise<{ emailSent?: boolean; smsSent?: boolean; devCode?: string }>;
   verifyEmail: (identifier: string, code: string) => Promise<void>;
   resendVerification: (identifier: string) => Promise<void>;
   forgotPassword: (identifier: string) => Promise<void>;
@@ -124,7 +126,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     device,
     loading,
     async login(identifier, password) {
-      const r = await apiFetch<{ token?: string; twoFactorRequired?: boolean; email?: string; phone?: string | null; devCode?: string; user?: SessionUser; device?: DeviceInfo | null }>('/auth/login', {
+      const r = await apiFetch<{ token?: string; twoFactorRequired?: boolean; email?: string; phone?: string | null; emailSent?: boolean; smsSent?: boolean; devCode?: string; user?: SessionUser; device?: DeviceInfo | null }>('/auth/login', {
         method: 'POST',
         body: JSON.stringify({ identifier: identifier.trim(), email: identifier.trim(), password }),
       });
@@ -134,6 +136,8 @@ export function SessionProvider({ children }: { children: ReactNode }) {
           twoFactorRequired: !!r.twoFactorRequired,
           maskedEmail: r.email,
           maskedPhone: r.phone,
+          emailSent: r.emailSent,
+          smsSent: r.smsSent,
           devCode: r.devCode,
         };
       }
@@ -155,13 +159,14 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       await apiFetch('/auth/login/resend-2fa', { method: 'POST', body: JSON.stringify({ identifier, email: identifier }) });
     },
     async register(email, password, displayName, phone) {
-      const r = await apiFetch<{ token: string; user: SessionUser; device: DeviceInfo }>('/auth/register', {
+      const r = await apiFetch<{ token: string; user: SessionUser; device: DeviceInfo; emailSent?: boolean; smsSent?: boolean; devCode?: string }>('/auth/register', {
         method: 'POST',
         body: JSON.stringify({ email: email.trim(), password, displayName: displayName.trim(), phone: phone.trim() }),
       });
       persistSession({ token: r.token, user: r.user, device: r.device });
       setUser(r.user);
       setDevice(r.device);
+      return { emailSent: r.emailSent, smsSent: r.smsSent, devCode: r.devCode };
     },
     async verifyEmail(identifier, code) {
       await apiFetch('/auth/verify-email', { method: 'POST', body: JSON.stringify({ identifier, email: identifier, code }) });

@@ -51,16 +51,16 @@ npm install
 npm run dev:backend
 npm run dev:frontend   # second terminal
 
-# 3) run all tests (102 passing: crypto, mesh scenarios, gateway sync, RBAC,
+# 3) run all tests (current counts are recorded in implementation.md: crypto, mesh scenarios, gateway sync, RBAC,
 #    field encryption, AI classifier, replay cache, Ed25519 keys, offline sync,
 #    profile conflicts, SOS UI incl. offline→online drain)
 npm test
 
-# 4) production-like run with Docker
-docker compose -f docker/docker-compose.yml up --build
+# 4) build the Netlify frontend
+npm run build -w shared && npm run build -w frontend
 ```
 
-Environment: copy `.env.example` to `.env`. Generate secrets with
+Environment: copy `.env.example` to `.env`. Generate backend secrets with
 `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`.
 
 ## 📁 Repository Layout
@@ -73,7 +73,7 @@ ResQNET/
 ├── shared/     Packet schema, canonical JSON + HMAC signing, validation rules,
 │               on-device AI classifier/triage, geo + relay-readiness helpers
 ├── database/   schema.sql (v2: 18 tables incl. notifications, responder_acks)
-├── docker/     docker-compose.yml + backend.Dockerfile (node:24-alpine)
+├── netlify.toml  Netlify build, SPA fallback, and frontend publish directory
 ├── docs/       architecture, api-contract, security, offline-network,
 │               ai-architecture, demo
 ├── idea.html   visual pitch of the complete idea
@@ -182,23 +182,23 @@ Reception is never blocked.
 | Situations page (community bulletins + nearby resources) | **Implemented** |
 | Relay Hero ⚡ (iQOO backbone relay + hardware endurance tiers) | **Implemented [P]** — engine + Settings + Network UI |
 
-## 🐳 Docker (Verified End-to-End)
+## ☁️ Netlify + API deployment
 
-```bash
-docker compose -f docker/docker-compose.yml up -d --build
-# → frontend app:  http://localhost:8080   (nginx: SPA + /api proxy + SSE + /healthz)
-# → backend API:   http://localhost:4000/healthz
-```
+Netlify deploys the Vite PWA from `frontend/dist` using `netlify.toml`. Set the
+Netlify environment variable `VITE_API_URL` to the public HTTPS URL of the separately
+deployed Express backend, for example `https://api.example.com/api`.
 
-Verified: images build on node:24-alpine, stack boots healthy, full demo path runs
-inside the container, and the API is reachable same-origin through the frontend
-(register → sitrep post → resources nearby all smoke-tested through nginx).
-See **docs/deployment.md** for the full guide (env, secrets, production boundary).
+The backend requires a persistent filesystem for SQLite, long-lived SSE connections,
+and Node's `node:sqlite`; deploy it as a persistent Node service (Railway is the
+selected target) with `DATABASE_PATH=/app/data/iqoo.sqlite` or an equivalent persistent
+volume. Netlify Functions are not a drop-in replacement for this backend because they
+do not provide the required persistent SQLite process or reliable long-lived SSE path.
+See **docs/deployment.md** for the complete Netlify/Railway variable and provider guide.
 
 ## 🛠️ Tech Stack (Free/Open-Source Only)
 
-React 18 · Vite · TypeScript · Express · `node:sqlite` (no native builds) · Argon2id ·
-JWT · WebCrypto HMAC · Leaflet/OpenStreetMap · pino · zod · vitest · Docker (node:24-alpine). No paid APIs,
+React 18 · Vite · TypeScript · Express · `node:sqlite` · Argon2id · JWT · WebCrypto HMAC ·
+Leaflet/OpenStreetMap · pino · zod · vitest · Netlify + Railway deployment. No paid APIs,
 services, models, or hosting anywhere in the dependency tree.
 
 ## 📱 Optimized for iQOO

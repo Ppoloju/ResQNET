@@ -1,17 +1,72 @@
-import { useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useSession } from '../state/SessionContext';
+import { Mail, ShieldCheck, Smartphone } from 'lucide-react';
+import { apiFetch, useSession } from '../state/SessionContext';
 
 type Mode = 'login' | 'register' | 'verify2fa' | 'verifyEmail' | 'forgot' | 'reset';
 
 const TITLES: Record<Mode, string> = {
-  login: 'Sign in',
-  register: 'Create account',
-  verify2fa: 'Enter your code',
-  verifyEmail: 'Verify your account',
-  forgot: 'Forgot password',
-  reset: 'Set a new password',
+  login: 'Welcome back',
+  register: 'Create your ResQNET account',
+  verify2fa: 'Check your email and phone',
+  verifyEmail: 'Confirm your account',
+  forgot: 'Reset your password',
+  reset: 'Choose a new password',
 };
+
+const LEADS: Record<Mode, string> = {
+  login: 'Use your email or mobile number. A 6-digit code is sent through every configured delivery channel.',
+  register: 'Add an email and mobile number. We show exactly which delivery channels are available.',
+  verify2fa: 'Enter the code we sent. It expires in 10 minutes.',
+  verifyEmail: 'Enter the code we sent to finish creating the account.',
+  forgot: 'We will send a reset code to the email and phone on the account.',
+  reset: 'Paste the code, then set a password of at least 8 characters.',
+};
+
+interface ChannelStatus {
+  email: string;
+  sms: string;
+  emailReady: boolean;
+  smsReady: boolean;
+}
+
+function OtpBoxes({ value, onChange }: { value: string; onChange: (next: string) => void }) {
+  const refs = useRef<Array<HTMLInputElement | null>>([]);
+  const digits = Array.from({ length: 6 }, (_, i) => value[i] ?? '');
+
+  function setAt(index: number, char: string) {
+    const next = digits.map((d, i) => (i === index ? char : d)).join('').replace(/\D/g, '').slice(0, 6);
+    onChange(next);
+    if (char && index < 5) refs.current[index + 1]?.focus();
+  }
+
+  return (
+    <div className="auth-otp" role="group" aria-label="6-digit code">
+      {digits.map((digit, index) => (
+        <input
+          key={index}
+          ref={(el) => { refs.current[index] = el; }}
+          inputMode="numeric"
+          autoComplete={index === 0 ? 'one-time-code' : 'off'}
+          maxLength={1}
+          value={digit}
+          aria-label={`Digit ${index + 1}`}
+          onChange={(event) => setAt(index, event.target.value.replace(/\D/g, '').slice(-1))}
+          onKeyDown={(event) => {
+            if (event.key === 'Backspace' && !digits[index] && index > 0) {
+              refs.current[index - 1]?.focus();
+              onChange(digits.map((d, i) => (i === index - 1 ? '' : d)).join(''));
+            }
+          }}
+          onPaste={(event) => {
+            event.preventDefault();
+            onChange(event.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6));
+          }}
+        />
+      ))}
+    </div>
+  );
+}
 
 export default function Login() {
   const {
@@ -19,7 +74,6 @@ export default function Login() {
     verifyEmail, resendVerification, forgotPassword, resetPassword,
   } = useSession();
   const navigate = useNavigate();
-
   const [mode, setMode] = useState<Mode>('login');
   const [identifier, setIdentifier] = useState('');
   const [email, setEmail] = useState('');
@@ -32,6 +86,12 @@ export default function Login() {
   const [notice, setNotice] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const [channels, setChannels] = useState<ChannelStatus | null>(null);
+  const [lastDelivery, setLastDelivery] = useState<{ email?: boolean; sms?: boolean }>({});
+
+  useEffect(() => {
+    apiFetch<ChannelStatus>('/auth/channels').then(setChannels).catch(() => setChannels(null));
+  }, []);
 
   const go = (next: Mode, msg = '') => {
     setMode(next);
@@ -50,19 +110,23 @@ export default function Login() {
         const result = await login(identifier.trim(), password);
         if (result.twoFactorRequired) {
           setPendingId(identifier.trim());
+          setLastDelivery({ email: result.emailSent, sms: result.smsSent });
           const dest = [result.maskedEmail, result.maskedPhone].filter(Boolean).join(' and ');
           go('verify2fa', result.devCode
-            ? `Code sent to ${dest || 'your email and phone'}. Local code: ${result.devCode}`
-            : `We sent a 6-digit code to ${dest || 'your email and phone'}.`);
+            ? `Delivery is in console-only mode. Use code ${result.devCode} (also logged on the server). Sent toward ${dest}.`
+            : `Code sent to ${dest}.`);
           return;
         }
         navigate('/');
         return;
       }
       if (mode === 'register') {
-        await register(email.trim(), password, displayName.trim(), phone.trim());
+        const result = await register(email.trim(), password, displayName.trim(), phone.trim());
         setPendingId(email.trim());
-        go('verifyEmail', 'Account created. Enter the code sent to your email and phone.');
+        setLastDelivery({ email: result.emailSent, sms: result.smsSent });
+        go('verifyEmail', result.devCode
+          ? `Account created. Delivery is in console-only mode. Use code ${result.devCode}.`
+          : `Account created. Email: ${result.emailSent ? 'sent' : 'unavailable'} · SMS: ${result.smsSent ? 'sent' : 'unavailable'}.`);
         return;
       }
       if (mode === 'verify2fa') {
@@ -78,7 +142,7 @@ export default function Login() {
       if (mode === 'forgot') {
         await forgotPassword(identifier.trim());
         setPendingId(identifier.trim());
-        go('reset', 'If that account exists, a code was sent to the email and phone on file.');
+        go('reset', 'If that account exists, a code was sent to its email and phone.');
         return;
       }
       await resetPassword(pendingId, code, newPassword);
@@ -93,109 +157,119 @@ export default function Login() {
   }
 
   return (
-    <div>
-      <h1>{TITLES[mode]}</h1>
-      {notice && <div className="banner warn-banner" role="status">{notice}</div>}
+    <div className="auth-page">
+      <section className="auth-card">
+        <div className="auth-brand">
+          <span className="auth-mark">RQ</span>
+          <div>
+            <strong>ResQNET</strong>
+            <small>Offline emergency network</small>
+          </div>
+        </div>
+        <h1>{TITLES[mode]}</h1>
+        <p className="auth-lead">{LEADS[mode]}</p>
 
-      <form onSubmit={(event) => void submit(event)}>
-        {mode === 'register' && (
-          <>
-            <label htmlFor="displayName">Your name</label>
-            <input id="displayName" value={displayName} onChange={(e) => setDisplayName(e.target.value)}
-              placeholder="Your full name" autoComplete="name" required />
-            <label htmlFor="email">College email</label>
-            <input id="email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" />
-            <label htmlFor="phone">Mobile number</label>
-            <input id="phone" type="tel" required value={phone} onChange={(e) => setPhone(e.target.value)}
-              placeholder="10-digit mobile" autoComplete="tel" />
-          </>
+        {channels && (
+          <div className="auth-channels" aria-live="polite">
+            <span className={channels.emailReady ? 'is-on' : 'is-off'}><Mail size={14} /> {channels.emailReady ? 'Email delivery on' : 'Email not configured yet'}</span>
+            <span className={channels.smsReady ? 'is-on' : 'is-off'}><Smartphone size={14} /> {channels.smsReady ? 'SMS delivery on' : 'SMS not configured yet'}</span>
+          </div>
         )}
 
-        {(mode === 'login' || mode === 'forgot') && (
-          <>
-            <label htmlFor="identifier">Email or mobile number</label>
-            <input id="identifier" required value={identifier} onChange={(e) => setIdentifier(e.target.value)}
-              autoComplete="username" placeholder="name@student.gitam.edu or 9000000002" />
-          </>
+        {notice && <div className="banner warn-banner" role="status">{notice}</div>}
+
+        {(mode === 'verify2fa' || mode === 'verifyEmail') && (
+          <div className="auth-delivery">
+            <span><Mail size={14} /> {lastDelivery.email ? 'Email sent' : 'Email pending'}</span>
+            <span><Smartphone size={14} /> {lastDelivery.sms ? 'SMS sent' : 'SMS pending'}</span>
+          </div>
         )}
 
-        {(mode === 'login' || mode === 'register') && (
-          <>
-            <label htmlFor="password">{mode === 'register' ? 'Password (min 8 chars)' : 'Password'}</label>
-            <input id="password" type="password" required minLength={mode === 'register' ? 8 : 1} value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              autoComplete={mode === 'login' ? 'current-password' : 'new-password'} />
-          </>
+        <form onSubmit={(event) => void submit(event)}>
+          {mode === 'register' && (
+            <>
+              <label htmlFor="displayName">Your name</label>
+              <input id="displayName" value={displayName} onChange={(e) => setDisplayName(e.target.value)}
+                placeholder="Inturi Vaishnavi" autoComplete="name" required />
+              <label htmlFor="email">College email</label>
+              <input id="email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" />
+              <label htmlFor="phone">Mobile number</label>
+              <input id="phone" type="tel" required value={phone} onChange={(e) => setPhone(e.target.value)}
+                placeholder="10-digit Indian mobile" autoComplete="tel" />
+            </>
+          )}
+
+          {(mode === 'login' || mode === 'forgot') && (
+            <>
+              <label htmlFor="identifier">Email or mobile number</label>
+              <input id="identifier" required value={identifier} onChange={(e) => setIdentifier(e.target.value)}
+                autoComplete="username" placeholder="vinturi@student.gitam.edu" />
+            </>
+          )}
+
+          {(mode === 'login' || mode === 'register') && (
+            <>
+              <label htmlFor="password">{mode === 'register' ? 'Password (min 8 characters)' : 'Password'}</label>
+              <input id="password" type="password" required minLength={mode === 'register' ? 8 : 1} value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                autoComplete={mode === 'login' ? 'current-password' : 'new-password'} />
+            </>
+          )}
+
+          {(mode === 'verify2fa' || mode === 'verifyEmail' || mode === 'reset') && (
+            <>
+              <label>6-digit code</label>
+              <OtpBoxes value={code} onChange={setCode} />
+            </>
+          )}
+
+          {mode === 'reset' && (
+            <>
+              <label htmlFor="newPassword">New password</label>
+              <input id="newPassword" type="password" required minLength={8} value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)} autoComplete="new-password" />
+            </>
+          )}
+
+          {error && <p className="error-text" role="alert">{error}</p>}
+
+          <button className="btn-primary auth-submit" type="submit" disabled={busy || ((mode === 'verify2fa' || mode === 'verifyEmail') && code.length !== 6)}>
+            {busy ? 'Please wait…' : mode === 'login' ? 'Continue'
+              : mode === 'register' ? 'Create account'
+              : mode === 'verify2fa' ? 'Verify and enter'
+              : mode === 'verifyEmail' ? 'Verify account'
+              : mode === 'forgot' ? 'Send reset code'
+              : 'Save new password'}
+          </button>
+        </form>
+
+        {(mode === 'verify2fa' || mode === 'verifyEmail') && (
+          <p className="auth-links">
+            <button type="button" className="btn-ghost" disabled={busy} onClick={() => {
+              setBusy(true);
+              const run = mode === 'verify2fa' ? resend2fa(pendingId) : resendVerification(pendingId);
+              run.then(() => setNotice('A new code was sent to email and phone.')).catch((err: unknown) => {
+                setError(err instanceof Error ? err.message : 'Could not resend');
+              }).finally(() => setBusy(false));
+            }}>Send a new code</button>
+          </p>
         )}
 
-        {(mode === 'verify2fa' || mode === 'verifyEmail' || mode === 'reset') && (
-          <>
-            <label htmlFor="code">6-digit code</label>
-            <input id="code" inputMode="numeric" pattern="\d{6}" maxLength={6} required value={code}
-              onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))} autoComplete="one-time-code" />
-          </>
-        )}
-
-        {mode === 'reset' && (
-          <>
-            <label htmlFor="newPassword">New password</label>
-            <input id="newPassword" type="password" required minLength={8} value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)} autoComplete="new-password" />
-          </>
-        )}
-
-        {error && <p className="error-text" role="alert">{error}</p>}
-
-        <button className="btn-primary mt" type="submit" disabled={busy} style={{ width: '100%' }}>
-          {busy ? 'Please wait…' : mode === 'login' ? 'Sign in'
-            : mode === 'register' ? 'Create account'
-            : mode === 'verify2fa' ? 'Verify and sign in'
-            : mode === 'verifyEmail' ? 'Verify account'
-            : mode === 'forgot' ? 'Send reset code'
-            : 'Save new password'}
-        </button>
-      </form>
-
-      {mode === 'verify2fa' && (
-        <p className="mt">
-          <button type="button" className="btn-ghost" disabled={busy} onClick={() => {
-            setBusy(true);
-            resend2fa(pendingId).then(() => setNotice('A new code was sent to email and phone.')).catch((err: unknown) => {
-              setError(err instanceof Error ? err.message : 'Could not resend');
-            }).finally(() => setBusy(false));
-          }}>Resend code</button>
+        <p className="auth-links">
+          {mode === 'login' ? (
+            <>
+              <button type="button" className="btn-ghost" onClick={() => go('register')}>Create account</button>
+              <button type="button" className="btn-ghost" onClick={() => go('forgot')}>Forgot password</button>
+            </>
+          ) : (
+            <button type="button" className="btn-ghost" onClick={() => go('login')}>Back to sign in</button>
+          )}
         </p>
-      )}
 
-      {mode === 'verifyEmail' && (
-        <p className="mt">
-          <button type="button" className="btn-ghost" disabled={busy} onClick={() => {
-            setBusy(true);
-            resendVerification(pendingId).then(() => setNotice('A new code was sent to email and phone.')).catch((err: unknown) => {
-              setError(err instanceof Error ? err.message : 'Could not resend');
-            }).finally(() => setBusy(false));
-          }}>Resend code</button>
+        <p className="auth-foot">
+          <ShieldCheck size={14} /> Codes are never printed in the app when real SMTP and SMS keys are set.
         </p>
-      )}
-
-      <p className="mt">
-        {mode === 'login' && (
-          <>
-            No account? <button type="button" className="btn-ghost" onClick={() => go('register')}>Register</button>
-            {' · '}
-            <button type="button" className="btn-ghost" onClick={() => go('forgot')}>Forgot password</button>
-          </>
-        )}
-        {mode !== 'login' && (
-          <>Have an account? <button type="button" className="btn-ghost" onClick={() => go('login')}>Sign in</button></>
-        )}
-      </p>
-
-      <p className="muted">
-        Sign in with your GITAM email or mobile number. The same 6-digit code is sent to both
-        email and phone for sign-in, password reset, and password change. Team accounts use
-        Gitam@2028 — any older password for those accounts is rejected.
-      </p>
+      </section>
     </div>
   );
 }

@@ -10,10 +10,19 @@ import { requireAuth, type AuthedRequest } from '../middleware/auth.js';
 import { authLimiter } from '../middleware/rateLimit.js';
 import { logger } from '../logger.js';
 import { sendVerificationCode, sendPasswordChangedNotice, mailerMode } from '../lib/mailer.js';
-import { sendOtpSms, smsMode } from '../lib/sms.js';
+import { sendOtpSms, smsMode, smsProvider } from '../lib/sms.js';
 import { canonicalPhone, looksLikeEmail, maskEmail, maskPhone, phoneTail } from '../lib/phone.js';
 
 export const authRouter = Router();
+
+authRouter.get('/channels', (_req, res) => {
+  res.json({
+    email: mailerMode(),
+    sms: smsProvider(),
+    emailReady: mailerMode() === 'smtp',
+    smsReady: smsMode() === 'live',
+  });
+});
 
 const phoneSchema = z.string().trim().min(10).max(20).refine((value) => canonicalPhone(value) !== null, 'invalid phone');
 

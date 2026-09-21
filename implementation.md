@@ -27,7 +27,11 @@ The repository-wide audit found and fixed the following regressions that were no
 - **Storage-key split after the ResQNET rebrand.** Session, SOS active state, medical profile, and check-in queue still used `iqoo.*`, while history, realtime, and sync used `resqnet.*`. All remaining active paths now use the `resqnet.*` namespace, restoring shared session visibility and offline queue/history behavior.
 - **Stale auth and SOS tests.** Assertions still expected `IQ-` IDs and `iqoo.*` storage keys. They now exercise the current `RQ-` and `resqnet.*` contracts.
 
-Verification after the fixes: **112 tests passing** (34 shared, 68 backend, 10 frontend), all workspace typechecks passing, and all production builds passing. The Vite build still reports a non-failing chunk-size warning for the main frontend bundle.
+Verification after the fixes: **114 tests passing** (34 shared, 70 backend, 10 frontend), all workspace typechecks passing, and all production builds passing. The Vite build still reports a non-failing chunk-size warning for the main frontend bundle.
+
+Netlify deployment alignment: Docker artifacts removed; `netlify.toml` now builds `shared` and the Vite frontend and publishes `frontend/dist`. The Express/SQLite backend remains a separate persistent service and is connected with `VITE_API_URL`.
+
+Notification delivery alignment: Gmail SMTP and Fast2SMS are real provider paths when configured; browser Web Push now uses VAPID subscriptions. Android FCM and background mesh remain native-client work and are not represented as available in the web UI.
 
 Remaining items in `missinginfo.md` such as native background mesh, SMS/push providers, live emergency-resource feeds, sensor fusion, end-to-end mesh encryption, and production deployment hardening are capability boundaries or planned integrations, not regressions in this audit.
 
@@ -38,7 +42,7 @@ Remaining items in `missinginfo.md` such as native background mesh, SMS/push pro
 ## Audit findings (2026-09-14)
 
 - Project folder `IQOO/` was **empty** (only `.freebuff/` metadata). Nothing existed to preserve.
-- Environment: Node v24.12.0, npm 11.6.2, Docker CLI 29.4.3 (daemon not running), Git 2.52 (Windows/Git Bash).
+- Environment: Node v24.12.0, npm 11.6.2, Git 2.52 (Windows/Git Bash); frontend deployment target is Netlify and backend deployment target is Railway.
 - There is no legacy architecture to protect; the roadmap below defines it.
 
 ## Stack decision (free-only, technically defensible)
@@ -47,14 +51,14 @@ Remaining items in `missinginfo.md` such as native background mesh, SMS/push pro
 |---|---|---|
 | Frontend | React 18 + Vite 5 + TypeScript, **PWA** (installable, manifest, standalone display) | Free, fast, one codebase for dashboard + phone. |
 | Backend | Node.js + Express + TypeScript | Free, ubiquitous, hackathon-friendly. |
-| Backend DB | **SQLite via `node:sqlite`** (Node built-in, zero native deps) | No node-gyp/Visual Studio needed on Windows dev; no native build in Docker. Free, file-based, WAL mode. |
+| Backend DB | **SQLite via `node:sqlite`** (Node built-in, zero native deps) | Free, file-based, WAL mode; requires a persistent backend volume. |
 | Local (device) storage | `localStorage` (outbox, identity, active emergency) | Browser-native, offline, free. IndexedDB upgrade path when media blobs land. |
 | Auth | Argon2id (`@node-rs/argon2`), HS256 JWT (free), per-device token | No paid auth service. |
 | Signing | **HMAC-SHA256 over canonical JSON** via WebCrypto (identical code client+server) | Works in every modern browser and Node; Ed25519 noted as production upgrade. |
 | Mesh simulation | `MeshEngine` (deterministic, in-process) + `/api/sim/*` endpoints | §51: proves routing logic without physical radios; clearly labeled SIMULATION. |
 | Local AI | `LocalAIEngine` interface + deterministic rule-based classifier implemented (§61: no big model downloads) | ONNX Runtime Web remains an optional upgrade path. |
 | Location | Geolocation API with accuracy-honest states (§20) | Browser GPS; `LOCATION_UNAVAILABLE` when it fails. |
-| Docker | `docker compose` (node:24-alpine multi-stage) | `node:sqlite` requires Node ≥ 22.5 → base image is 24. |
+| Deployment | Netlify frontend + persistent Railway Node service | Netlify serves the PWA; Express, SQLite, SSE, SMTP, SMS, and push stay on the API service. |
 
 ## Mobile vs Web reality (§60, decided up front)
 
@@ -78,14 +82,14 @@ The frontend is a web PWA. Browser Bluetooth cannot do background BLE mesh; iOS/
 
 - [x] Existing architecture audited (folder was empty; decision recorded)
 - [x] Dependencies audited (none existed)
-- [x] Docker audited (CLI present; daemon off; compose config validated)
+- [x] Netlify deployment configuration audited (`netlify.toml`, SPA fallback, frontend publish directory)
 - [x] Database audited (none; SQLite chosen, schema v1 written)
 
 # Phase 1 — Foundation
 
-- [x] Monorepo structure (frontend/ backend/ shared/ database/ docker/)
+- [x] Monorepo structure (frontend/ backend/ shared/ database/ native/)
 - [x] Environment configuration (.env.example with LOCAL/DEV/DEMO/PRODUCTION guidance)
-- [x] Docker (compose + multi-stage Dockerfile; node:24-alpine; image and compose E2E path verified)
+- [x] Netlify frontend build configuration; persistent backend deployment documented separately
 - [x] Database (SQLite schema v1: users, devices, emergency_profiles, family_members, emergency_events, emergency_messages, message_deliveries, check_ins, responders, responder_locations, audit_log, emergency_media)
 - [x] Authentication (register/login, Argon2id, JWT, per-device secrets shown once)
 - [x] Logging (pino, structured, secret + medical redaction)
@@ -97,9 +101,9 @@ The frontend is a web PWA. Browser Bluetooth cannot do background BLE mesh; iOS/
 
 **Status:** Complete
 **Implementation:** Everything above; backend boots (`/healthz` + register/login verified via curl), and the shared, backend, and frontend production builds are green.
-**Files changed:** package.json, .gitignore, .env.example, database/schema.sql, docker/*, backend/**, frontend/**, shared/**, README.md, idea.html, implementation.md
-**Tests:** 102 passing (31 shared, 63 backend, 8 frontend), covering crypto, validation, mesh scenarios, API smoke, AI triage, offline SOS, maps/resource ranking, and sync.
-**Known limitations:** native background BLE/Wi-Fi Direct, SMS/push delivery, and sensor-stream fusion remain production integrations `[R]`; the web PWA provides foreground/browser-safe fallbacks.
+**Files changed:** package.json, .gitignore, .env.example, database/schema.sql, backend/**, frontend/**, shared/**, netlify.toml, README.md, idea.html, implementation.md
+**Tests:** current totals are maintained by the audit entries below; they cover crypto, validation, mesh scenarios, API smoke, AI triage, offline SOS, maps/resource ranking, sync, and delivery configuration.
+**Known limitations:** native background BLE/Wi-Fi Direct, Android FCM, and sensor-stream fusion remain production integrations `[R]`; the web PWA provides foreground/browser-safe fallbacks. Gmail SMTP, Fast2SMS, and browser Web Push are real when their production credentials are configured.
 **Next step:** native client integration for background radios and sensors; no web-only implementation can provide those platform capabilities honestly.
 
 # Phase 2 — Emergency Profile
@@ -226,8 +230,8 @@ The frontend is a web PWA. Browser Bluetooth cannot do background BLE mesh; iOS/
 - [x] docs/ (architecture.md, api-contract.md, security.md, offline-network.md, ai-architecture.md, demo.md)
 - [x] Demo instructions (docs/demo.md)
 - [x] Settings page (§29/§37: relay consent, low-power mode, scan interval, battery thresholds, transport status + pairing, reset)
-- [x] Final README (refreshed with full feature set, current test count, verified Docker path)
-- [x] Docker image build verification — **DONE 2026-09-15**: image builds (node:24-alpine), compose stack boots healthy, live E2E inside the container: register → topology → inject → 3-hop flood → gateway → `IQ-DOCKERE1` row with `received_via: mesh:3-hops` in the persisted volume. Fixed Dockerfile bug found during verification: `shared/dist` was not shipped to the runtime layer (ERR_MODULE_NOT_FOUND) and WORKDIR did not match the schema path.
+- [x] Final README (refreshed for Netlify frontend + persistent Railway backend)
+- [x] Netlify deployment configuration (`netlify.toml`, SPA fallback, `VITE_API_URL` contract)
 
 # Phase 13 — 3-Mode Architecture — **COMPLETE 2026-09-18**
 
@@ -258,11 +262,11 @@ Verification: 88 tests passing (28 shared · 56 backend · 4 frontend), zero typ
 
 ## Blocker log
 
-(none — Docker daemon resolved 2026-09-16: Desktop started, image rebuilt with the shared/dist fix, compose stack verified live end-to-end)
+(none — Netlify frontend configuration and separate Railway backend deployment are documented; native Android mesh remains an explicit production integration.)
 
 ## Changelog
 
-- 2026-09-21 — Repository-wide audit: fixed native-frame and auth contract drift, restored the incomplete frontend session/map merge, added `/auth/me` verification state, completed the `resqnet.*` storage-key migration, and updated stale RQ/SOS regression fixtures. Current verification: 112 tests, workspace typechecks, and production builds green.
+- 2026-09-21 — Repository-wide audit and deployment pass: fixed native-frame/auth drift, simplified the Network page to measured state, added real browser Web Push subscriptions, aligned the PWA for Netlify and the persistent API for Railway, removed Docker artifacts, repaired the service worker, and stabilized SOS tests. Current verification: 114 tests, workspace typechecks, and production builds green.
 
 - 2026-09-20 — Quick Help is now cross-layer AI triage: shared rules and authenticated `/api/ai/triage` classify lost/navigation requests as `OFFLINE_MAP`, high-risk medical/safety events as `SOS`, and general assistance as `CHAT`. Home uses the backend when online and the same shared policy offline; nearby resource ranking is distance-first so maps show resources nearest to the user. Added triage regression tests.
 - 2026-09-20 — Family Map upgraded from a synthetic clustered canvas to a real Leaflet/OpenStreetMap map: geographic pan/zoom, fit-to-family bounds, live geolocation watch, 15-second backend refresh, distinct user/family/hospital/police/shelter/resource pins, popups, and Google Maps links for resource locations.

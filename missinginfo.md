@@ -190,7 +190,7 @@ The following areas are implemented and tested:
 - [x] Missing-person reports with human-reviewed matching
 - [x] Server-Sent Events realtime updates
 - [x] History and emergency black-box timeline
-- [x] Docker deployment packaging
+- [x] Netlify frontend deployment packaging
 
 ## Priority Order
 

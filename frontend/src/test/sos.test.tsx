@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
-import { cleanup, render, screen, act, fireEvent } from '@testing-library/react';
+import { cleanup, render, screen, act, fireEvent, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import Home, { SosPage } from '../pages/Home';
 import { SessionProvider } from '../state/SessionContext';
@@ -92,6 +92,7 @@ describe('SOS flow', () => {
       renderHome();
       await act(async () => { window.dispatchEvent(new Event('offline')); });
       await hold(screen.getByRole('button', { name: /hold for three seconds to activate sos/i }));
+      await screen.findByRole('button', { name: /hold for three seconds to resolve/i });
       await hold(screen.getByRole('button', { name: /hold for three seconds to resolve/i }));
 
       expect(screen.getByText('SOS DISARMED')).toBeInTheDocument();
@@ -122,8 +123,7 @@ describe('SOS flow', () => {
       renderHome();
       await act(async () => { window.dispatchEvent(new Event('offline')); });
       await hold(screen.getByRole('button', { name: /hold for three seconds to activate sos/i }));
-      await act(async () => { await Promise.resolve(); });
-      expect(JSON.parse(localStorage.getItem('resqnet.outbox') ?? '[]')).toHaveLength(1);
+      await waitFor(() => expect(JSON.parse(localStorage.getItem('resqnet.outbox') ?? '[]')).toHaveLength(1));
 
       await act(async () => { window.dispatchEvent(new Event('online')); });
       await act(async () => { vi.advanceTimersByTime(1000); });

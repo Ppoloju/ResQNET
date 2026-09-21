@@ -49,6 +49,297 @@
             --topbar-h: 64px;
             color-scheme: dark;
         }
+        /* Live network and delivery status surfaces. */
+        
+        .network-page-head {
+            max-width: 760px;
+            margin-bottom: 22px;
+        }
+        
+        .network-page-head h1 {
+            margin-bottom: 8px;
+        }
+        
+        .network-status-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 12px;
+            margin-bottom: 14px;
+        }
+        
+        .network-status-card,
+        .network-device-panel,
+        .network-boundary {
+            border: 1px solid var(--line);
+            background: var(--surface);
+            box-shadow: var(--soft-shadow);
+        }
+        
+        .network-status-card {
+            min-height: 148px;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            border-radius: var(--radius-md);
+        }
+        
+        .network-status-card svg {
+            color: var(--text-dim);
+        }
+        
+        .network-status-card.is-ready {
+            border-color: var(--tint-green-line);
+        }
+        
+        .network-status-card.is-ready svg {
+            color: var(--green);
+        }
+        
+        .network-status-card span {
+            color: var(--text-dim);
+            font-size: 0.72rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+        
+        .network-status-card strong {
+            font-size: 1.05rem;
+            text-transform: capitalize;
+        }
+        
+        .network-status-card small {
+            color: var(--text-dim);
+            font-size: 0.75rem;
+            line-height: 1.4;
+        }
+        
+        .network-device-panel {
+            padding: 20px;
+            border-radius: var(--radius-lg);
+        }
+        
+        .network-panel-heading {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 12px;
+            margin-bottom: 18px;
+        }
+        
+        .network-panel-heading h2 {
+            margin: 4px 0 0;
+        }
+        
+        .network-panel-heading>svg {
+            color: var(--green);
+        }
+        
+        .network-fact-grid {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 10px;
+        }
+        
+        .network-fact-grid>div {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            padding: 12px;
+            background: var(--surface-soft);
+            border: 1px solid var(--line);
+            border-radius: 10px;
+        }
+        
+        .network-fact-grid svg {
+            color: var(--blue);
+        }
+        
+        .network-fact-grid span {
+            color: var(--text-dim);
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+        }
+        
+        .network-fact-grid strong {
+            font-size: 0.9rem;
+        }
+        
+        .network-queue {
+            margin: 16px 0 0;
+            padding: 10px 12px;
+            border-left: 3px solid var(--amber);
+            background: var(--tint-amber-bg);
+            color: var(--amber-soft);
+        }
+        
+        .network-actions {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-top: 18px;
+        }
+        
+        .network-actions button {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .network-boundary {
+            display: flex;
+            gap: 12px;
+            margin-top: 14px;
+            padding: 16px;
+            border-radius: var(--radius-md);
+            background: var(--surface-soft);
+        }
+        
+        .network-boundary>svg {
+            flex: 0 0 auto;
+            color: var(--blue);
+            margin-top: 2px;
+        }
+        
+        .network-boundary p {
+            margin: 6px 0 0;
+            font-size: 0.82rem;
+        }
+        
+        .auth-page {
+            min-height: 100dvh;
+            display: grid;
+            place-items: center;
+            padding: 24px;
+            background: radial-gradient(circle at 15% 10%, rgba(248, 81, 73, 0.16), transparent 32%), var(--bg);
+        }
+        
+        .auth-card {
+            width: min(100%, 520px);
+            padding: clamp(24px, 5vw, 42px);
+            border: 1px solid var(--line);
+            border-radius: var(--radius-xl);
+            background: var(--surface);
+            box-shadow: var(--shadow);
+        }
+        
+        .auth-brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 30px;
+        }
+        
+        .auth-mark {
+            display: grid;
+            place-items: center;
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            background: var(--red);
+            color: #fff;
+            font-weight: 800;
+        }
+        
+        .auth-brand strong,
+        .auth-brand small {
+            display: block;
+        }
+        
+        .auth-brand small {
+            color: var(--text-dim);
+            font-size: 0.72rem;
+        }
+        
+        .auth-lead {
+            color: var(--text-dim);
+            max-width: 44ch;
+        }
+        
+        .auth-channels,
+        .auth-delivery {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin: 14px 0;
+        }
+        
+        .auth-channels span,
+        .auth-delivery span {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 7px 9px;
+            border: 1px solid var(--line);
+            border-radius: 999px;
+            color: var(--text-dim);
+            font-size: 0.72rem;
+        }
+        
+        .auth-channels .is-on,
+        .auth-delivery span:first-child {
+            color: var(--green-soft);
+            border-color: var(--tint-green-line);
+        }
+        
+        .auth-channels .is-off {
+            color: var(--amber-soft);
+            border-color: var(--tint-amber-line);
+        }
+        
+        .auth-card form {
+            display: grid;
+            gap: 9px;
+        }
+        
+        .auth-card label {
+            color: var(--text-dim);
+            font-size: 0.78rem;
+            font-weight: 700;
+        }
+        
+        .auth-submit {
+            width: 100%;
+            margin-top: 8px;
+        }
+        
+        .auth-otp {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+        
+        .auth-otp input {
+            min-width: 0;
+            text-align: center;
+            font-size: 1.35rem;
+            font-weight: 700;
+            padding: 12px 4px;
+        }
+        
+        .auth-links {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            justify-content: space-between;
+            margin: 18px 0 0;
+        }
+        
+        @media (max-width: 700px) {
+            .network-status-grid,
+            .network-fact-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+        }
+        
+        @media (max-width: 430px) {
+            .network-status-grid {
+                grid-template-columns: 1fr;
+            }
+        }
         
         [data-theme="light"] {
             --bg: #edf3fb;

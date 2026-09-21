@@ -3,6 +3,7 @@ import { db } from './db.js';
 import { config } from './config.js';
 import { logger } from './logger.js';
 import { broadcastEvent } from './routes/realtime.js';
+import { sendWebPush } from './lib/push.js';
 
 type ExternalChannel = 'SMS' | 'PUSH' | 'EMERGENCY_SERVICE';
 
@@ -99,6 +100,18 @@ async function deliverOne(row: Record<string, unknown>): Promise<void> {
     .run(attempts, now, notificationId);
 
   try {
+    if (channel === 'PUSH') {
+      const delivered = await sendWebPush(userId, {
+        title: emergency?.type === 'SOS' ? 'ResQNET emergency alert' : 'ResQNET family alert',
+        body: emergency?.message || `${emergency?.severity ?? 'High'} priority emergency`,
+        emergencyId,
+        severity: emergency?.severity,
+      });
+      if (!delivered) throw new Error('no active web-push subscription');
+      db.prepare('UPDATE notifications SET delivery_state = ?, delivered_at = ?, provider_error = NULL WHERE id = ?')
+        .run('SENT', new Date().toISOString(), notificationId);
+      return;
+    }
     const response = await fetch(url, {
       method: 'POST',
       headers: {

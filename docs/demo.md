@@ -22,7 +22,8 @@ npm run dev:backend      # terminal 1 (http://localhost:4000)
 npm run dev:frontend     # terminal 2 (http://localhost:5173)
 ```
 
-Docker alternative: `docker compose -f docker/docker-compose.yml up --build`.
+For deployment, publish the frontend through Netlify and run the persistent backend
+as a separate Node service as described in `docs/deployment.md`.
 
 ## Scripted walkthrough (5 minutes)
 

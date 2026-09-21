@@ -1,4 +1,11 @@
-import 'dotenv/config';
+import dotenv from 'dotenv';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const here = path.dirname(fileURLToPath(import.meta.url));
+dotenv.config({ path: path.resolve(here, '../../.env') });
+dotenv.config({ path: path.resolve(here, '../.env') });
+dotenv.config();
 
 const WEAK_SECRETS = new Set(['change-me-local-only', 'change-me-in-production']);
 
@@ -43,6 +50,19 @@ export const config = {
     pushWebhookUrl: process.env.PUSH_WEBHOOK_URL ?? '',
     emergencyServiceWebhookUrl: process.env.EMERGENCY_SERVICE_WEBHOOK_URL ?? '',
     webhookToken: process.env.NOTIFICATION_WEBHOOK_TOKEN ?? '',
+  },
+  push: {
+    subject: process.env.WEB_PUSH_SUBJECT ?? 'mailto:ops@resqnet.app',
+    publicKey: process.env.WEB_PUSH_PUBLIC_KEY ?? '',
+    privateKey: process.env.WEB_PUSH_PRIVATE_KEY ?? '',
+  },
+  sms: {
+    twilioSid: process.env.TWILIO_ACCOUNT_SID ?? '',
+    twilioToken: process.env.TWILIO_AUTH_TOKEN ?? '',
+    twilioFrom: process.env.TWILIO_FROM ?? '',
+    fast2smsKey: process.env.FAST2SMS_API_KEY ?? '',
+    twoFactorKey: process.env.TWOFACTOR_API_KEY ?? '',
+    textbeltKey: process.env.TEXTBELT_KEY ?? '',
   },
   mesh: {
     ttlSeconds: Number(process.env.MESH_TTL_SECONDS ?? 3600),

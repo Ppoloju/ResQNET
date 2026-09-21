@@ -31,7 +31,7 @@
 | `backend/`       | Express API, node:sqlite persistence, mesh engine + simulator, SSE hub, field encryption |
 | `frontend/`      | React PWA: Home, Profile, Family, Network map, Responders, History, Demo |
 | `database/`      | `schema.sql` — single source of truth, applied on backend boot |
-| `docker/`        | compose + multi-stage `node:24-alpine` build                    |
+| `netlify.toml`   | Netlify frontend build, publish directory, and SPA fallback    |
 
 ## Core flows
 

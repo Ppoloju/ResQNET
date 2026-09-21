@@ -1,5 +1,5 @@
 // SQLite via Node's built-in node:sqlite (no native module compile — works on
-// Windows dev and Alpine Docker with zero build tooling; §1 free-only constraint).
+// Windows development and a standard Node host with zero native build tooling; §1 free-only constraint).
 import { DatabaseSync } from 'node:sqlite';
 import fs from 'node:fs';
 import path from 'node:path';

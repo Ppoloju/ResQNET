@@ -24,6 +24,8 @@ import { notificationsRouter } from './routes/notifications.js';
 import { aiRouter } from './routes/ai.js';
 import { settingsRouter } from './routes/settings.js';
 import { startNotificationDeliveryWorker } from './notifications.js';
+import { mailerMode } from './lib/mailer.js';
+import { smsMode, smsProvider } from './lib/sms.js';
 import { seedTeamAccounts } from './seedTeam.js';
 
 const app = express();
@@ -49,7 +51,15 @@ app.use((req, res, next) => {
 });
 
 const healthCheck = (_req: express.Request, res: express.Response) => {
-  res.json({ ok: true, env: config.env, demoMode: config.demoMode });
+  res.json({
+    ok: true,
+    env: config.env,
+    demoMode: config.demoMode,
+    email: mailerMode(),
+    sms: smsProvider(),
+    emailReady: mailerMode() === 'smtp',
+    smsReady: smsMode() === 'live',
+  });
 };
 
 app.get('/healthz', healthCheck);

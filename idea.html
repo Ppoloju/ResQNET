@@ -1,222 +1,704 @@
 <!doctype html>
 <html lang="en">
+
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>ResQNET — Offline AI Emergency Network | iQOO Hackathon 2026</title>
-<style>
-  /* ============================================================
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ResQNET — Offline AI Emergency Network | iQOO Hackathon 2026</title>
+    <style>
+        /* ============================================================
      ResQNET judge deck — light professional theme, 25 slides
      covering the 10 required sections (PART 1–10) in order.
      Every slide renders through the reusable slideCard() component
      from a single data array. No emojis: typographic symbols only.
      ============================================================ */
-  :root {
-    --bg: #f6f8fb;
-    --bg-alt: #eef2f7;
-    --surface: #ffffff;
-    --line: #dde5ee;
-    --text: #16222f;
-    --dim: #5a6b7e;
-    --red: #c8102e;   --red-soft: #fbe4e9;   --red-deep: #8f0c20;
-    --blue: #1667c1;  --blue-soft: #e3eefb;
-    --green: #157a44; --green-soft: #e0f3e9;
-    --amber: #a8720a; --amber-soft: #fdf2d8;
-    --purple: #6d3fc0;--purple-soft: #efe8fb;
-    --orange: #c24d10;--orange-soft: #fdeee2;
-    --shadow: 0 12px 34px rgba(22, 34, 47, 0.09);
-  }
-  * { box-sizing: border-box; }
-  html, body { margin: 0; padding: 0; }
-  body {
-    background: var(--bg); color: var(--text);
-    font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-    line-height: 1.55; font-size: 16px;
-  }
-
-  /* ---------- top progress bar ---------- */
-  .deckbar {
-    position: fixed; top: 0; left: 0; right: 0; z-index: 50;
-    background: rgba(255,255,255,0.92); backdrop-filter: blur(8px);
-    border-bottom: 1px solid var(--line);
-    display: flex; align-items: center; gap: 14px; padding: 8px 18px;
-  }
-  .deckbar .brand { font-weight: 900; letter-spacing: 0.06em; color: var(--red); white-space: nowrap; }
-  .deckbar .brand span { color: var(--text); }
-  .progress { flex: 1; height: 6px; background: var(--bg-alt); border-radius: 999px; overflow: hidden; }
-  .progress-fill { height: 100%; width: 0%; background: linear-gradient(90deg, var(--red), #ff6b81); transition: width 0.25s ease; }
-  .counter { font-size: 0.8rem; font-weight: 800; color: var(--dim); white-space: nowrap; }
-
-  /* ---------- FULL-SCREEN SLIDES ---------- */
-  .slide {
-    min-height: 100vh; min-height: 100dvh;
-    width: 100%;
-    display: flex; flex-direction: column; justify-content: center;
-    padding: 84px 7vw 64px;
-    border-bottom: 1px solid var(--line);
-    background:
-      radial-gradient(1100px 480px at 85% -10%, var(--acc-soft, var(--red-soft)) 0%, transparent 60%),
-      var(--bg);
-    position: relative; overflow: hidden;
-  }
-  .slide .snum {
-    position: absolute; top: 66px; right: 7vw;
-    font-size: 0.72rem; font-weight: 900; letter-spacing: 0.16em; color: var(--dim);
-  }
-  .slide .kicker {
-    display: inline-flex; align-items: center; gap: 8px;
-    font-size: 0.74rem; font-weight: 900; letter-spacing: 0.14em;
-    color: var(--acc-deep, var(--red));
-    background: var(--acc-soft, var(--red-soft));
-    padding: 5px 14px; border-radius: 999px; margin: 0 0 14px; width: fit-content;
-  }
-  .slide h2 { margin: 0 0 10px; font-size: clamp(1.6rem, 3.6vw, 2.5rem); line-height: 1.2; letter-spacing: -0.01em; }
-  .slide h2 em { color: var(--acc-deep, var(--red)); font-style: normal; }
-  .slide .lede { color: var(--dim); font-size: clamp(0.98rem, 1.6vw, 1.15rem); max-width: 900px; margin: 0 0 26px; }
-
-  .slide .content { width: 100%; max-width: 1120px; margin: 0 auto; }
-  .slide .foot {
-    margin-top: 26px; padding-top: 14px; border-top: 1px dashed var(--line);
-    color: var(--dim); font-size: 0.85rem; max-width: 1120px; width: 100%;
-  }
-  .slide .foot b { color: var(--text); }
-
-  .acc-red    { --acc: var(--red);    --acc-soft: var(--red-soft);    --acc-deep: var(--red-deep); }
-  .acc-blue   { --acc: var(--blue);   --acc-soft: var(--blue-soft);   --acc-deep: var(--blue); }
-  .acc-green  { --acc: var(--green);  --acc-soft: var(--green-soft);  --acc-deep: var(--green); }
-  .acc-amber  { --acc: var(--amber);  --acc-soft: var(--amber-soft);  --acc-deep: var(--amber); }
-  .acc-purple { --acc: var(--purple); --acc-soft: var(--purple-soft); --acc-deep: var(--purple); }
-  .acc-orange { --acc: var(--orange); --acc-soft: var(--orange-soft); --acc-deep: var(--orange); }
-
-  /* ---------- content blocks ---------- */
-  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 14px; }
-  .grid3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; }
-  .mini { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 16px 18px; box-shadow: var(--shadow); }
-  .mini h4 { margin: 0 0 6px; font-size: 1rem; }
-  .mini p { margin: 0; color: var(--dim); font-size: 0.9rem; }
-
-  .stats { display: flex; flex-wrap: wrap; gap: 10px; margin: 0 0 18px; }
-  .stat-chip { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 10px 18px; text-align: center; box-shadow: var(--shadow); }
-  .stat-chip b { display: block; font-size: 1.45rem; color: var(--acc-deep, var(--red)); }
-  .stat-chip span { font-size: 0.72rem; color: var(--dim); letter-spacing: 0.05em; }
-
-  .flow { display: flex; flex-wrap: wrap; gap: 10px; margin: 4px 0 14px; }
-  .fnode {
-    flex: 1 1 140px; background: var(--surface); border: 1px solid var(--line);
-    border-top: 3px solid var(--acc, var(--red)); border-radius: 12px;
-    padding: 10px 12px; font-size: 0.82rem; color: var(--dim); position: relative; box-shadow: var(--shadow);
-  }
-  .fnode b { display: block; color: var(--acc-deep, var(--red)); font-size: 0.86rem; margin-bottom: 2px; letter-spacing: 0.04em; }
-  .fnode .arrow { position: absolute; right: -12px; top: 50%; transform: translateY(-50%); color: var(--acc, var(--red)); font-weight: 900; z-index: 2; }
-
-  ul.ticks { margin: 0; padding: 0; list-style: none; display: grid; gap: 8px; }
-  ul.ticks li { padding: 2px 0 2px 28px; position: relative; color: var(--dim); font-size: 0.94rem; }
-  ul.ticks li::before {
-    content: '✓'; position: absolute; left: 2px; top: 2px;
-    width: 19px; height: 19px; border-radius: 50%;
-    background: var(--acc-soft, var(--red-soft)); color: var(--acc-deep, var(--red));
-    font-size: 0.72rem; font-weight: 900; display: flex; align-items: center; justify-content: center;
-  }
-  ul.ticks li b { color: var(--text); }
-  ul.xs { margin: 0; padding: 0; list-style: none; display: grid; gap: 8px; }
-  ul.xs li { padding: 2px 0 2px 28px; position: relative; color: var(--dim); font-size: 0.94rem; }
-  ul.xs li::before {
-    content: '✗'; position: absolute; left: 2px; top: 2px;
-    width: 19px; height: 19px; border-radius: 50%;
-    background: var(--red-soft); color: var(--red-deep);
-    font-size: 0.72rem; font-weight: 900; display: flex; align-items: center; justify-content: center;
-  }
-  ul.xs li b { color: var(--text); }
-
-  .code {
-    background: #101b29; color: #c9d8e8; border-radius: 12px; padding: 14px 16px;
-    font-family: ui-monospace, 'DM Mono', Consolas, monospace; font-size: 0.78rem;
-    overflow-x: auto; white-space: pre; line-height: 1.6; box-shadow: var(--shadow);
-  }
-  .code .k { color: #8ec2ff; } .code .c { color: #6d8599; }
-
-  .plain {
-    background: var(--acc-soft, var(--red-soft)); border-left: 4px solid var(--acc, var(--red));
-    border-radius: 0 12px 12px 0; padding: 10px 16px; margin-top: 16px;
-    font-size: 0.93rem; color: var(--text); max-width: 900px;
-  }
-  .plain b:first-child { letter-spacing: 0.08em; font-size: 0.72rem; color: var(--acc-deep, var(--red)); display: block; margin-bottom: 2px; }
-
-  table.tech { width: 100%; border-collapse: collapse; font-size: 0.88rem; background: var(--surface); border-radius: 14px; overflow: hidden; box-shadow: var(--shadow); }
-  table.tech th { text-align: left; font-size: 0.72rem; letter-spacing: 0.08em; color: var(--acc-deep, var(--red)); background: var(--acc-soft, var(--red-soft)); padding: 9px 12px; }
-  table.tech td { border-top: 1px solid var(--line); padding: 8px 12px; color: var(--dim); }
-  table.tech td b { color: var(--text); }
-  .pill { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: 0.68rem; font-weight: 900; letter-spacing: 0.05em; }
-  .p-green { background: var(--green-soft); color: var(--green); }
-  .p-amber { background: var(--amber-soft); color: var(--amber); }
-  .p-purple { background: var(--purple-soft); color: var(--purple); }
-
-  .ps-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
-  @media (max-width: 820px) { .ps-grid { grid-template-columns: 1fr; } }
-  .ps-card { background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 20px 22px; box-shadow: var(--shadow); }
-  .ps-card h3 { margin: 0 0 10px; font-size: 1.02rem; letter-spacing: 0.1em; }
-  .ps-card ul { margin: 0; padding-left: 18px; color: var(--dim); font-size: 0.92rem; display: grid; gap: 6px; }
-  .ps-card ul b { color: var(--text); }
-  .ps-problem h3 { color: var(--red); }
-  .ps-solution h3 { color: var(--green); }
-
-  .journey { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
-  @media (max-width: 820px) { .journey { grid-template-columns: 1fr; } }
-  .jstep { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 14px; box-shadow: var(--shadow); }
-  .jstep .n { width: 30px; height: 30px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-weight: 900; color: #fff; background: var(--acc, var(--red)); margin-bottom: 8px; }
-  .jstep h4 { margin: 0 0 4px; font-size: 0.95rem; }
-  .jstep p { margin: 0; color: var(--dim); font-size: 0.85rem; }
-
-  .two-col { display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 20px; align-items: start; }
-  @media (max-width: 860px) { .two-col { grid-template-columns: 1fr; } }
-
-  /* team + closing extras */
-  .team { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 8px; }
-  .member { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 10px 18px; box-shadow: var(--shadow); }
-  .member b { display: block; font-size: 0.95rem; }
-  .member span { font-size: 0.75rem; color: var(--dim); }
-  .linkbox { display: flex; flex-wrap: wrap; gap: 12px; align-items: stretch; margin-top: 6px; }
-  .linkcard {
-    flex: 1 1 260px; background: var(--surface); border: 1px solid var(--line);
-    border-radius: 16px; padding: 14px 18px; box-shadow: var(--shadow);
-    display: flex; align-items: center; gap: 12px;
-    text-decoration: none; color: inherit; transition: transform 0.15s ease, border-color 0.15s ease;
-  }
-  .linkcard:hover { transform: translateY(-2px); border-color: var(--acc, var(--red)); }
-  .linkcard:active { transform: translateY(0); }
-  .linkcard b { display: block; font-size: 0.98rem; }
-  .linkcard span { font-size: 0.8rem; color: var(--dim); font-family: ui-monospace, Consolas, monospace; }
-
-  @media print {
-    .deckbar { display: none; }
-    .slide { min-height: auto; page-break-after: always; }
-  }
-  @media (max-width: 640px) {
-    .slide { padding: 76px 6vw 48px; }
-    .slide .snum { right: 6vw; }
-    .fnode .arrow { display: none; }
-  }
-</style>
+        
+         :root {
+            --bg: #f6f8fb;
+            --bg-alt: #eef2f7;
+            --surface: #ffffff;
+            --line: #dde5ee;
+            --text: #16222f;
+            --dim: #5a6b7e;
+            --red: #c8102e;
+            --red-soft: #fbe4e9;
+            --red-deep: #8f0c20;
+            --blue: #1667c1;
+            --blue-soft: #e3eefb;
+            --green: #157a44;
+            --green-soft: #e0f3e9;
+            --amber: #a8720a;
+            --amber-soft: #fdf2d8;
+            --purple: #6d3fc0;
+            --purple-soft: #efe8fb;
+            --orange: #c24d10;
+            --orange-soft: #fdeee2;
+            --shadow: 0 12px 34px rgba(22, 34, 47, 0.09);
+        }
+        
+        * {
+            box-sizing: border-box;
+        }
+        
+        html,
+        body {
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.55;
+            font-size: 16px;
+        }
+        /* ---------- top progress bar ---------- */
+        
+        .deckbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 50;
+            background: rgba(255, 255, 255, 0.92);
+            backdrop-filter: blur(8px);
+            border-bottom: 1px solid var(--line);
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 8px 18px;
+        }
+        
+        .deckbar .brand {
+            font-weight: 900;
+            letter-spacing: 0.06em;
+            color: var(--red);
+            white-space: nowrap;
+        }
+        
+        .deckbar .brand span {
+            color: var(--text);
+        }
+        
+        .progress {
+            flex: 1;
+            height: 6px;
+            background: var(--bg-alt);
+            border-radius: 999px;
+            overflow: hidden;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, var(--red), #ff6b81);
+            transition: width 0.25s ease;
+        }
+        
+        .counter {
+            font-size: 0.8rem;
+            font-weight: 800;
+            color: var(--dim);
+            white-space: nowrap;
+        }
+        /* ---------- FULL-SCREEN SLIDES ---------- */
+        
+        .slide {
+            min-height: 100vh;
+            min-height: 100dvh;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: 84px 7vw 64px;
+            border-bottom: 1px solid var(--line);
+            background: radial-gradient(1100px 480px at 85% -10%, var(--acc-soft, var(--red-soft)) 0%, transparent 60%), var(--bg);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .slide .snum {
+            position: absolute;
+            top: 66px;
+            right: 7vw;
+            font-size: 0.72rem;
+            font-weight: 900;
+            letter-spacing: 0.16em;
+            color: var(--dim);
+        }
+        
+        .slide .kicker {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.74rem;
+            font-weight: 900;
+            letter-spacing: 0.14em;
+            color: var(--acc-deep, var(--red));
+            background: var(--acc-soft, var(--red-soft));
+            padding: 5px 14px;
+            border-radius: 999px;
+            margin: 0 0 14px;
+            width: fit-content;
+        }
+        
+        .slide h2 {
+            margin: 0 0 10px;
+            font-size: clamp(1.6rem, 3.6vw, 2.5rem);
+            line-height: 1.2;
+            letter-spacing: -0.01em;
+        }
+        
+        .slide h2 em {
+            color: var(--acc-deep, var(--red));
+            font-style: normal;
+        }
+        
+        .slide .lede {
+            color: var(--dim);
+            font-size: clamp(0.98rem, 1.6vw, 1.15rem);
+            max-width: 900px;
+            margin: 0 0 26px;
+        }
+        
+        .slide .content {
+            width: 100%;
+            max-width: 1120px;
+            margin: 0 auto;
+        }
+        
+        .slide .foot {
+            margin-top: 26px;
+            padding-top: 14px;
+            border-top: 1px dashed var(--line);
+            color: var(--dim);
+            font-size: 0.85rem;
+            max-width: 1120px;
+            width: 100%;
+        }
+        
+        .slide .foot b {
+            color: var(--text);
+        }
+        
+        .acc-red {
+            --acc: var(--red);
+            --acc-soft: var(--red-soft);
+            --acc-deep: var(--red-deep);
+        }
+        
+        .acc-blue {
+            --acc: var(--blue);
+            --acc-soft: var(--blue-soft);
+            --acc-deep: var(--blue);
+        }
+        
+        .acc-green {
+            --acc: var(--green);
+            --acc-soft: var(--green-soft);
+            --acc-deep: var(--green);
+        }
+        
+        .acc-amber {
+            --acc: var(--amber);
+            --acc-soft: var(--amber-soft);
+            --acc-deep: var(--amber);
+        }
+        
+        .acc-purple {
+            --acc: var(--purple);
+            --acc-soft: var(--purple-soft);
+            --acc-deep: var(--purple);
+        }
+        
+        .acc-orange {
+            --acc: var(--orange);
+            --acc-soft: var(--orange-soft);
+            --acc-deep: var(--orange);
+        }
+        /* ---------- content blocks ---------- */
+        
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 14px;
+        }
+        
+        .grid3 {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 14px;
+        }
+        
+        .mini {
+            background: var(--surface);
+            border: 1px solid var(--line);
+            border-radius: 16px;
+            padding: 16px 18px;
+            box-shadow: var(--shadow);
+        }
+        
+        .mini h4 {
+            margin: 0 0 6px;
+            font-size: 1rem;
+        }
+        
+        .mini p {
+            margin: 0;
+            color: var(--dim);
+            font-size: 0.9rem;
+        }
+        
+        .stats {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin: 0 0 18px;
+        }
+        
+        .stat-chip {
+            background: var(--surface);
+            border: 1px solid var(--line);
+            border-radius: 14px;
+            padding: 10px 18px;
+            text-align: center;
+            box-shadow: var(--shadow);
+        }
+        
+        .stat-chip b {
+            display: block;
+            font-size: 1.45rem;
+            color: var(--acc-deep, var(--red));
+        }
+        
+        .stat-chip span {
+            font-size: 0.72rem;
+            color: var(--dim);
+            letter-spacing: 0.05em;
+        }
+        
+        .flow {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin: 4px 0 14px;
+        }
+        
+        .fnode {
+            flex: 1 1 140px;
+            background: var(--surface);
+            border: 1px solid var(--line);
+            border-top: 3px solid var(--acc, var(--red));
+            border-radius: 12px;
+            padding: 10px 12px;
+            font-size: 0.82rem;
+            color: var(--dim);
+            position: relative;
+            box-shadow: var(--shadow);
+        }
+        
+        .fnode b {
+            display: block;
+            color: var(--acc-deep, var(--red));
+            font-size: 0.86rem;
+            margin-bottom: 2px;
+            letter-spacing: 0.04em;
+        }
+        
+        .fnode .arrow {
+            position: absolute;
+            right: -12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--acc, var(--red));
+            font-weight: 900;
+            z-index: 2;
+        }
+        
+        ul.ticks {
+            margin: 0;
+            padding: 0;
+            list-style: none;
+            display: grid;
+            gap: 8px;
+        }
+        
+        ul.ticks li {
+            padding: 2px 0 2px 28px;
+            position: relative;
+            color: var(--dim);
+            font-size: 0.94rem;
+        }
+        
+        ul.ticks li::before {
+            content: '✓';
+            position: absolute;
+            left: 2px;
+            top: 2px;
+            width: 19px;
+            height: 19px;
+            border-radius: 50%;
+            background: var(--acc-soft, var(--red-soft));
+            color: var(--acc-deep, var(--red));
+            font-size: 0.72rem;
+            font-weight: 900;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        ul.ticks li b {
+            color: var(--text);
+        }
+        
+        ul.xs {
+            margin: 0;
+            padding: 0;
+            list-style: none;
+            display: grid;
+            gap: 8px;
+        }
+        
+        ul.xs li {
+            padding: 2px 0 2px 28px;
+            position: relative;
+            color: var(--dim);
+            font-size: 0.94rem;
+        }
+        
+        ul.xs li::before {
+            content: '✗';
+            position: absolute;
+            left: 2px;
+            top: 2px;
+            width: 19px;
+            height: 19px;
+            border-radius: 50%;
+            background: var(--red-soft);
+            color: var(--red-deep);
+            font-size: 0.72rem;
+            font-weight: 900;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        ul.xs li b {
+            color: var(--text);
+        }
+        
+        .code {
+            background: #101b29;
+            color: #c9d8e8;
+            border-radius: 12px;
+            padding: 14px 16px;
+            font-family: ui-monospace, 'DM Mono', Consolas, monospace;
+            font-size: 0.78rem;
+            overflow-x: auto;
+            white-space: pre;
+            line-height: 1.6;
+            box-shadow: var(--shadow);
+        }
+        
+        .code .k {
+            color: #8ec2ff;
+        }
+        
+        .code .c {
+            color: #6d8599;
+        }
+        
+        .plain {
+            background: var(--acc-soft, var(--red-soft));
+            border-left: 4px solid var(--acc, var(--red));
+            border-radius: 0 12px 12px 0;
+            padding: 10px 16px;
+            margin-top: 16px;
+            font-size: 0.93rem;
+            color: var(--text);
+            max-width: 900px;
+        }
+        
+        .plain b:first-child {
+            letter-spacing: 0.08em;
+            font-size: 0.72rem;
+            color: var(--acc-deep, var(--red));
+            display: block;
+            margin-bottom: 2px;
+        }
+        
+        table.tech {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.88rem;
+            background: var(--surface);
+            border-radius: 14px;
+            overflow: hidden;
+            box-shadow: var(--shadow);
+        }
+        
+        table.tech th {
+            text-align: left;
+            font-size: 0.72rem;
+            letter-spacing: 0.08em;
+            color: var(--acc-deep, var(--red));
+            background: var(--acc-soft, var(--red-soft));
+            padding: 9px 12px;
+        }
+        
+        table.tech td {
+            border-top: 1px solid var(--line);
+            padding: 8px 12px;
+            color: var(--dim);
+        }
+        
+        table.tech td b {
+            color: var(--text);
+        }
+        
+        .pill {
+            display: inline-block;
+            padding: 2px 10px;
+            border-radius: 999px;
+            font-size: 0.68rem;
+            font-weight: 900;
+            letter-spacing: 0.05em;
+        }
+        
+        .p-green {
+            background: var(--green-soft);
+            color: var(--green);
+        }
+        
+        .p-amber {
+            background: var(--amber-soft);
+            color: var(--amber);
+        }
+        
+        .p-purple {
+            background: var(--purple-soft);
+            color: var(--purple);
+        }
+        
+        .ps-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 18px;
+        }
+        
+        @media (max-width: 820px) {
+            .ps-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .ps-card {
+            background: var(--surface);
+            border: 1px solid var(--line);
+            border-radius: 18px;
+            padding: 20px 22px;
+            box-shadow: var(--shadow);
+        }
+        
+        .ps-card h3 {
+            margin: 0 0 10px;
+            font-size: 1.02rem;
+            letter-spacing: 0.1em;
+        }
+        
+        .ps-card ul {
+            margin: 0;
+            padding-left: 18px;
+            color: var(--dim);
+            font-size: 0.92rem;
+            display: grid;
+            gap: 6px;
+        }
+        
+        .ps-card ul b {
+            color: var(--text);
+        }
+        
+        .ps-problem h3 {
+            color: var(--red);
+        }
+        
+        .ps-solution h3 {
+            color: var(--green);
+        }
+        
+        .journey {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 14px;
+        }
+        
+        @media (max-width: 820px) {
+            .journey {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .jstep {
+            background: var(--surface);
+            border: 1px solid var(--line);
+            border-radius: 16px;
+            padding: 14px;
+            box-shadow: var(--shadow);
+        }
+        
+        .jstep .n {
+            width: 30px;
+            height: 30px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 900;
+            color: #fff;
+            background: var(--acc, var(--red));
+            margin-bottom: 8px;
+        }
+        
+        .jstep h4 {
+            margin: 0 0 4px;
+            font-size: 0.95rem;
+        }
+        
+        .jstep p {
+            margin: 0;
+            color: var(--dim);
+            font-size: 0.85rem;
+        }
+        
+        .two-col {
+            display: grid;
+            grid-template-columns: 1.1fr 0.9fr;
+            gap: 20px;
+            align-items: start;
+        }
+        
+        @media (max-width: 860px) {
+            .two-col {
+                grid-template-columns: 1fr;
+            }
+        }
+        /* team + closing extras */
+        
+        .team {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 8px;
+        }
+        
+        .member {
+            background: var(--surface);
+            border: 1px solid var(--line);
+            border-radius: 14px;
+            padding: 10px 18px;
+            box-shadow: var(--shadow);
+        }
+        
+        .member b {
+            display: block;
+            font-size: 0.95rem;
+        }
+        
+        .member span {
+            font-size: 0.75rem;
+            color: var(--dim);
+        }
+        
+        .linkbox {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            align-items: stretch;
+            margin-top: 6px;
+        }
+        
+        .linkcard {
+            flex: 1 1 260px;
+            background: var(--surface);
+            border: 1px solid var(--line);
+            border-radius: 16px;
+            padding: 14px 18px;
+            box-shadow: var(--shadow);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-decoration: none;
+            color: inherit;
+            transition: transform 0.15s ease, border-color 0.15s ease;
+        }
+        
+        .linkcard:hover {
+            transform: translateY(-2px);
+            border-color: var(--acc, var(--red));
+        }
+        
+        .linkcard:active {
+            transform: translateY(0);
+        }
+        
+        .linkcard b {
+            display: block;
+            font-size: 0.98rem;
+        }
+        
+        .linkcard span {
+            font-size: 0.8rem;
+            color: var(--dim);
+            font-family: ui-monospace, Consolas, monospace;
+        }
+        
+        @media print {
+            .deckbar {
+                display: none;
+            }
+            .slide {
+                min-height: auto;
+                page-break-after: always;
+            }
+        }
+        
+        @media (max-width: 640px) {
+            .slide {
+                padding: 76px 6vw 48px;
+            }
+            .slide .snum {
+                right: 6vw;
+            }
+            .fnode .arrow {
+                display: none;
+            }
+        }
+    </style>
 </head>
+
 <body>
 
-<div class="deckbar">
-  <span class="brand">ResQ<span>NET</span></span>
-  <div class="progress"><div class="progress-fill" id="pf"></div></div>
-  <span class="counter" id="counter">1 / 25</span>
-</div>
+    <div class="deckbar">
+        <span class="brand">ResQ<span>NET</span></span>
+        <div class="progress">
+            <div class="progress-fill" id="pf"></div>
+        </div>
+        <span class="counter" id="counter">1 / 25</span>
+    </div>
 
-<main id="deck"></main>
+    <main id="deck"></main>
 
-<script>
-/* =====================================================================
-   REUSABLE SLIDE COMPONENT — every slide renders through slideCard().
-   25 slides, organized into the 10 sections judges expect (PART 1–10)
-   in strict order. No emojis anywhere; typographic symbols only.
-   EDIT ME before presenting: member names (slide 1), links (slide 25).
-   ===================================================================== */
-function slideCard(s, n) {
-  return `
+    <script>
+        /* =====================================================================
+                   REUSABLE SLIDE COMPONENT — every slide renders through slideCard().
+                   25 slides, organized into the 10 sections judges expect (PART 1–10)
+                   in strict order. No emojis anywhere; typographic symbols only.
+                   EDIT ME before presenting: member names (slide 1), links (slide 25).
+                   ===================================================================== */
+        function slideCard(s, n) {
+            return `
   <section class="slide acc-${s.accent}" id="s${n}">
     <span class="snum">${String(n).padStart(2, '0')} / ${SLIDES.length}</span>
     <div class="content">
@@ -273,7 +755,7 @@ const SLIDES = [
       `<li><b>One tap → SOS:</b> a signed emergency packet is created on-device — no account, no signal, no setup needed.</li>` +
       `<li><b>Phone-to-phone mesh:</b> nearby ResQNET phones relay the packet hop-by-hop (max 8 hops, 6 h lifetime) until one reaches the internet.</li>` +
       `<li><b>AI on the device:</b> classifies the emergency (medical / fire / trapped…) and guides first aid — fully offline, cannot hallucinate.</li>` +
-      `<li><b>Real engineering:</b> 86 passing tests, encrypted medical data, Docker deployment — every feature in this deck actually runs.</li>` +
+      `<li><b>Real engineering:</b> 112 passing tests, encrypted medical data, Netlify-ready PWA, and a persistent API deployment contract — every claimed web feature is backed by code.</li>` +
       `</ul></div>` +
       `</div>`,
     plain: 'A fully-charged smartphone becomes a brick in every disaster. ResQNET’s problem statement: make that same phone the rescue network.' },
@@ -542,8 +1024,8 @@ const SLIDES = [
         <tr><td><b>Security</b></td><td>Argon2id · JWT · WebCrypto HMAC · AES-256-GCM · Ed25519-ready</td><td>Bank-grade primitives from the platform, no external crypto services</td></tr>
         <tr><td><b>AI</b></td><td>Deterministic rule engine (on-device)</td><td>Cannot hallucinate medical advice; &lt;1 ms; runs on any hardware</td></tr>
         <tr><td><b>Realtime</b></td><td>Server-Sent Events (SSE)</td><td>Live mesh events, ACKs, broadcasts — one persistent connection, no polling storm</td></tr>
-        <tr><td><b>Testing</b></td><td>Vitest — 86 tests (28 shared · 54 backend · 4 frontend)</td><td>The protocol is proven, not claimed; every slide links to a test</td></tr>
-        <tr><td><b>Deployment</b></td><td>Docker (node:24-alpine) · nginx SPA proxy</td><td>One command brings up the whole judged stack; SQLite volume persists data</td></tr>
+        <tr><td><b>Testing</b></td><td>Vitest — 112 tests (34 shared · 68 backend · 10 frontend)</td><td>The protocol is proven, not claimed; every slide links to a test</td></tr>
+        <tr><td><b>Deployment</b></td><td>Netlify PWA · persistent Node API</td><td>Netlify publishes the frontend; Railway keeps Express, SQLite, SSE, and provider credentials on a persistent backend</td></tr>
       </table>`,
     plain: 'node:sqlite instead of better-sqlite3 was a deliberate constraint win: zero native compilation, so the repo runs on any machine without build tools.' },
 
@@ -594,15 +1076,15 @@ const SLIDES = [
 
   { accent: 'green', kicker: 'PART 8 · RUN IT & PROOF',
     title: 'Don’t take the deck’s word for it — <em>run it</em>',
-    lede: 'Two commands bring up the full judged stack locally. Every claim in this deck is verifiable in minutes.',
+    lede: 'The frontend deploys to Netlify and the persistent API runs separately. Every web claim remains verifiable locally and in production.',
     body:
       `<div class="two-col"><div class="code">` +
-      `<span class="c"># full stack in Docker (app + API + DB)</span>\n` +
-      `docker compose -f docker/docker-compose.yml up -d --build\n\n` +
-      `<span class="c">#   → app:  http://localhost:8080</span>\n` +
-      `<span class="c">#   → API:  http://localhost:4000/healthz</span>\n\n` +
+      `<span class="c"># Netlify frontend build</span>\n` +
+      `npm run build -w shared && npm run build -w frontend\n\n` +
+      `<span class="c">#   → publish: frontend/dist</span>\n` +
+      `<span class="c">#   → API: deploy separately with persistent SQLite</span>\n\n` +
       `<span class="c"># dev mode:</span>\n` +
-      `npm install && npm test     <span class="c"># 86 tests green</span>\n` +
+      `npm install && npm test     <span class="c"># 112 tests green</span>\n` +
       `npm run dev -w backend      <span class="c"># API :4000</span>\n` +
       `npm run dev -w frontend     <span class="c"># app :5173</span></div>` +
       `<div>` +
@@ -610,12 +1092,12 @@ const SLIDES = [
       ticks([
         '<b>SOS flow</b> — press SOS → countdown → Emergency Mode with honest “held (offline)” state.',
         '<b>Demo Mode page</b> — drives the real mesh engine over live SSE: 9 milestones, chaos controls (link down, battery drain).',
-        '<b>Network page</b> — nodes, batteries, hops, ACKs, Relay Hero nominate/release.',
+        '<b>Network page</b> — measured backend, SSE, Bluetooth, battery, relay, and offline queue status; no simulated nodes shown as real.',
         '<b>Situations page</b> — post a bulletin, watch it appear live; resource map from geolocation.',
         '<b>Light/dark theme + phone layout</b> — burger nav, 48 px touch targets.',
       ]) +
       `</div></div>`,
-    plain: 'Proof artifacts in the repo: 86 passing tests, containerized E2E (register → 3-hop relay → gateway → database row), and docs/ with 7 guides including an honest security model.' },
+    plain: 'Proof artifacts in the repo: 112 passing tests, API-level E2E, Netlify build configuration, and docs/ with an honest deployment and security model.' },
 
   /* ===== PART 9 · IMPACT & FUTURE SCOPE ===== */
   { accent: 'amber', kicker: 'PART 9 · IMPACT',
@@ -638,7 +1120,7 @@ const SLIDES = [
         '<b>Next milestone:</b> native Android client → real BLE mesh between two physical phones.',
         '<b>Then:</b> SMS/push bridges for family notification, verified live resource feeds, responder-agency integration.',
         '<b>Scale path:</b> the protocol is region-agnostic — same app, any language pack, any hazard type.',
-        '<b>Implemented + tested:</b> SOS core, signed packets, mesh engine (15 scenarios), gateway sync, family fan-out, offline sync, AI triage + guidance, 3-mode architecture, bulletins, resource map, Relay Hero, theming, Docker deploy.',
+        '<b>Implemented + tested:</b> SOS core, signed packets, mesh engine (15 scenarios), gateway sync, family fan-out, offline sync, AI triage + guidance, 3-mode architecture, bulletins, resource map, Relay Hero, theming, Netlify frontend deployment, and provider-backed email/SMS/browser push paths.',
         '<b>Prototype [P]:</b> Web Bluetooth transport (foreground GATT), Relay Hero hardware modeling.',
         '<b>Roadmap [R]:</b> native Android client (background BLE, Wi-Fi Direct), SMS/push bridges, live verified resource feeds, responder-agency integration — each a scoped integration behind an existing interface.',
       ]),
@@ -654,7 +1136,7 @@ const SLIDES = [
         ['The hardware is the hero', 'Relay Hero turns iQOO’s 6000 mAh + bypass charging into lives saved — something no software-only entry can claim.'],
         ['Flagship silicon enables real AI', 'Instant on-device triage — no cloud, no round-trip, no leaked medical data.'],
         ['It is a real Indian problem', 'Floods, cyclones and earthquakes cut connectivity every year; a solution on existing phones can actually deploy.'],
-        ['It can be proven, not claimed', '86 tests. Judges verify every claim in minutes, not trust a video.'],
+        ['It can be proven, not claimed', '114 tests. Judges verify every claim in minutes, not trust a video.'],
         ['It has a road beyond the demo', 'Native client → real radios → campus pilots → disaster-response agencies.'],
       ]),
     plain: 'We did not pick a problem to fit iQOO. We picked a problem worth solving — and iQOO’s hardware turns out to be exactly the hero it needs.' },
@@ -701,6 +1183,7 @@ document.addEventListener('keydown', (e) => {
   } else if (e.key === 'Home') slides[0]?.scrollIntoView();
   else if (e.key === 'End') slides[slides.length - 1]?.scrollIntoView();
 });
-</script>
+    </script>
 </body>
+
 </html>
