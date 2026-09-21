@@ -1,6 +1,6 @@
 /** Local emergency medical identity — works offline; syncs to the server when signed in. */
 
-export const MEDICAL_PROFILE_KEY = 'iqoo.medicalProfile';
+export const MEDICAL_PROFILE_KEY = 'resqnet.medicalProfile';
 
 export const GENDER_OPTIONS = ['Female', 'Male', 'Non-binary', 'Prefer not to say'] as const;
 

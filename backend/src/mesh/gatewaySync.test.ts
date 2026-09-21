@@ -55,11 +55,11 @@ describe('gateway sync + responders + broadcasts (Phases 7/12)', () => {
 
   beforeAll(async () => {
     const reg = await request(app).post('/api/auth/register')
-      .send({ email: `mesh${Date.now()}@test.io`, password: 'Str0ngPass!x', displayName: 'Mesh Owner' });
+      .send({ email: `mesh${Date.now()}@test.io`, password: 'Str0ngPass!x', displayName: 'Mesh Owner', phone: '9444444441' });
     userToken = reg.body.token;
 
     const adm = await request(app).post('/api/auth/register')
-      .send({ email: `admin${Date.now()}@test.io`, password: 'Str0ngPass!x', displayName: 'Admin' });
+      .send({ email: `admin${Date.now()}@test.io`, password: 'Str0ngPass!x', displayName: 'Admin', phone: '9444444442' });
     // Promote to admin directly in the (in-memory) DB, then RE-LOGIN so the JWT
     // carries the new role (the registration token still says role=user).
     // 2FA is disabled for this fixture so the login returns a token directly.
@@ -95,7 +95,7 @@ describe('gateway sync + responders + broadcasts (Phases 7/12)', () => {
   it('family fan-out records a notification per member (§52 step 8)', async () => {
     // Owner with two family members.
     const reg = await request(app).post('/api/auth/register')
-      .send({ email: `fam${Date.now()}@test.io`, password: 'Str0ngPass!x', displayName: 'Fam Owner' });
+      .send({ email: `fam${Date.now()}@test.io`, password: 'Str0ngPass!x', displayName: 'Fam Owner', phone: '9444444443' });
     const { db } = await import('../db.js');
     db.prepare('INSERT INTO family_members (id, owner_user_id, name, relation, phone, priority, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)')
       .run(`fam_${crypto.randomUUID()}`, reg.body.user.id, 'Amma', 'MOTHER', '9999999999', 1, new Date().toISOString(), new Date().toISOString());
@@ -145,7 +145,7 @@ describe('gateway sync + responders + broadcasts (Phases 7/12)', () => {
     const { db } = await import('../db.js');
     const me = await request(app).get('/api/auth/me').set('Authorization', `Bearer ${userToken}`);
     const other = await request(app).post('/api/auth/register')
-      .send({ email: `near${Date.now()}@test.io`, password: 'Str0ngPass!x', displayName: 'Near Neighbor' });
+      .send({ email: `near${Date.now()}@test.io`, password: 'Str0ngPass!x', displayName: 'Near Neighbor', phone: '9444444444' });
     const now = new Date().toISOString();
     // Emergency for the neighbor ~110m away from the user's query point.
     db.prepare(`INSERT INTO emergency_events (id, user_id, type, status, severity, lat, lon, location_state, created_at, updated_at)

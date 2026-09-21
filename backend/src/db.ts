@@ -42,6 +42,10 @@ if (notificationColumns.length > 0 && !notificationColumns.some((column) => colu
   db.exec('DROP TABLE notifications_legacy');
 }
 
+try {
+  db.exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_users_phone ON users(phone) WHERE phone IS NOT NULL AND phone != ''`);
+} catch { /* older SQLite without partial indexes — uniqueness enforced in auth */ }
+
 // Older development databases may already have the template-only settings
 // columns. Add the functional relay columns without requiring data loss.
 for (const column of [

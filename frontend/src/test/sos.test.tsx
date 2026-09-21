@@ -72,12 +72,12 @@ describe('SOS flow', () => {
       expect(screen.getByText('SOS ACTIVE')).toBeInTheDocument();
       expect(vibrate).toHaveBeenCalledWith([120, 60, 180]);
       const eid = document.querySelector('.eid');
-      expect(eid?.textContent).toMatch(/^IQ-[A-Z2-9]{8}$/);
+      expect(eid?.textContent).toMatch(/^RQ-[A-Z2-9]{8}$/);
       expect(screen.getAllByText('OFFLINE').length).toBeGreaterThan(0);
       expect(screen.getByText(/Held \(offline\)/)).toBeInTheDocument();
       expect(screen.getByRole('button', { name: /hold for three seconds to resolve/i })).toBeInTheDocument();
 
-      const box = JSON.parse(localStorage.getItem('iqoo.outbox') ?? '[]') as Array<{ event: { id: string } }>;
+      const box = JSON.parse(localStorage.getItem('resqnet.outbox') ?? '[]') as Array<{ event: { id: string } }>;
       expect(box).toHaveLength(1);
       expect(box[0].event.id).toMatch(/^RQ-/);
     } finally {
@@ -99,7 +99,7 @@ describe('SOS flow', () => {
       expect(screen.getByRole('button', { name: /return to sos hub/i })).toBeInTheDocument();
       await act(async () => { fireEvent.click(screen.getByRole('button', { name: /return to sos hub/i })); });
       expect(screen.getByRole('button', { name: /hold for three seconds to activate sos/i })).toBeInTheDocument();
-      expect(JSON.parse(localStorage.getItem('iqoo.activeEmergency') ?? 'null')).toBeNull();
+      expect(JSON.parse(localStorage.getItem('resqnet.activeEmergency') ?? 'null')).toBeNull();
     } finally {
       vi.useRealTimers();
     }
@@ -123,12 +123,12 @@ describe('SOS flow', () => {
       await act(async () => { window.dispatchEvent(new Event('offline')); });
       await hold(screen.getByRole('button', { name: /hold for three seconds to activate sos/i }));
       await act(async () => { await Promise.resolve(); });
-      expect(JSON.parse(localStorage.getItem('iqoo.outbox') ?? '[]')).toHaveLength(1);
+      expect(JSON.parse(localStorage.getItem('resqnet.outbox') ?? '[]')).toHaveLength(1);
 
       await act(async () => { window.dispatchEvent(new Event('online')); });
       await act(async () => { vi.advanceTimersByTime(1000); });
       expect(pushCalls.length).toBe(1);
-      expect(JSON.parse(localStorage.getItem('iqoo.outbox') ?? '[]')).toHaveLength(0);
+      expect(JSON.parse(localStorage.getItem('resqnet.outbox') ?? '[]')).toHaveLength(0);
     } finally {
       vi.useRealTimers();
       vi.unstubAllGlobals();

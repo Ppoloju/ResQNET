@@ -7,7 +7,7 @@ export interface QueuedCheckIn {
   createdAt: string;
 }
 
-const KEY = 'iqoo.checkInOutbox';
+const KEY = 'resqnet.checkInOutbox';
 
 function read(): QueuedCheckIn[] {
   try {

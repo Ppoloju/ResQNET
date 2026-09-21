@@ -15,6 +15,24 @@
 
 ---
 
+# Current Audit — 2026-09-21
+
+The repository-wide audit found and fixed the following regressions that were not reflected in the older phase notes:
+
+- **Shared native-frame test used the retired `IQ-` emergency ID format.** The validator correctly requires the current `RQ-` format, so the round-trip test rejected its own fixture. The fixture now uses `RQ-ABCDEFGH`.
+- **Backend auth type drift.** The login query type omitted `phone`, `email_verified`, and `two_factor_enabled`, and the 2FA response read `public_id` after `ensurePrimaryDevice()` had normalized it to `publicId`. The route now uses the shared `UserRow` shape and returns the normalized device field.
+- **`/auth/me` omitted `emailVerified`.** Verified-account state was returned by login but disappeared after session refresh. The endpoint now includes the persisted verification flag.
+- **Frontend auth/session merge was incomplete.** The login path attempted to persist an absent token during the 2FA challenge, several declared account-security methods were missing, and `persistSession()` was undefined. The challenge now returns without creating a session; completed login, registration, verification, reset, and password-change flows use implemented persistence and API methods.
+- **Frontend compile break in Home and Vite configuration.** `Home.tsx` had lost map/location imports and `vite.config.ts` declared `server.host` twice. Imports and the single LAN host setting are restored.
+- **Storage-key split after the ResQNET rebrand.** Session, SOS active state, medical profile, and check-in queue still used `iqoo.*`, while history, realtime, and sync used `resqnet.*`. All remaining active paths now use the `resqnet.*` namespace, restoring shared session visibility and offline queue/history behavior.
+- **Stale auth and SOS tests.** Assertions still expected `IQ-` IDs and `iqoo.*` storage keys. They now exercise the current `RQ-` and `resqnet.*` contracts.
+
+Verification after the fixes: **112 tests passing** (34 shared, 68 backend, 10 frontend), all workspace typechecks passing, and all production builds passing. The Vite build still reports a non-failing chunk-size warning for the main frontend bundle.
+
+Remaining items in `missinginfo.md` such as native background mesh, SMS/push providers, live emergency-resource feeds, sensor fusion, end-to-end mesh encryption, and production deployment hardening are capability boundaries or planned integrations, not regressions in this audit.
+
+---
+
 # Phase 0 — Project Audit & Architecture Decision
 
 ## Audit findings (2026-09-14)
@@ -243,6 +261,8 @@ Verification: 88 tests passing (28 shared · 56 backend · 4 frontend), zero typ
 (none — Docker daemon resolved 2026-09-16: Desktop started, image rebuilt with the shared/dist fix, compose stack verified live end-to-end)
 
 ## Changelog
+
+- 2026-09-21 — Repository-wide audit: fixed native-frame and auth contract drift, restored the incomplete frontend session/map merge, added `/auth/me` verification state, completed the `resqnet.*` storage-key migration, and updated stale RQ/SOS regression fixtures. Current verification: 112 tests, workspace typechecks, and production builds green.
 
 - 2026-09-20 — Quick Help is now cross-layer AI triage: shared rules and authenticated `/api/ai/triage` classify lost/navigation requests as `OFFLINE_MAP`, high-risk medical/safety events as `SOS`, and general assistance as `CHAT`. Home uses the backend when online and the same shared policy offline; nearby resource ranking is distance-first so maps show resources nearest to the user. Added triage regression tests.
 - 2026-09-20 — Family Map upgraded from a synthetic clustered canvas to a real Leaflet/OpenStreetMap map: geographic pan/zoom, fit-to-family bounds, live geolocation watch, 15-second backend refresh, distinct user/family/hospital/police/shelter/resource pins, popups, and Google Maps links for resource locations.

@@ -3,7 +3,7 @@ import { decodeMeshFrame, encodeAckFrame, encodePacketFrame } from './meshFrame.
 import type { EmergencyPacket } from './types.js';
 
 const packet: EmergencyPacket = {
-  id: 'msg_native_01', emergencyId: 'IQ-ABCDEFGH', senderId: 'device-a', senderPublicId: 'IQOO_NODE_AAAA',
+  id: 'msg_native_01', emergencyId: 'RQ-ABCDEFGH', senderId: 'device-a', senderPublicId: 'IQOO_NODE_AAAA',
   type: 'SOS', priority: 'CRITICAL', timestamp: Date.now(),
   location: { latitude: 17.4, longitude: 78.5, accuracyMeters: 20, state: 'GPS_AVAILABLE' },
   battery: 80, message: 'help', hopCount: 0, ttl: 3600,

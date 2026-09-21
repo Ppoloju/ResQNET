@@ -7,9 +7,9 @@ services:
       NODE_ENV: production
       PORT: 4000
       DATABASE_PATH: /app/data/iqoo.sqlite
-      JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
-      MSG_SIGNING_PEPPER: ${MSG_SIGNING_PEPPER:-change-me-in-production}
-      FRONTEND_ORIGIN: ${FRONTEND_ORIGIN:-http://localhost:5173}
+      JWT_SECRET: ${JWT_SECRET:-resqnet-docker-demo-jwt-secret-key-32chars}
+      MSG_SIGNING_PEPPER: ${MSG_SIGNING_PEPPER:-resqnet-docker-demo-pepper-key-32chars}
+      FRONTEND_ORIGIN: ${FRONTEND_ORIGIN:-http://localhost:8080,http://localhost:5173}
       DEMO_MODE: ${DEMO_MODE:-true}
       SMTP_HOST: ${SMTP_HOST:-}
       SMTP_PORT: ${SMTP_PORT:-587}
@@ -18,6 +18,13 @@ services:
       SMTP_PASS: ${SMTP_PASS:-}
       SMTP_FROM: ${SMTP_FROM:-ResQNET <no-reply@resqnet.app>}
       EMAIL_CODE_RESEND_SECONDS: ${EMAIL_CODE_RESEND_SECONDS:-45}
+      SMS_WEBHOOK_URL: ${SMS_WEBHOOK_URL:-}
+      PUSH_WEBHOOK_URL: ${PUSH_WEBHOOK_URL:-}
+      EMERGENCY_SERVICE_WEBHOOK_URL: ${EMERGENCY_SERVICE_WEBHOOK_URL:-}
+      NOTIFICATION_WEBHOOK_TOKEN: ${NOTIFICATION_WEBHOOK_TOKEN:-}
+      TEAM_PHONE_PPOLOJU: ${TEAM_PHONE_PPOLOJU:-}
+      TEAM_PHONE_VINTURI: ${TEAM_PHONE_VINTURI:-}
+      TEAM_PHONE_SPEESA: ${TEAM_PHONE_SPEESA:-}
     ports:
       - "4000:4000"
     volumes:

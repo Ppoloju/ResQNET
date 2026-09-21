@@ -30,6 +30,7 @@ beforeAll(async () => {
     email: `ai-${Date.now()}@test.io`,
     password: 'Str0ngPass!x',
     displayName: 'AI Tester',
+    phone: '9111111111',
   });
   token = registration.body.token;
 }, 30_000);

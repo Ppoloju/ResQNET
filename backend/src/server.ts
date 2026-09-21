@@ -24,6 +24,7 @@ import { notificationsRouter } from './routes/notifications.js';
 import { aiRouter } from './routes/ai.js';
 import { settingsRouter } from './routes/settings.js';
 import { startNotificationDeliveryWorker } from './notifications.js';
+import { seedTeamAccounts } from './seedTeam.js';
 
 const app = express();
 app.set('trust proxy', 1);
@@ -96,8 +97,11 @@ const currentFile = path.resolve(fileURLToPath(import.meta.url));
 // without opening a second listener on the development port.
 if (entrypoint === currentFile) {
   startNotificationDeliveryWorker();
+  void seedTeamAccounts()
+    .then(() => logger.info('team accounts ready (Gitam@2028)'))
+    .catch((err) => logger.error({ err }, 'team account seed failed'));
   server.listen(PORT, () => {
-    logger.info(`IQOO backend listening on :${PORT} (env=${config.env}, demo=${config.demoMode})`);
+    logger.info(`ResQNET backend listening on :${PORT} (env=${config.env}, demo=${config.demoMode})`);
   });
 }
 

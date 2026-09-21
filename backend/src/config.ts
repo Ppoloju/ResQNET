@@ -1,5 +1,7 @@
 import 'dotenv/config';
 
+const WEAK_SECRETS = new Set(['change-me-local-only', 'change-me-in-production']);
+
 function secret(name: string, localFallback: string): string {
   const value = process.env[name];
   const env = process.env.NODE_ENV ?? 'development';
@@ -7,8 +9,17 @@ function secret(name: string, localFallback: string): string {
     if (env === 'production') throw new Error(`Missing required production secret: ${name}`);
     return localFallback;
   }
-  if (env === 'production' && value.length < 32) throw new Error(`${name} must be at least 32 characters in production`);
+  if (env === 'production' && (value.length < 32 || WEAK_SECRETS.has(value))) {
+    throw new Error(`${name} must be a unique secret of at least 32 characters in production`);
+  }
   return value;
+}
+
+function corsOrigins(): string | string[] {
+  const raw = process.env.FRONTEND_ORIGIN ?? 'http://localhost:5173,http://localhost:8080';
+  const list = raw.split(',').map((s) => s.trim()).filter(Boolean);
+  if (list.includes('*')) return '*';
+  return list.length === 1 ? list[0]! : list;
 }
 
 function portFromEnv(): number {
@@ -23,7 +34,7 @@ export const config = {
   databasePath: process.env.DATABASE_PATH ?? './data/iqoo.sqlite',
   jwtSecret: secret('JWT_SECRET', 'change-me-local-only'),
   msgSigningPepper: secret('MSG_SIGNING_PEPPER', 'change-me-local-only'),
-  frontendOrigin: process.env.FRONTEND_ORIGIN ?? 'http://localhost:5173',
+  frontendOrigin: corsOrigins(),
   rateLimitAuth: Number(process.env.RATE_LIMIT_AUTH ?? 10),
   rateLimitApi: Number(process.env.RATE_LIMIT_API ?? 120),
   syncBatchSize: Number(process.env.SYNC_BATCH_SIZE ?? 50),

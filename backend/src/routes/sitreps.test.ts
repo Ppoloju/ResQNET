@@ -28,7 +28,7 @@ describe('sitreps + resources (§13)', () => {
 
   beforeAll(async () => {
     const reg = await request(app).post('/api/auth/register')
-      .send({ email: `sit${Date.now()}@test.io`, password: 'Str0ngPass!x', displayName: 'Sitreps Tester' });
+      .send({ email: `sit${Date.now()}@test.io`, password: 'Str0ngPass!x', displayName: 'Sitreps Tester', phone: '9222222222' });
     token = reg.body.token;
   });
 

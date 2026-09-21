@@ -82,7 +82,7 @@ interface MeshState {
 
 const MeshContext = createContext<MeshState>(null as unknown as MeshState);
 
-const ACTIVE_KEY = 'iqoo.activeEmergency';
+const ACTIVE_KEY = 'resqnet.activeEmergency';
 const DEFAULT_SOS_VIBRATION_PATTERN_MS = [120, 60, 180];
 const DISARMED_VIBRATION_PATTERN_MS = [60, 40, 60];
 

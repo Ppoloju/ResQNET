@@ -20,6 +20,8 @@ export interface LoginResult {
   ok: boolean;
   twoFactorRequired?: boolean;
   maskedEmail?: string;
+  maskedPhone?: string | null;
+  devCode?: string;
 }
 
 interface SessionState {
@@ -27,15 +29,15 @@ interface SessionState {
   device: DeviceInfo | null;
   loading: boolean;
   /** Step 1: password check. Resolves with whether a 2FA code is now required. */
-  login: (email: string, password: string) => Promise<LoginResult>;
-  /** Step 2: consume the emailed 6-digit code and open the session. */
-  verify2fa: (email: string, code: string) => Promise<void>;
-  resend2fa: (email: string) => Promise<void>;
-  register: (email: string, password: string, displayName: string) => Promise<void>;
-  verifyEmail: (email: string, code: string) => Promise<void>;
-  resendVerification: (email: string) => Promise<void>;
-  forgotPassword: (email: string) => Promise<void>;
-  resetPassword: (email: string, code: string, newPassword: string) => Promise<void>;
+  login: (identifier: string, password: string) => Promise<LoginResult>;
+  /** Step 2: consume the emailed/SMS 6-digit code and open the session. */
+  verify2fa: (identifier: string, code: string) => Promise<void>;
+  resend2fa: (identifier: string) => Promise<void>;
+  register: (email: string, password: string, displayName: string, phone: string) => Promise<void>;
+  verifyEmail: (identifier: string, code: string) => Promise<void>;
+  resendVerification: (identifier: string) => Promise<void>;
+  forgotPassword: (identifier: string) => Promise<void>;
+  resetPassword: (identifier: string, code: string, newPassword: string) => Promise<void>;
   sendChangeCode: () => Promise<void>;
   changePassword: (currentPassword: string, code: string, newPassword: string) => Promise<void>;
   logout: () => void;
@@ -46,9 +48,16 @@ const SessionContext = createContext<SessionState>(null as unknown as SessionSta
 export const API_BASE = (import.meta.env.VITE_API_URL as string | undefined) ?? '/api';
 
 /** Token storage: localStorage is acceptable for the prototype; production plan = HttpOnly cookie + refresh (docs/security.md). */
-const TOKEN_KEY = 'iqoo.token';
-const USER_KEY = 'iqoo.sessionUser';
-const DEVICE_KEY = 'iqoo.device';
+const TOKEN_KEY = 'resqnet.token';
+const USER_KEY = 'resqnet.sessionUser';
+const DEVICE_KEY = 'resqnet.device';
+
+function persistSession(session: { token: string; user: SessionUser; device: DeviceInfo | null }): void {
+  localStorage.setItem(TOKEN_KEY, session.token);
+  localStorage.setItem(USER_KEY, JSON.stringify(session.user));
+  if (session.device) localStorage.setItem(DEVICE_KEY, JSON.stringify(session.device));
+  else localStorage.removeItem(DEVICE_KEY);
+}
 
 export class ApiError extends Error {
   constructor(message: string, public readonly status: number) {
@@ -114,49 +123,64 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     user,
     device,
     loading,
-    async login(email, password) {
-      const r = await apiFetch<{ token?: string; twoFactorRequired?: boolean; email?: string; user?: SessionUser; device?: DeviceInfo | null }>('/auth/login', {
+    async login(identifier, password) {
+      const r = await apiFetch<{ token?: string; twoFactorRequired?: boolean; email?: string; phone?: string | null; devCode?: string; user?: SessionUser; device?: DeviceInfo | null }>('/auth/login', {
         method: 'POST',
-        body: JSON.stringify({ email: email.trim(), password }),
+        body: JSON.stringify({ identifier: identifier.trim(), email: identifier.trim(), password }),
       });
-      localStorage.setItem(TOKEN_KEY, r.token);
-      setUser(r.user);
-      localStorage.setItem(USER_KEY, JSON.stringify(r.user));
-      if (r.device) {
-        setDevice(r.device);
-        localStorage.setItem(DEVICE_KEY, JSON.stringify(r.device));
-      } else {
-        setDevice(null);
-        localStorage.removeItem(DEVICE_KEY);
+      if (!r.token || !r.user) {
+        return {
+          ok: true,
+          twoFactorRequired: !!r.twoFactorRequired,
+          maskedEmail: r.email,
+          maskedPhone: r.phone,
+          devCode: r.devCode,
+        };
       }
-      if (!r.token || !r.user) throw new Error('login failed');
-      persistSession({ token: r.token, user: r.user, device: r.device });
+      persistSession({ token: r.token, user: r.user, device: r.device ?? null });
       setUser(r.user);
-      if (r.device) setDevice(r.device);
-      return { ok: true };
+      setDevice(r.device ?? null);
+      return { ok: true, twoFactorRequired: false };
     },
-    async verify2fa(email, code) {
+    async verify2fa(identifier, code) {
       const r = await apiFetch<{ token: string; user: SessionUser; device: DeviceInfo | null }>('/auth/login/verify-2fa', {
         method: 'POST',
-        body: JSON.stringify({ email, code }),
+        body: JSON.stringify({ identifier, email: identifier, code }),
       });
       persistSession({ token: r.token, user: r.user, device: r.device });
       setUser(r.user);
       if (r.device) setDevice(r.device);
     },
-    async resend2fa(email) {
-      await apiFetch('/auth/login/resend-2fa', { method: 'POST', body: JSON.stringify({ email }) });
+    async resend2fa(identifier) {
+      await apiFetch('/auth/login/resend-2fa', { method: 'POST', body: JSON.stringify({ identifier, email: identifier }) });
     },
-    async register(email, password, displayName) {
+    async register(email, password, displayName, phone) {
       const r = await apiFetch<{ token: string; user: SessionUser; device: DeviceInfo }>('/auth/register', {
         method: 'POST',
-        body: JSON.stringify({ email: email.trim(), password, displayName: displayName.trim() }),
+        body: JSON.stringify({ email: email.trim(), password, displayName: displayName.trim(), phone: phone.trim() }),
       });
       persistSession({ token: r.token, user: r.user, device: r.device });
       setUser(r.user);
       setDevice(r.device);
-      localStorage.setItem(USER_KEY, JSON.stringify(r.user));
-      localStorage.setItem(DEVICE_KEY, JSON.stringify(r.device));
+    },
+    async verifyEmail(identifier, code) {
+      await apiFetch('/auth/verify-email', { method: 'POST', body: JSON.stringify({ identifier, email: identifier, code }) });
+      setUser((current) => current ? { ...current, emailVerified: true } : current);
+    },
+    async resendVerification(identifier) {
+      await apiFetch('/auth/resend-verification', { method: 'POST', body: JSON.stringify({ identifier, email: identifier }) });
+    },
+    async forgotPassword(identifier) {
+      await apiFetch('/auth/forgot-password', { method: 'POST', body: JSON.stringify({ identifier, email: identifier }) });
+    },
+    async resetPassword(identifier, code, newPassword) {
+      await apiFetch('/auth/reset-password', { method: 'POST', body: JSON.stringify({ identifier, email: identifier, code, newPassword }) });
+    },
+    async sendChangeCode() {
+      await apiFetch('/auth/send-change-code', { method: 'POST' });
+    },
+    async changePassword(currentPassword, code, newPassword) {
+      await apiFetch('/auth/change-password', { method: 'POST', body: JSON.stringify({ currentPassword, code, newPassword }) });
     },
     logout() {
       localStorage.removeItem(TOKEN_KEY);

@@ -15,6 +15,12 @@ vi.mock('../lib/mailer.js', () => ({
   sendPasswordChangedNotice: async () => {},
   mailerMode: () => 'console',
 }));
+vi.mock('../lib/sms.js', () => ({
+  sendOtpSms: async (to: string, code: string, purpose: string) => {
+    mailedCodes.push({ to, code, purpose: `SMS:${purpose}` });
+  },
+  smsMode: () => 'console',
+}));
 const lastCode = (purpose: string): string => {
   const c = mailedCodes.filter((m) => m.purpose === purpose).at(-1);
   if (!c) throw new Error(`no ${purpose} code captured`);
@@ -51,11 +57,12 @@ beforeAll(async () => {
 describe('auth + API smoke', () => {
   let token = '';
   const email = `u${Date.now()}@test.io`;
+  const phone = '9000000001';
 
   it('registers a user and returns device secret once', async () => {
     const res = await request(app)
       .post('/api/auth/register')
-      .send({ email, password: 'Str0ngPass!x', displayName: 'Test User' });
+      .send({ email, password: 'Str0ngPass!x', displayName: 'Test User', phone });
     expect(res.status).toBe(201);
     expect(res.body.token).toBeTruthy();
     expect(res.body.device.publicId).toMatch(/^RQ_NODE_[0-9A-F]{4}$/);
@@ -66,7 +73,7 @@ describe('auth + API smoke', () => {
   it('rejects duplicate registration', async () => {
     const res = await request(app)
       .post('/api/auth/register')
-      .send({ email, password: 'Str0ngPass!x', displayName: 'Test User' });
+      .send({ email, password: 'Str0ngPass!x', displayName: 'Test User', phone });
     expect(res.status).toBe(409);
   });
 
@@ -76,6 +83,8 @@ describe('auth + API smoke', () => {
     expect(first.status).toBe(200);
     expect(first.body.twoFactorRequired).toBe(true);
     expect(first.body.email).toMatch(/\*\*\*@/); // masked — never the full address
+    expect(first.body.smsSent).toBe(true);
+    expect(mailedCodes.some((m) => m.purpose.startsWith('SMS:'))).toBe(true);
 
     // Wrong password → 401 before any code is issued.
     const bad = await request(app).post('/api/auth/login')
@@ -93,6 +102,18 @@ describe('auth + API smoke', () => {
     const replay = await request(app).post('/api/auth/login/verify-2fa')
       .send({ email, code: lastCode('LOGIN_2FA') });
     expect(replay.status).toBe(401);
+  });
+
+  it('logs in with mobile number using the same password and OTP', async () => {
+    const first = await request(app).post('/api/auth/login')
+      .send({ identifier: phone, password: 'Str0ngPass!x' });
+    expect(first.status).toBe(200);
+    expect(first.body.twoFactorRequired).toBe(true);
+    const ok = await request(app).post('/api/auth/login/verify-2fa')
+      .send({ identifier: phone, code: lastCode('LOGIN_2FA') });
+    expect(ok.status).toBe(200);
+    expect(ok.body.user.displayName).toBe('Test User');
+    token = ok.body.token;
   });
 
   it('verifies the email address with the emailed code', async () => {
@@ -126,7 +147,7 @@ describe('auth + API smoke', () => {
 
   it('normalizes auth input and rejects blank display names', async () => {
     const normalized = await request(app).post('/api/auth/register')
-      .send({ email: '  spaced-user@test.io  ', password: 'Str0ngPass!x', displayName: '  Spaced User  ' });
+      .send({ email: '  spaced-user@test.io  ', password: 'Str0ngPass!x', displayName: '  Spaced User  ', phone: '9000000002' });
     expect(normalized.status).toBe(201);
     expect(normalized.body.user.email).toBe('spaced-user@test.io');
     expect(normalized.body.user.displayName).toBe('Spaced User');
@@ -199,7 +220,7 @@ describe('auth + API smoke', () => {
       });
     expect(res.status).toBe(201);
     const id = res.body.emergencyId as string;
-    expect(id).toMatch(/^IQ-/);
+    expect(id).toMatch(/^RQ-/);
     expect(res.body.clientFeedback.vibrationPatternMs).toEqual([120, 60, 180]);
 
     const detail = await request(app).get(`/api/emergencies/${id}`)

@@ -29,7 +29,7 @@ describe('offline sync (§47 idempotency + pull)', () => {
 
   beforeAll(async () => {
     const reg = await request(app).post('/api/auth/register')
-      .send({ email: `sync${Date.now()}@test.io`, password: 'Str0ngPass!x', displayName: 'Sync Tester' });
+      .send({ email: `sync${Date.now()}@test.io`, password: 'Str0ngPass!x', displayName: 'Sync Tester', phone: '9333333333' });
     token = reg.body.token;
     deviceId = reg.body.device.id;
   });
@@ -108,7 +108,7 @@ describe('offline sync (§47 idempotency + pull)', () => {
 
   it('does not expose another user\'s packets through pull', async () => {
     const other = await request(app).post('/api/auth/register')
-      .send({ email: `sync-other${Date.now()}@test.io`, password: 'Str0ngPass!x', displayName: 'Other' });
+      .send({ email: `sync-other${Date.now()}@test.io`, password: 'Str0ngPass!x', displayName: 'Other', phone: '9333333334' });
     const created = await request(app).post('/api/emergencies')
       .set('Authorization', `Bearer ${other.body.token}`)
       .send({

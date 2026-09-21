@@ -33,6 +33,7 @@ CREATE TABLE IF NOT EXISTS devices (
 );
 
 CREATE INDEX IF NOT EXISTS idx_devices_user ON devices(user_id);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_users_phone ON users(phone) WHERE phone IS NOT NULL AND phone != '';
 
 CREATE TABLE IF NOT EXISTS device_settings (
   device_id                    TEXT PRIMARY KEY REFERENCES devices(id) ON DELETE CASCADE,
