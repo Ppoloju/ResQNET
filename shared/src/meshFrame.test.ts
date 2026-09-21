@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { decodeMeshFrame, encodeAckFrame, encodePacketFrame } from './meshFrame.js';
+import { CommunicationManager, type IncomingPacketEvent, type Transport } from './transport.js';
 import type { EmergencyPacket } from './types.js';
 
 const packet: EmergencyPacket = {
@@ -24,5 +25,28 @@ describe('native mesh frames', () => {
   it('round-trips link acknowledgements', () => {
     const decoded = decodeMeshFrame(encodeAckFrame(packet.id, 'IQOO_NODE_BBBB', true));
     expect(decoded?.frame).toMatchObject({ frame: 'ack', packetId: packet.id, accepted: true });
+  });
+
+  it('broadcasts to ready transports and forwards incoming packets', async () => {
+    const received: IncomingPacketEvent[] = [];
+    let sent = 0;
+    const transport: Transport = {
+      name: 'bluetooth',
+      availability: async () => 'READY',
+      statusDetail: async () => 'ready',
+      send: async () => { sent++; return { packetId: packet.id, peerId: '*', acked: true }; },
+      onPacket: (handler) => {
+        received.push({ packet, fromPeerId: 'peer-a', signalHint: null });
+        handler({ packet, fromPeerId: 'peer-a', signalHint: null });
+        return () => undefined;
+      },
+      stop: async () => undefined,
+    };
+    const manager = new CommunicationManager();
+    manager.register(transport);
+    const broadcasts = await manager.broadcast(packet);
+    expect(sent).toBe(1);
+    expect(broadcasts[0]?.acked).toBe(true);
+    expect(received[0]?.fromPeerId).toBe('peer-a');
   });
 });

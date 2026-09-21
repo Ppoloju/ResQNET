@@ -5,6 +5,7 @@ import Home, { SosPage } from '../pages/Home';
 import { SessionProvider } from '../state/SessionContext';
 import { StatusProvider } from '../state/StatusContext';
 import { MeshProvider } from '../state/MeshContext';
+import { TransportProvider } from '../state/TransportContext';
 import { AIProvider } from '../state/AIContext';
 
 function renderHome() {
@@ -12,14 +13,16 @@ function renderHome() {
     <MemoryRouter>
       <SessionProvider>
         <StatusProvider>
-          <MeshProvider>
-            <AIProvider>
-              <Routes>
-                <Route path="/" element={<Home />} />
-                <Route path="/sos" element={<SosPage />} />
-              </Routes>
-            </AIProvider>
-          </MeshProvider>
+          <TransportProvider>
+            <MeshProvider>
+              <AIProvider>
+                <Routes>
+                  <Route path="/" element={<Home />} />
+                  <Route path="/sos" element={<SosPage />} />
+                </Routes>
+              </AIProvider>
+            </MeshProvider>
+          </TransportProvider>
         </StatusProvider>
       </SessionProvider>
     </MemoryRouter>,

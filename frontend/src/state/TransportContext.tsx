@@ -16,6 +16,7 @@ interface TransportRow {
 }
 
 interface TransportState {
+  manager: CommunicationManager;
   bluetooth: WebBluetoothTransport;
   lan: LocalNetworkTransport;
   rows: TransportRow[];
@@ -69,7 +70,7 @@ export function TransportProvider({ children }: { children: ReactNode }) {
   }, [bluetooth, refresh]);
 
   return (
-    <TransportContext.Provider value={{ bluetooth, lan, rows, requestingBluetooth, requestBluetooth, refresh }}>
+    <TransportContext.Provider value={{ manager, bluetooth, lan, rows, requestingBluetooth, requestBluetooth, refresh }}>
       {children}
     </TransportContext.Provider>
   );

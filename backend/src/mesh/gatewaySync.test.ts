@@ -92,6 +92,26 @@ describe('gateway sync + responders + broadcasts (Phases 7/12)', () => {
     expect(found.location_state).toBe('GPS_AVAILABLE');
   });
 
+  it('ingests a signed packet received from a device peer and rejects tampering', async () => {
+    const { db } = await import('../db.js');
+    const device = db.prepare('SELECT id, secret FROM devices WHERE user_id = ? ORDER BY created_at LIMIT 1')
+      .get((await request(app).get('/api/auth/me').set('Authorization', `Bearer ${userToken}`)).body.user.id) as { id: string; secret: string };
+    const packet = makePacket({ senderId: device.id, senderPublicId: 'RQ_NODE_REGISTERED' });
+    const signed = await signPacket(packet, device.secret);
+
+    const accepted = await request(app).post('/api/emergencies/mesh/ingest')
+      .set('Authorization', `Bearer ${userToken}`)
+      .send({ packet: signed });
+    expect(accepted.status).toBe(202);
+    expect(accepted.body.accepted).toBe(true);
+    expect(accepted.body.emergencyId).toBe(packet.emergencyId);
+
+    const tampered = await request(app).post('/api/emergencies/mesh/ingest')
+      .set('Authorization', `Bearer ${userToken}`)
+      .send({ packet: { ...signed, message: 'tampered' } });
+    expect(tampered.status).toBe(401);
+  });
+
   it('family fan-out records a notification per member (§52 step 8)', async () => {
     // Owner with two family members.
     const reg = await request(app).post('/api/auth/register')

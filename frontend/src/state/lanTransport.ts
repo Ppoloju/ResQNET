@@ -53,23 +53,13 @@ export class LocalNetworkTransport implements Transport {
     const controller = new AbortController();
     const t = setTimeout(() => controller.abort(), timeoutMs);
     try {
-      const res = await fetch(`${this.baseUrl}/api/emergencies`, {
+      const res = await fetch(`${this.baseUrl}/api/emergencies/mesh/ingest`, {
         method: 'POST',
         headers: {
           'content-type': 'application/json',
           ...(localStorage.getItem('resqnet.token') ? { authorization: `Bearer ${localStorage.getItem('resqnet.token')}` } : {}),
         },
-        body: JSON.stringify({
-          emergencyId: packet.emergencyId,
-          type: packet.type === 'QUICK_HELP' ? 'QUICK_HELP' : 'SOS',
-          severity: packet.priority,
-          message: packet.message,
-          location: packet.location,
-          battery: packet.battery,
-          requiresMedicalHelp: packet.requiresMedicalHelp,
-          requiresPoliceHelp: packet.requiresPoliceHelp,
-          ai: packet.ai,
-        }),
+        body: JSON.stringify({ packet }),
         signal: controller.signal,
       });
       return { packetId: packet.id, peerId: 'backend', acked: res.ok };

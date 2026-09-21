@@ -3,6 +3,7 @@ import { signPacket, type EmergencyPacket, type GeoLocation, type LocationState,
 import { apiFetch, useSession } from './SessionContext';
 import { useStatus } from './StatusContext';
 import { getLatestFix } from './locationStore';
+import { useTransports } from './TransportContext';
 
 export type SosPhase = 'IDLE' | 'COUNTDOWN' | 'ACTIVE' | 'RESOLVED';
 
@@ -113,6 +114,7 @@ function getOrCreateLocalIdentity(): { id: string; publicId: string; secret: str
 export function MeshProvider({ children }: { children: ReactNode }) {
   const { device, user } = useSession();
   const { online, battery } = useStatus();
+  const { manager } = useTransports();
   const [phase, setPhase] = useState<SosPhase>('IDLE');
   const [active, setActive] = useState<ActiveEmergency | null>(null);
   const [safePulse, setSafePulse] = useState(false);
@@ -154,6 +156,20 @@ export function MeshProvider({ children }: { children: ReactNode }) {
       return next;
     });
   }, []);
+
+  const relayPacket = useCallback((packet: EmergencyPacket, source: string) => {
+    const seen = JSON.parse(localStorage.getItem('resqnet.meshSeen') ?? '[]') as string[];
+    if (seen.includes(packet.id)) return;
+    const nextSeen = [...seen, packet.id].slice(-500);
+    localStorage.setItem('resqnet.meshSeen', JSON.stringify(nextSeen));
+    log('PACKET_RECEIVED_RADIO', `${packet.id} via ${source}`);
+    void manager.broadcast(packet).then((results) => {
+      const delivered = results.filter((result) => result.acked).length;
+      log('PACKET_RELAYED', `${packet.id} via ${delivered}/${results.length} transport link(s)`);
+    });
+  }, [log, manager]);
+
+  useEffect(() => manager.onPacket((event) => relayPacket(event.packet, event.fromPeerId)), [manager, relayPacket]);
 
   const pushOutbox = useCallback((packet: EmergencyPacket, emergencyId: string, type: string, severity: string) => {
     const box = JSON.parse(localStorage.getItem('resqnet.outbox') ?? '[]') as unknown[];
@@ -328,6 +344,8 @@ export function MeshProvider({ children }: { children: ReactNode }) {
         ai,
       }, identity.secret);
 
+      const radioResults = await manager.broadcast(packet);
+      log('PACKET_BROADCAST', `${packet.id} via ${radioResults.filter((result) => result.acked).length}/${radioResults.length} transport link(s)`);
       const delivery = await transmit(packet, emergencyId, type, sev);
       if (delivery.vibrationPatternMs) vibrateForSos(delivery.vibrationPatternMs);
       log(delivery.sent ? 'PACKET_SENT_TO_BACKEND' : 'PACKET_HELD_LOCALLY', packet.id);
@@ -356,7 +374,7 @@ export function MeshProvider({ children }: { children: ReactNode }) {
         return c - 1;
       });
     }, 1000);
-  }, [battery, device, log, transmit, user]);
+  }, [battery, device, log, manager, transmit, user]);
 
   const cancelCountdown = useCallback(() => {
     if (timerRef.current) clearInterval(timerRef.current);

@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { randomUUID, randomInt } from 'node:crypto';
 import { z } from 'zod';
-import { signPacket } from '@iqoo/shared';
+import { isExpired, signPacket, validatePacket, verifySignature, type EmergencyPacket } from '@iqoo/shared';
 import { db, tx } from '../db.js';
 import { config } from '../config.js';
 import { audit } from '../middleware/audit.js';
@@ -10,6 +10,7 @@ import { logger } from '../logger.js';
 import { broadcastEvent } from './realtime.js';
 import { encryptIfPresent, decryptIfEncrypted } from '../security/fieldCrypto.js';
 import { enqueueEmergencyNotifications } from '../notifications.js';
+import { syncEmergencyFromGateway } from '../mesh/gatewaySync.js';
 
 export const emergenciesRouter = Router();
 
@@ -28,7 +29,7 @@ const emergencySchema = z.object({
   // The device creates this before it knows whether a gateway is reachable.
   // Keeping it on the online path makes an SOS id stable across offline and
   // online delivery, so the resolution packet can always target the same event.
-  emergencyId: z.string().regex(/^IQ-[0-9A-Z]{6,12}$/).optional(),
+  emergencyId: z.string().regex(/^(?:RQ|IQ)-[0-9A-Z]{6,12}$/).optional(),
   type: z.enum(['SOS', 'QUICK_HELP', 'CHECK_IN', 'DISASTER_BROADCAST']).default('SOS'),
   severity: z.enum(['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']).default('HIGH'),
   category: z.string().max(40).optional(),
@@ -53,6 +54,8 @@ const emergencySitrepSchema = z.object({
   text: z.string().min(1).max(280),
 });
 
+const meshIngestSchema = z.object({ packet: z.unknown() });
+
 const deviceIdByUser = (userId: string): string => {
   const row = db.prepare('SELECT id FROM devices WHERE user_id = ? ORDER BY created_at LIMIT 1').get(userId) as
     | { id: string }
@@ -75,6 +78,25 @@ function newEmergencyId(): string {
   for (let i = 0; i < 8; i++) id += alphabet[randomInt(alphabet.length)];
   return id;
 }
+
+/** Accept a signed packet received from a foreground peer and promote it to the gateway data plane. */
+emergenciesRouter.post('/mesh/ingest', requireAuth, async (req: AuthedRequest, res) => {
+  const parsed = meshIngestSchema.safeParse(req.body);
+  if (!parsed.success) { res.status(400).json({ error: 'packet is required' }); return; }
+  const packet = parsed.data.packet as Partial<EmergencyPacket>;
+  const shape = validatePacket(packet);
+  if (!shape.valid) { res.status(400).json({ error: 'invalid mesh packet', issues: shape.issues }); return; }
+  const validPacket = packet as EmergencyPacket;
+  if (isExpired(validPacket)) { res.status(400).json({ error: 'mesh packet expired' }); return; }
+  const origin = db.prepare('SELECT id, user_id, secret FROM devices WHERE id = ?')
+    .get(validPacket.senderId) as { id: string; user_id: string; secret: string } | undefined;
+  if (!origin || !(await verifySignature(validPacket as unknown as { signature: string; [key: string]: unknown }, origin.secret))) {
+    res.status(401).json({ error: 'mesh packet signature rejected' });
+    return;
+  }
+  const emergencyId = syncEmergencyFromGateway(validPacket, origin.user_id);
+  res.status(202).json({ accepted: true, emergencyId, receivedBy: req.user!.userId });
+});
 
 emergenciesRouter.post('/', requireAuth, async (req: AuthedRequest, res) => {
   const parsed = emergencySchema.safeParse(req.body);
