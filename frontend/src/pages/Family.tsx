@@ -45,7 +45,7 @@ function iconFor(relation: string) {
   return UserRound;
 }
 
-const EMPTY_DRAFT = { name: '', relation: 'FATHER' as (typeof RELATIONS)[number], phone: '', iqooAccountId: '', priority: 3, trusted: false };
+const EMPTY_DRAFT = { name: '', relation: '', phone: '', iqooAccountId: '', priority: 3, trusted: false };
 
 export default function Family() {
   const { user } = useSession();
@@ -208,10 +208,10 @@ export default function Family() {
           <div className="rq-modal-body" style={{ display: 'grid', gap: 12 }}>
             <TextField label="Name" value={draft.name} onChange={(name) => setDraft({ ...draft, name })} placeholder="Full name" />
             <div className="grid2">
-              <SelectField label="Relation" value={draft.relation} onChange={(relation) => setDraft({ ...draft, relation })} options={RELATIONS.map((r) => ({ value: r, label: r }))} />
-              <TextField label="Priority (1 = highest)" value={String(draft.priority)} inputMode="numeric" onChange={(v) => setDraft({ ...draft, priority: Math.max(1, Math.min(9, Number(v) || 1)) })} />
+              <SelectField label="Relation" value={draft.relation} onChange={(relation) => setDraft({ ...draft, relation })} options={[{ value: '', label: 'Choose relation' }, ...RELATIONS.map((r) => ({ value: r, label: r }))]} />
+              <SelectField label="Priority" value={String(draft.priority)} onChange={(value) => setDraft({ ...draft, priority: Number(value) })} options={[{ value: '1', label: '1 - Highest' }, { value: '2', label: '2 - High' }, { value: '3', label: '3 - Standard' }]} />
             </div>
-            <TextField label="Phone" value={draft.phone} onChange={(phone) => setDraft({ ...draft, phone })} placeholder="+91 ..." inputMode="tel" />
+            <TextField label="Phone for messages" value={draft.phone} onChange={(phone) => setDraft({ ...draft, phone })} placeholder="+91 ..." inputMode="tel" />
             <TextField
               label="ResQNET account email (optional)"
               hint="Exactly the email they registered with — their live check-ins then appear here."
@@ -222,7 +222,7 @@ export default function Family() {
             />
             <label className="family-check-label"><input type="checkbox" checked={draft.trusted} onChange={(e) => setDraft({ ...draft, trusted: e.target.checked })} /> Trusted contact</label>
             <div className="row mt">
-              <ActionButton variant="primary" onClick={() => void addMember()} disabled={!draft.name || !draft.phone}>Add node</ActionButton>
+              <ActionButton variant="primary" onClick={() => void addMember()} disabled={!draft.name.trim() || !draft.relation || !draft.phone.trim()}>Add node</ActionButton>
               <ActionButton variant="ghost" onClick={() => setAdding(false)}>Cancel</ActionButton>
             </div>
           </div>

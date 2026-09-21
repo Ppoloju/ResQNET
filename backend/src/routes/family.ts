@@ -16,7 +16,7 @@ const memberSchema = z.object({
   relation: z.enum(RELATIONS),
   phone: z.string().min(5).max(20),
   iqooAccountId: z.string().max(64).optional(),
-  priority: z.number().int().min(1).max(9).default(5),
+  priority: z.number().int().min(1).max(3).default(3),
   trusted: z.boolean().default(false),
 });
 

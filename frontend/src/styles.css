@@ -5687,6 +5687,26 @@
             margin-top: 10px;
         }
         
+        .family-form input,
+        .family-form select {
+            width: 100%;
+            box-sizing: border-box;
+        }
+        
+        .family-form input:not([type="checkbox"]),
+        .family-form select {
+            min-height: 44px;
+            padding: 10px 12px;
+            border: 1px solid var(--line);
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.04);
+        }
+        
+        .family-form select option {
+            background: #11161c;
+            color: #f4f7fb;
+        }
+        
         .family-check-label {
             display: flex;
             align-items: center;

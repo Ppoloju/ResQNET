@@ -31,7 +31,7 @@ medical fields are removed when the consent gate does not allow disclosure.
 
 ## family
 `GET /family` · `POST /family` · `PUT /family/:id` · `DELETE /family/:id`
-Fields: `name, relation(FATHER…OTHER), phone, priority(1=highest), trusted, iqooAccountId?`.
+Fields: `name, relation(FATHER…OTHER), phone, priority(1–3, 1=highest), trusted, iqooAccountId?`.
 `GET /family` also returns `linked`, `checkInStatus`, `lastCheckInAt`, and the latest
 coordinate-bearing `lastLocation` for the linked account.
 
