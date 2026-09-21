@@ -41,9 +41,12 @@ app.use((req, res, next) => {
   next();
 });
 
-app.get('/healthz', (_req, res) => {
+const healthCheck = (_req: express.Request, res: express.Response) => {
   res.json({ ok: true, env: config.env, demoMode: config.demoMode });
-});
+};
+
+app.get('/healthz', healthCheck);
+app.get('/api/healthz', healthCheck);
 
 app.use('/api/auth', authRouter);
 app.use('/api/emergency-profiles', profileRouter);

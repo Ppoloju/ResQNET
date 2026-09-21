@@ -17,14 +17,20 @@ export default function Login() {
     setBusy(true);
     setError('');
     try {
-      if (mode === 'login') await login(email, password);
-      else await register(email, password, displayName || email.split('@')[0]);
+      const normalizedEmail = email.trim();
+      if (mode === 'login') await login(normalizedEmail, password);
+      else await register(normalizedEmail, password, displayName.trim() || normalizedEmail.split('@')[0]);
       navigate('/');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'failed');
     } finally {
       setBusy(false);
     }
+  }
+
+  function switchMode(nextMode: 'login' | 'register') {
+    setMode(nextMode);
+    setError('');
   }
 
   return (
@@ -39,8 +45,8 @@ export default function Login() {
         )}
         <label htmlFor="email">Email</label>
         <input id="email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" />
-        <label htmlFor="password">Password (min 8 chars)</label>
-        <input id="password" type="password" required minLength={8} value={password}
+        <label htmlFor="password">{mode === 'register' ? 'Password (min 8 chars)' : 'Password'}</label>
+        <input id="password" type="password" required minLength={mode === 'register' ? 8 : 1} value={password}
           onChange={(e) => setPassword(e.target.value)}
           autoComplete={mode === 'login' ? 'current-password' : 'new-password'} />
         {error && <p className="error-text" role="alert">{error}</p>}
@@ -50,9 +56,9 @@ export default function Login() {
       </form>
       <p className="mt">
         {mode === 'login' ? (
-          <>No account? <button type="button" className="btn-ghost" onClick={() => setMode('register')}>Register</button></>
+          <>No account? <button type="button" className="btn-ghost" onClick={() => switchMode('register')}>Register</button></>
         ) : (
-          <>Have an account? <button type="button" className="btn-ghost" onClick={() => setMode('login')}>Sign in</button></>
+          <>Have an account? <button type="button" className="btn-ghost" onClick={() => switchMode('login')}>Sign in</button></>
         )}
       </p>
       <p className="muted">

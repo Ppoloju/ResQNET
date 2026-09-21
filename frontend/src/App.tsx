@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import {
   Bell, Brain, History, Home as HomeIcon, Map, MapPinned, Menu, Network as NetworkIcon,
-  Play, QrCode, Settings as SettingsIcon, ShieldCheck, UserRound, UserSearch, Users, X,
+  Monitor, Play, QrCode, Settings as SettingsIcon, ShieldCheck, Smartphone, UserRound, UserSearch, Users, X,
   type LucideIcon,
 } from 'lucide-react';
 import { Battery, BatteryCharging } from 'lucide-react';
@@ -114,14 +114,54 @@ function MedicalIdButton() {
   </>;
 }
 
+type LayoutMode = 'auto' | 'mobile' | 'desktop';
+
+function LayoutModeToggle({ mode, onChange }: { mode: LayoutMode; onChange: (mode: LayoutMode) => void }) {
+  return (
+    <div className="layout-switcher" aria-label="Layout preview">
+      <button
+        className={mode === 'mobile' ? 'active' : ''}
+        type="button"
+        aria-label="Use mobile layout"
+        aria-pressed={mode === 'mobile'}
+        title="Mobile layout"
+        onClick={() => onChange('mobile')}
+      >
+        <Smartphone size={16} aria-hidden="true" />
+        <span>Mobile</span>
+      </button>
+      <button
+        className={mode === 'desktop' ? 'active' : ''}
+        type="button"
+        aria-label="Use desktop layout"
+        aria-pressed={mode === 'desktop'}
+        title="Desktop layout"
+        onClick={() => onChange('desktop')}
+      >
+        <Monitor size={16} aria-hidden="true" />
+        <span>Desktop</span>
+      </button>
+    </div>
+  );
+}
+
 export default function App({ children }: { children: ReactNode }) {
   const location = useLocation();
   const { phase, active, safePulse } = useMesh();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [layoutMode, setLayoutMode] = useState<LayoutMode>(() => {
+    const saved = localStorage.getItem('resqnet.layoutMode');
+    return saved === 'mobile' || saved === 'desktop' ? saved : 'auto';
+  });
 
   useEffect(() => {
     setMenuOpen(false);
   }, [location.pathname]);
+
+  useEffect(() => {
+    if (layoutMode === 'auto') localStorage.removeItem('resqnet.layoutMode');
+    else localStorage.setItem('resqnet.layoutMode', layoutMode);
+  }, [layoutMode]);
 
   const navLinks = () =>
     NAV.map((n) => (
@@ -138,7 +178,7 @@ export default function App({ children }: { children: ReactNode }) {
     ));
 
   return (
-    <div className={`app ${phase === 'ACTIVE' ? 'sos-global-active' : ''} ${safePulse ? 'safe-global-active' : ''}`}>
+    <div className={`app layout-${layoutMode} ${phase === 'ACTIVE' ? 'sos-global-active' : ''} ${safePulse ? 'safe-global-active' : ''}`}>
       {phase === 'ACTIVE' && (
         <div className="sos-global-frame" role="alert" aria-live="assertive">
           <span className="sr-only">SOS active{active ? `, emergency ${active.emergencyId}` : ''}</span>
@@ -153,6 +193,7 @@ export default function App({ children }: { children: ReactNode }) {
           <span>ResQNET</span>
         </span>
         <div className="topbar-actions">
+          <LayoutModeToggle mode={layoutMode} onChange={setLayoutMode} />
           <button
             className={`icon-btn burger ${menuOpen ? 'open' : ''}`}
             type="button"

@@ -61,6 +61,22 @@ describe('auth + API smoke', () => {
     expect(bad.status).toBe(401);
   });
 
+  it('normalizes auth input and rejects blank display names', async () => {
+    const normalized = await request(app).post('/api/auth/register')
+      .send({ email: '  spaced-user@test.io  ', password: 'Str0ngPass!x', displayName: '  Spaced User  ' });
+    expect(normalized.status).toBe(201);
+    expect(normalized.body.user.email).toBe('spaced-user@test.io');
+    expect(normalized.body.user.displayName).toBe('Spaced User');
+
+    const login = await request(app).post('/api/auth/login')
+      .send({ email: '  spaced-user@test.io  ', password: 'Str0ngPass!x' });
+    expect(login.status).toBe(200);
+
+    const blankName = await request(app).post('/api/auth/register')
+      .send({ email: 'blank-name@test.io', password: 'Str0ngPass!x', displayName: '   ' });
+    expect(blankName.status).toBe(400);
+  });
+
   it('protects endpoints without token', async () => {
     const res = await request(app).get('/api/emergency-profiles/me');
     expect(res.status).toBe(401);

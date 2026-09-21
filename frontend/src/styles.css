@@ -160,9 +160,22 @@
         }
         
         .app {
+            width: 100%;
             min-height: 100dvh;
             display: flex;
             flex-direction: column;
+            margin: 0 auto;
+            transition: width 180ms ease, box-shadow 180ms ease;
+        }
+        
+        .layout-mobile {
+            width: min(100%, 430px);
+            border-inline: 1px solid var(--line);
+            box-shadow: 0 0 70px rgba(0, 0, 0, 0.25);
+        }
+        
+        .layout-desktop {
+            width: min(100%, 1440px);
         }
         
         .sos-global-frame {
@@ -247,6 +260,45 @@
             display: flex;
             align-items: center;
             gap: 8px;
+        }
+        
+        .layout-switcher {
+            display: inline-flex;
+            align-items: center;
+            gap: 2px;
+            padding: 3px;
+            border: 1px solid var(--line);
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.035);
+        }
+        
+        .layout-switcher button {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            min-height: 34px;
+            padding: 0 9px;
+            border: 0;
+            border-radius: 8px;
+            color: var(--text-dim);
+            background: transparent;
+            cursor: pointer;
+            font: inherit;
+            font-size: 0.68rem;
+            font-weight: 800;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+        }
+        
+        .layout-switcher button:hover,
+        .layout-switcher button.active {
+            color: var(--text);
+            background: var(--tint-blue-bg);
+        }
+        
+        .layout-switcher button.active {
+            color: var(--blue-soft);
+            box-shadow: inset 0 0 0 1px var(--tint-blue-line);
         }
         
         .icon-btn {
@@ -1168,6 +1220,15 @@
             max-width: 780px;
             margin: 0 auto;
             padding: 8px 16px 92px;
+        }
+        
+        .layout-desktop .page-host>div,
+        .layout-desktop .page {
+            max-width: 1120px;
+        }
+        
+        .layout-desktop .footer-nav a {
+            padding-inline: 16px;
         }
         
         .page-host .page {
@@ -6664,5 +6725,37 @@
         @media (prefers-reduced-motion: reduce) {
             .safe-global-frame {
                 animation: none;
+            }
+        }
+        
+        @media (max-width: 720px) {
+            .layout-switcher button span {
+                display: none;
+            }
+            .layout-switcher button {
+                width: 34px;
+                justify-content: center;
+                padding: 0;
+            }
+            .topbar {
+                padding-inline: 12px;
+            }
+            .brand {
+                gap: 7px;
+                font-size: 0.74rem;
+            }
+            .brand-mark {
+                width: 25px;
+                height: 25px;
+            }
+            .topbar-actions {
+                gap: 5px;
+            }
+            .layout-mobile {
+                border-inline: 0;
+                box-shadow: none;
+            }
+            .layout-desktop {
+                width: 100%;
             }
         }

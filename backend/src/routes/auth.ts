@@ -13,14 +13,14 @@ import { logger } from '../logger.js';
 export const authRouter = Router();
 
 const registerSchema = z.object({
-  email: z.string().email().max(200),
+  email: z.string().trim().email().max(200),
   password: z.string().min(8).max(128),
-  displayName: z.string().min(1).max(80),
+  displayName: z.string().trim().min(1).max(80),
   phone: z.string().max(20).optional(),
 });
 
 const loginSchema = z.object({
-  email: z.string().email(),
+  email: z.string().trim().email(),
   password: z.string().min(1),
 });
 

@@ -100,7 +100,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     async login(email, password) {
       const r = await apiFetch<{ token: string; user: SessionUser; device: DeviceInfo | null }>('/auth/login', {
         method: 'POST',
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email: email.trim(), password }),
       });
       localStorage.setItem(TOKEN_KEY, r.token);
       setUser(r.user);
@@ -108,12 +108,15 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       if (r.device) {
         setDevice(r.device);
         localStorage.setItem(DEVICE_KEY, JSON.stringify(r.device));
+      } else {
+        setDevice(null);
+        localStorage.removeItem(DEVICE_KEY);
       }
     },
     async register(email, password, displayName) {
       const r = await apiFetch<{ token: string; user: SessionUser; device: DeviceInfo }>('/auth/register', {
         method: 'POST',
-        body: JSON.stringify({ email, password, displayName }),
+        body: JSON.stringify({ email: email.trim(), password, displayName: displayName.trim() }),
       });
       localStorage.setItem(TOKEN_KEY, r.token);
       setUser(r.user);
