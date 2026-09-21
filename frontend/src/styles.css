@@ -7123,10 +7123,11 @@
             overflow: hidden;
         }
         
+        .app.layout-mobile .layout-switcher button[aria-label="Use desktop layout"] {
+            display: none;
+        }
+        
         @media (max-width: 430px) {
-            .app.layout-mobile .layout-switcher button[aria-label="Use desktop layout"] {
-                display: none;
-            }
             .app.layout-mobile .topbar {
                 gap: 6px;
                 padding-inline: 8px;
