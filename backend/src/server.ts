@@ -21,6 +21,9 @@ import { missingRouter } from './routes/missing.js';
 import { respondersRouter } from './routes/responders.js';
 import { realtimeRouter } from './routes/realtime.js';
 import { notificationsRouter } from './routes/notifications.js';
+import { aiRouter } from './routes/ai.js';
+import { settingsRouter } from './routes/settings.js';
+import { startNotificationDeliveryWorker } from './notifications.js';
 
 const app = express();
 app.set('trust proxy', 1);
@@ -44,9 +47,12 @@ app.use((req, res, next) => {
   next();
 });
 
-app.get('/healthz', (_req, res) => {
+const healthCheck = (_req: express.Request, res: express.Response) => {
   res.json({ ok: true, env: config.env, demoMode: config.demoMode });
-});
+};
+
+app.get('/healthz', healthCheck);
+app.get('/api/healthz', healthCheck);
 
 app.use('/api/auth', authRouter);
 app.use('/api/emergency-profiles', profileRouter);
@@ -59,6 +65,8 @@ app.use('/api/broadcasts', broadcastsRouter);
 app.use('/api/missing-persons', missingRouter);
 app.use('/api/responders', respondersRouter);
 app.use('/api/notifications', notificationsRouter);
+app.use('/api/ai', aiRouter);
+app.use('/api/settings', settingsRouter);
 app.use('/api/sitreps', sitrepsRouter);
 app.use('/api/resources', resourcesRouter);
 app.use('/api/realtime', realtimeRouter);
@@ -81,8 +89,16 @@ app.use(errorHandler);
 const server = http.createServer(app);
 
 const PORT = config.port;
-server.listen(PORT, () => {
-  logger.info(`ResQNET backend listening on :${PORT} (env=${config.env}, demo=${config.demoMode})`);
-});
+const entrypoint = process.argv[1] ? path.resolve(process.argv[1]) : '';
+const currentFile = path.resolve(fileURLToPath(import.meta.url));
+
+// Keep imports side-effect free so Vitest and embedding callers can use `app`
+// without opening a second listener on the development port.
+if (entrypoint === currentFile) {
+  startNotificationDeliveryWorker();
+  server.listen(PORT, () => {
+    logger.info(`IQOO backend listening on :${PORT} (env=${config.env}, demo=${config.demoMode})`);
+  });
+}
 
 export { app, server };

@@ -6,10 +6,15 @@ All bodies JSON. Errors: `{ "error": string, "issues"?: [...] }`.
 ## auth
 | Method | Path | Body | Notes |
 |---|---|---|---|
-| POST | `/auth/register` | `{email, password, displayName, phone?}` | → 201 `{token, user, device{id, publicId, secret}}` — secret shown ONCE |
-| POST | `/auth/login` | `{email, password}` | → `{token, user, device?}` |
+| POST | `/auth/register` | `{email, password, displayName, phone?}` | → 201 `{token, user{id,email,phone,displayName,role}, device{id, publicId, secret}}` — secret shown ONCE |
+| POST | `/auth/login` | `{email, password}` | → `{token, user{id,email,phone,displayName,role}, device?}` |
 | POST | `/auth/devices` | `{name}` | register additional device |
-| GET | `/auth/me` | — | current user + role |
+| GET | `/auth/me` | — | current user `{id,email,phone,displayName,role}` |
+
+## ai assistance
+| Method | Path | Body | Notes |
+|---|---|---|---|
+| POST | `/ai/classify` | `{text, battery?, saysImmobile?}` | Authenticated deterministic offline rule-engine fallback; does not persist text or call a cloud model |
 
 ## emergency-profiles
 | Method | Path | Notes |
@@ -20,27 +25,44 @@ All bodies JSON. Errors: `{ "error": string, "issues"?: [...] }`.
 
 Visibility tiers: `PRIVATE | FAMILY | RESPONDERS | NEARBY_HELPERS`.
 `consentMedicalShare=false` strips allergies/conditions/medications even for responders.
+The permitted card fields include name, age, gender, blood group, primary and secondary
+phone, emergency contact, accessibility needs, and emergency notes. Emergency notes and
+medical fields are removed when the consent gate does not allow disclosure.
 
 ## family
 `GET /family` · `POST /family` · `PUT /family/:id` · `DELETE /family/:id`
 Fields: `name, relation(FATHER…OTHER), phone, priority(1=highest), trusted, iqooAccountId?`.
+`GET /family` also returns `linked`, `checkInStatus`, `lastCheckInAt`, and the latest
+coordinate-bearing `lastLocation` for the linked account.
 
 ## emergencies
 | Method | Path | Notes |
 |---|---|---|
-| POST | `/emergencies` | `{type: SOS\|QUICK_HELP, severity, category?, message?, location{latitude,longitude,accuracyMeters,state}, battery?, requiresMedicalHelp, requiresPoliceHelp, ai?}` → 201 `{emergencyId: "IQ-XXXXXXXX"}` |
-| POST | `/emergencies/:id/resolve` | signed RESOLUTION packet; `resolvedHow: USER_SAFE\|USER_CANCELLED\|RESPONDER` |
+| POST | `/emergencies` | `{type: SOS\|QUICK_HELP, severity, category?, message?, location{latitude,longitude,accuracyMeters,state}, battery?, requiresMedicalHelp, requiresPoliceHelp, ai?}` → 201 `{emergencyId: "IQ-XXXXXXXX", clientFeedback:{vibrationPatternMs:[120,60,180]}}`; vibration is executed locally by the client |
+| POST | `/emergencies/:id/safe-ping` | Owner of an active emergency broadcasts an all-safe family notification; → `{notifiedCount, createdAt}` and SSE `family_safe_ping` |
+| POST | `/emergencies/:id/sitrep` | Owner-only `{text}` (≤280 chars), encrypted at rest; → `{id, encrypted:true, createdAt}` and SSE metadata event |
+| GET | `/emergencies/:id/sitreps` | Owner-only decrypted notes for the emergency |
+| POST | `/emergencies/:id/resolve` | signed RESOLUTION packet; `resolvedHow: USER_SAFE\|USER_CANCELLED\|RESPONDER`; → `{status:"RESOLVED", clientFeedback:{state:"DISARMED", vibrationPatternMs:[60,40,60]}}` |
 | GET | `/emergencies?limit=` | own history |
 
 ## check-ins
 `POST /check-ins` `{status: SAFE|AT_RISK|NEEDS_HELP, note?, lat?, lon?}` ·
 `GET /check-ins/family-status` — latest per linked family member.
 
+## notifications
+`GET /notifications` — authenticated notification rows for the current recipient,
+including `channel` (`SSE`, `SMS`, `PUSH`, `EMERGENCY_SERVICE`), `delivery_state`,
+attempt count, and provider error when applicable.
+
+`POST /notifications/:id/ack` — idempotently acknowledge a delivered notification.
+External channels are queued and delivered through configured backend webhooks;
+without provider configuration they remain `PENDING` and are never reported as sent.
+
 ## sync (offline-first, §47)
 | Method | Path | Notes |
 |---|---|---|
 | POST | `/sync/push` | `{events: [...], packets: [...]}` idempotent — replays never duplicate |
-| GET | `/sync/pull?since=` | delta since cursor |
+| GET | `/sync/pull?cursor=&limit=` | delta since the `created_at` cursor |
 | POST | `/sync/ack` | mark delivery states |
 
 ## responders (§18, RBAC)
@@ -57,8 +79,18 @@ Fields: `name, relation(FATHER…OTHER), phone, priority(1=highest), trusted, iq
 `GET /broadcasts` (any user; only unexpired) · `POST /broadcasts/:id/cancel`.
 
 ## missing-persons (§27)
-`POST /missing-persons` (authorized) `{fullName, age?, gender?, description?, clothing?, lastSeenTime, lastLat?, lastLon?, contactPhone, photoDataUrl?}` — consent + legal controls; **no automatic facial recognition, ever**.
-`GET /missing-persons/active` · `POST /missing-persons/:id/status` `{status}` · `POST /missing-persons/:id/sightings`.
+`POST /missing-persons` (authorized) `{personName, description?, clothing?, lastSeenAt, lastLat?, lastLon?, contactPhone, photo?}` — consent + legal controls; **no automatic facial recognition, ever**.
+`GET /missing-persons` (open reports) · `POST /missing-persons/:id/status` `{status: FOUND|CANCELLED}`.
+
+## resources
+`GET /resources/nearby?lat=&lon=&limit=` — verified demo resource points ranked nearby;
+includes `MEDICAL` hospitals, `POLICE` stations, shelters, safe zones, water, and supplies.
+The dataset is explicitly seed/demo data, not a live government feed.
+
+## sitreps
+`POST /sitreps` (authenticated) `{kind, text, lat?, lon?}` · `GET /sitreps` (public,
+newest first; optional `kind` filter). Public reads are intentional so safety bulletins
+remain visible without an account.
 
 ## simulator (§51) — demo only
 `POST /sim/engine` `{links:[{a,b,lossRate?}], batteryPercent}` (resets topology) ·

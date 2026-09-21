@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { classifyFromText, EMERGENCY_PROMPT_SUGGESTIONS } from './ai.js';
+import { triageHelp } from './triage.js';
 
 describe('local AI classifier (Phase 6)', () => {
   it('classifies a medical emergency as CRITICAL', () => {
@@ -49,5 +50,19 @@ describe('local AI classifier (Phase 6)', () => {
 
   it('exposes prompt suggestions for voice UX', () => {
     expect(EMERGENCY_PROMPT_SUGGESTIONS.length).toBeGreaterThan(2);
+  });
+
+  it('routes lost users to maps instead of SOS', () => {
+    expect(triageHelp('I am lost and need directions').action).toBe('OFFLINE_MAP');
+  });
+
+  it('routes high-risk medical help to SOS', () => {
+    const result = triageHelp('I have severe bleeding and cannot move');
+    expect(result.action).toBe('SOS');
+    expect(result.severity).toBe('CRITICAL');
+  });
+
+  it('routes general assistance to the local chat', () => {
+    expect(triageHelp('I need assistance carrying my bag').action).toBe('CHAT');
   });
 });

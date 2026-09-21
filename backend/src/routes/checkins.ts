@@ -8,6 +8,8 @@ import { requireAuth, type AuthedRequest } from '../middleware/auth.js';
 export const checkinsRouter = Router();
 
 const checkinSchema = z.object({
+  checkInId: z.string().uuid().optional(),
+  createdAt: z.string().datetime().optional(),
   status: z.enum(['SAFE', 'AT_RISK', 'NEEDS_HELP']).default('SAFE'),
   note: z.string().max(500).optional(),
   lat: z.number().min(-90).max(90).optional(),
@@ -21,10 +23,10 @@ checkinsRouter.post('/', requireAuth, (req: AuthedRequest, res) => {
     return;
   }
   const c = parsed.data;
-  const id = randomUUID();
+  const id = c.checkInId ?? randomUUID();
   db.prepare(
-    'INSERT INTO check_ins (id, user_id, status, note, lat, lon, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
-  ).run(id, req.user!.userId, c.status, c.note ?? null, c.lat ?? null, c.lon ?? null, new Date().toISOString());
+    'INSERT OR IGNORE INTO check_ins (id, user_id, status, note, lat, lon, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
+  ).run(id, req.user!.userId, c.status, c.note ?? null, c.lat ?? null, c.lon ?? null, c.createdAt ?? new Date().toISOString());
   audit(req.user!.userId, 'checkin.create', 'check_in', id, { status: c.status });
   res.status(201).json({ ok: true, checkInId: id, status: c.status });
 });
@@ -49,13 +51,13 @@ checkinsRouter.get('/family-status', requireAuth, (req: AuthedRequest, res) => {
   ).all(req.user!.userId) as Array<{ id: string; name: string; iqoo_account_id: string | null }>;
 
   const latest = db.prepare(
-    `SELECT status, created_at FROM check_ins WHERE user_id = ? ORDER BY created_at DESC LIMIT 1`,
+    `SELECT status, lat, lon, created_at FROM check_ins WHERE user_id = ? ORDER BY created_at DESC LIMIT 1`,
   );
 
   res.json({
     members: members.map((m) => {
       const row = m.iqoo_account_id
-        ? (latest.get(m.iqoo_account_id) as { status: string; created_at: string } | undefined)
+        ? (latest.get(m.iqoo_account_id) as { status: string; lat: number | null; lon: number | null; created_at: string } | undefined)
         : undefined;
       return {
         id: m.id,
@@ -63,6 +65,7 @@ checkinsRouter.get('/family-status', requireAuth, (req: AuthedRequest, res) => {
         linked: !!m.iqoo_account_id,
         checkInStatus: row?.status ?? null,
         lastCheckInAt: row?.created_at ?? null,
+        lastLocation: row?.lat != null && row?.lon != null ? { latitude: row.lat, longitude: row.lon } : null,
       };
     }),
   });

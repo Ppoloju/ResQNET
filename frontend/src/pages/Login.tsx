@@ -38,61 +38,20 @@ export default function Login() {
     setBusy(true);
     setError('');
     try {
-      if (mode === 'login') {
-        const r = await login(email.trim().toLowerCase(), password);
-        if (r.twoFactorRequired) {
-          setPendingEmail(email.trim().toLowerCase());
-          setCode('');
-          go('verify2fa', `We emailed a 6-digit code to ${r.maskedEmail ?? 'your email'}. It expires in 10 minutes.`);
-          return;
-        }
-        navigate('/');
-      } else if (mode === 'register') {
-        await register(email.trim().toLowerCase(), password, displayName.trim() || email.split('@')[0]);
-        setPendingEmail(email.trim().toLowerCase());
-        setCode('');
-        go('verifyEmail', 'Account created. Check your email for the 6-digit verification code.');
-      } else if (mode === 'verify2fa') {
-        await verify2fa(pendingEmail, code.trim());
-        navigate('/');
-      } else if (mode === 'verifyEmail') {
-        await verifyEmail(pendingEmail, code.trim());
-        setNotice('Email verified — everything is unlocked.');
-        navigate('/');
-      } else if (mode === 'forgot') {
-        await forgotPassword(email.trim().toLowerCase());
-        setPendingEmail(email.trim().toLowerCase());
-        setCode('');
-        setNewPassword('');
-        go('reset', 'If that address has an account, a reset code is on its way.');
-      } else if (mode === 'reset') {
-        if (newPassword.length < 8) { setError('Password must be at least 8 characters.'); setBusy(false); return; }
-        await resetPassword(pendingEmail, code.trim(), newPassword);
-        go('login', 'Password updated. Sign in with your new password.');
-      }
+      const normalizedEmail = email.trim();
+      if (mode === 'login') await login(normalizedEmail, password);
+      else await register(normalizedEmail, password, displayName.trim() || normalizedEmail.split('@')[0]);
+      navigate('/');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong.');
       setBusy(false);
     }
   }
 
-  const codeEntry = (
-    <>
-      <label htmlFor="code">6-digit code from your email</label>
-      <input
-        id="code"
-        inputMode="numeric"
-        pattern="\d{6}"
-        maxLength={6}
-        required
-        autoComplete="one-time-code"
-        className="code-input"
-        value={code}
-        onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
-        placeholder="••••••"
-      />
-    </>
-  );
+  function switchMode(nextMode: 'login' | 'register') {
+    setMode(nextMode);
+    setError('');
+  }
 
   return (
     <div>
@@ -122,15 +81,12 @@ export default function Login() {
               autoComplete={mode === 'login' ? 'current-password' : 'new-password'} />
           </>
         )}
-
-        {mode === 'verify2fa' && codeEntry}
-        {mode === 'verifyEmail' && codeEntry}
-        {mode === 'reset' && <>{codeEntry}
-          <label htmlFor="newPassword">New password (min 8 chars)</label>
-          <input id="newPassword" type="password" required minLength={8} value={newPassword}
-            onChange={(e) => setNewPassword(e.target.value)} autoComplete="new-password" />
-        </>}
-
+        <label htmlFor="email">Email</label>
+        <input id="email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" />
+        <label htmlFor="password">{mode === 'register' ? 'Password (min 8 chars)' : 'Password'}</label>
+        <input id="password" type="password" required minLength={mode === 'register' ? 8 : 1} value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          autoComplete={mode === 'login' ? 'current-password' : 'new-password'} />
         {error && <p className="error-text" role="alert">{error}</p>}
 
         <button className="btn-primary mt" type="submit" disabled={busy} style={{ width: '100%' }}>
@@ -144,46 +100,10 @@ export default function Login() {
       </form>
 
       <p className="mt">
-        {mode === 'login' && (
-          <>
-            No account? <button className="btn-ghost" onClick={() => go('register')}>Register</button>
-            {' · '}
-            <button className="btn-ghost" onClick={() => go('forgot')}>Forgot password?</button>
-          </>
-        )}
-        {(mode === 'register' || mode === 'verifyEmail') && (
-          <button className="btn-ghost" onClick={() => go('login')}>Back to sign in</button>
-        )}
-        {mode === 'verify2fa' && (
-          <button
-            className="btn-ghost"
-            disabled={busy}
-            onClick={async () => {
-              setBusy(true); setError('');
-              try { await resend2fa(pendingEmail); setNotice('A new code is on its way.'); }
-              catch (err) { setError(err instanceof Error ? err.message : 'Could not resend.'); }
-              finally { setBusy(false); }
-            }}
-          >
-            Resend code
-          </button>
-        )}
-        {mode === 'verifyEmail' && (
-          <button
-            className="btn-ghost"
-            disabled={busy}
-            onClick={async () => {
-              setBusy(true); setError('');
-              try { await resendVerification(pendingEmail); setNotice('A new code is on its way.'); }
-              catch (err) { setError(err instanceof Error ? err.message : 'Could not resend.'); }
-              finally { setBusy(false); }
-            }}
-          >
-            Resend code
-          </button>
-        )}
-        {mode === 'reset' && (
-          <button className="btn-ghost" onClick={() => go('forgot')}>Request a new code</button>
+        {mode === 'login' ? (
+          <>No account? <button type="button" className="btn-ghost" onClick={() => switchMode('register')}>Register</button></>
+        ) : (
+          <>Have an account? <button type="button" className="btn-ghost" onClick={() => switchMode('login')}>Sign in</button></>
         )}
       </p>
 

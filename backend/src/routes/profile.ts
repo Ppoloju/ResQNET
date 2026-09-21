@@ -33,9 +33,12 @@ function redactForShare(row: Record<string, unknown>) {
     age: row.age,
     gender: row.gender,
     bloodGroup: row.blood_group,
+    phonePrimary: row.phone_primary,
+    phoneSecondary: row.phone_secondary,
     allergies: row.allergies,
     medicalConditions: row.medical_conditions,
     medications: row.medications,
+    emergencyNotes: row.emergency_notes,
     emergencyContactName: row.emergency_contact_name,
     emergencyContactPhone: row.emergency_contact_phone,
     accessibilityNeeds: row.accessibility_needs,
@@ -152,7 +155,7 @@ profileRouter.get('/me/card', requireAuth, (req: AuthedRequest, res) => {
   const base = redactForShare(row);
   if (visibility === 'PRIVATE' || !consent) {
     // Owner always sees their own card but medical fields are omitted unless consented.
-    const { allergies: _a, medicalConditions: _c, medications: _m, ...noMedical } = base;
+    const { allergies: _a, medicalConditions: _c, medications: _m, emergencyNotes: _n, ...noMedical } = base;
     res.json({ card: { ...noMedical, visibility, medicalIncluded: false } });
     return;
   }

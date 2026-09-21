@@ -7,7 +7,7 @@
 
 import { haversineMeters } from './net.js';
 
-export type ResourceKind = 'SHELTER' | 'MEDICAL' | 'SAFE_ZONE' | 'WATER' | 'SUPPLIES';
+export type ResourceKind = 'SHELTER' | 'MEDICAL' | 'POLICE' | 'SAFE_ZONE' | 'WATER' | 'SUPPLIES';
 
 export interface ResourcePoint {
   id: string;
@@ -22,14 +22,14 @@ export interface ResourcePoint {
   source: string;
 }
 
-/** Severity ranking for stable list ordering. */
+/** Kind ranking is only a tie-breaker after geographic distance. */
 const KIND_ORDER: Record<ResourceKind, number> = {
-  MEDICAL: 0, SHELTER: 1, SAFE_ZONE: 2, WATER: 3, SUPPLIES: 4,
+  MEDICAL: 0, POLICE: 1, SHELTER: 2, SAFE_ZONE: 3, WATER: 4, SUPPLIES: 5,
 };
 
 /**
- * Rank resources by distance from the user with a small kind-priority tiebreak
- * (a shelter 10 m farther than a water point still ranks first).
+ * Rank resources by geographic distance from the user. Kind is only a stable
+ * tie-breaker so a farther hospital never displaces a nearer resource.
  */
 export function rankResources<T extends ResourcePoint>(
   points: T[],
@@ -39,6 +39,8 @@ export function rankResources<T extends ResourcePoint>(
   return points
     .map((p) => ({ ...p, distanceM: haversineMeters(userLat, userLon, p.lat, p.lon) }))
     .sort((a, b) => {
+      const distance = a.distanceM - b.distanceM;
+      if (Math.abs(distance) > 1) return distance;
       const k = KIND_ORDER[a.kind] - KIND_ORDER[b.kind];
       if (k !== 0) return k;
       return a.distanceM - b.distanceM;

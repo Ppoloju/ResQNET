@@ -12,8 +12,8 @@ export const notificationsRouter = Router();
 /** My notifications: emergencies where I'm the owner, newest first. */
 notificationsRouter.get('/', requireAuth, (req: AuthedRequest, res) => {
   const rows = db.prepare(`
-    SELECT n.id, n.emergency_id, n.family_member_id, n.channel, n.delivery_state,
-           n.created_at, n.delivered_at,
+        SELECT n.id, n.emergency_id, n.family_member_id, n.channel, n.delivery_state,
+          n.attempts, n.last_attempt_at, n.provider_error, n.created_at, n.delivered_at,
            e.type AS emergency_type, e.severity, e.status AS emergency_status, e.message
     FROM notifications n JOIN emergency_events e ON e.id = n.emergency_id
     WHERE n.user_id = ? ORDER BY n.created_at DESC LIMIT 100

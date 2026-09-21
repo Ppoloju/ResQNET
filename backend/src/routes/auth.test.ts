@@ -124,6 +124,22 @@ describe('auth + API smoke', () => {
     token = step2.body.token;
   });
 
+  it('normalizes auth input and rejects blank display names', async () => {
+    const normalized = await request(app).post('/api/auth/register')
+      .send({ email: '  spaced-user@test.io  ', password: 'Str0ngPass!x', displayName: '  Spaced User  ' });
+    expect(normalized.status).toBe(201);
+    expect(normalized.body.user.email).toBe('spaced-user@test.io');
+    expect(normalized.body.user.displayName).toBe('Spaced User');
+
+    const login = await request(app).post('/api/auth/login')
+      .send({ email: '  spaced-user@test.io  ', password: 'Str0ngPass!x' });
+    expect(login.status).toBe(200);
+
+    const blankName = await request(app).post('/api/auth/register')
+      .send({ email: 'blank-name@test.io', password: 'Str0ngPass!x', displayName: '   ' });
+    expect(blankName.status).toBe(400);
+  });
+
   it('protects endpoints without token', async () => {
     const res = await request(app).get('/api/emergency-profiles/me');
     expect(res.status).toBe(401);
@@ -145,6 +161,34 @@ describe('auth + API smoke', () => {
     expect(get.body.profile.visibility).toBe('RESPONDERS');
   });
 
+  it('persists device hardware settings', async () => {
+    const initial = await request(app).get('/api/settings').set('Authorization', `Bearer ${token}`);
+    expect(initial.status).toBe(200);
+    expect(initial.body.settings.relayConsent).toBe(true);
+
+    const updated = { ...initial.body.settings, relayConsent: false, criticalThresholdPct: 25 };
+    const put = await request(app).put('/api/settings')
+      .set('Authorization', `Bearer ${token}`)
+      .send(updated);
+    expect(put.status).toBe(200);
+
+    const reread = await request(app).get('/api/settings').set('Authorization', `Bearer ${token}`);
+    expect(reread.body.settings.relayConsent).toBe(false);
+    expect(reread.body.settings.criticalThresholdPct).toBe(25);
+  });
+
+  it('accepts an offline check-in retry without duplicating it', async () => {
+    const checkInId = '11111111-1111-4111-8111-111111111111';
+    const payload = { checkInId, status: 'SAFE', note: 'queued', createdAt: new Date().toISOString() };
+    const first = await request(app).post('/api/check-ins').set('Authorization', `Bearer ${token}`).send(payload);
+    const second = await request(app).post('/api/check-ins').set('Authorization', `Bearer ${token}`).send(payload);
+    expect(first.status).toBe(201);
+    expect(second.status).toBe(201);
+    const { db } = await import('../db.js');
+    const count = db.prepare('SELECT COUNT(*) AS count FROM check_ins WHERE id = ?').get(checkInId) as { count: number };
+    expect(count.count).toBe(1);
+  });
+
   it('creates an emergency with a server-signed packet (§10)', async () => {
     const res = await request(app).post('/api/emergencies')
       .set('Authorization', `Bearer ${token}`)
@@ -155,13 +199,30 @@ describe('auth + API smoke', () => {
       });
     expect(res.status).toBe(201);
     const id = res.body.emergencyId as string;
-    expect(id).toMatch(/^RQ-/);
+    expect(id).toMatch(/^IQ-/);
+    expect(res.body.clientFeedback.vibrationPatternMs).toEqual([120, 60, 180]);
 
     const detail = await request(app).get(`/api/emergencies/${id}`)
       .set('Authorization', `Bearer ${token}`);
     expect(detail.status).toBe(200);
     expect(detail.body.packets.length).toBe(1);
     expect(detail.body.packets[0].signature).toMatch(/^[0-9a-f]{64}$/);
+  });
+
+  it('preserves a device-generated emergency id so it can be resolved', async () => {
+    const id = 'IQ-ONLINE01';
+    const created = await request(app).post('/api/emergencies')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        emergencyId: id, type: 'SOS', severity: 'HIGH', message: 'stable id',
+        location: { latitude: 0, longitude: 0, accuracyMeters: null, state: 'LOCATION_UNAVAILABLE' },
+      });
+    expect(created.status).toBe(201);
+    expect(created.body.emergencyId).toBe(id);
+
+    const resolved = await request(app).post(`/api/emergencies/${id}/resolve`)
+      .set('Authorization', `Bearer ${token}`);
+    expect(resolved.status).toBe(200);
   });
 
   it('resolves an emergency and records resolution packet', async () => {
@@ -177,6 +238,7 @@ describe('auth + API smoke', () => {
       .set('Authorization', `Bearer ${token}`);
     expect(res.status).toBe(200);
     expect(res.body.status).toBe('RESOLVED');
+    expect(res.body.clientFeedback).toEqual({ state: 'DISARMED', vibrationPatternMs: [60, 40, 60] });
 
     const again = await request(app).post(`/api/emergencies/${id}/resolve`)
       .set('Authorization', `Bearer ${token}`);
@@ -277,5 +339,53 @@ describe('auth + API smoke', () => {
     const gw = state.body.nodes.find((n: { id: string }) => n.id === 'GW');
     expect(gw.seenPackets).toBe(1);
     expect(state.body.stats.acked).toBeGreaterThan(0);
+  });
+
+  it('toggles Disaster Mode for the protected simulator walkthrough', async () => {
+    const enabled = await request(app).post('/api/sim/disaster-mode')
+      .set('Authorization', `Bearer ${token}`).send({ enabled: true });
+    expect(enabled.status).toBe(200);
+    expect(enabled.body.enabled).toBe(true);
+
+    const disabled = await request(app).post('/api/sim/disaster-mode')
+      .set('Authorization', `Bearer ${token}`).send({ enabled: false });
+    expect(disabled.status).toBe(200);
+    expect(disabled.body.enabled).toBe(false);
+  });
+
+  it('broadcasts a safe ping and stores an encrypted emergency sitrep', async () => {
+    const member = await request(app).post('/api/family')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ name: 'Family Node', relation: 'FRIEND', phone: '+911234567890', priority: 1, trusted: true });
+    expect(member.status).toBe(201);
+
+    const family = await request(app).get('/api/family').set('Authorization', `Bearer ${token}`);
+    expect(family.status).toBe(200);
+    expect(family.body.members[0]).toMatchObject({ linked: false, checkInStatus: null, lastCheckInAt: null });
+
+    const created = await request(app).post('/api/emergencies')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        emergencyId: 'IQ-ACTIVE01', type: 'SOS', severity: 'CRITICAL', message: 'active test',
+        location: { latitude: 0, longitude: 0, accuracyMeters: null, state: 'LOCATION_UNAVAILABLE' },
+      });
+    expect(created.status).toBe(201);
+
+    const ping = await request(app).post('/api/emergencies/IQ-ACTIVE01/safe-ping')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ message: 'All safe - acknowledge when able.' });
+    expect(ping.status).toBe(200);
+    expect(ping.body.notifiedCount).toBe(1);
+
+    const sitrep = await request(app).post('/api/emergencies/IQ-ACTIVE01/sitrep')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ text: 'At the east shelter entrance.' });
+    expect(sitrep.status).toBe(201);
+    expect(sitrep.body.encrypted).toBe(true);
+
+    const notes = await request(app).get('/api/emergencies/IQ-ACTIVE01/sitreps')
+      .set('Authorization', `Bearer ${token}`);
+    expect(notes.status).toBe(200);
+    expect(notes.body.sitreps[0].text).toBe('At the east shelter entrance.');
   });
 });

@@ -106,7 +106,7 @@ describe('gateway sync + responders + broadcasts (Phases 7/12)', () => {
     const packet = makePacket({ emergencyId: `IQ${Math.random().toString(36).slice(2, 8).toUpperCase()}` });
     syncEmergencyFromGateway({ ...packet, signature: 'sig' }, reg.body.user.id);
 
-    const notifs = db.prepare('SELECT * FROM notifications WHERE emergency_id = ?').all(packet.emergencyId);
+    const notifs = db.prepare("SELECT * FROM notifications WHERE emergency_id = ? AND channel = 'SSE'").all(packet.emergencyId);
     expect(notifs.length).toBe(2);
   });
 

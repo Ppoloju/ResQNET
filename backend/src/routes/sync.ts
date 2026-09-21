@@ -53,6 +53,24 @@ syncRouter.post('/push', requireAuth, (req: AuthedRequest, res) => {
   const ackedEventIds: string[] = [];
   const ackedPacketIds: string[] = [];
 
+  // Emergency ids are globally unique. Do this ownership check before writing
+  // so a guessed id cannot attach a caller's packet to somebody else's event.
+  const eventIds = new Set(events.map((e) => e.id));
+  for (const emergencyId of new Set([...eventIds, ...packets.map((p) => p.emergencyId)])) {
+    const existing = db.prepare('SELECT user_id FROM emergency_events WHERE id = ?').get(emergencyId) as
+      | { user_id: string }
+      | undefined;
+    if (existing && existing.user_id !== userId) {
+      res.status(409).json({ error: 'emergency id belongs to another user' });
+      return;
+    }
+    // A packet must either accompany its new event or refer to one the caller owns.
+    if (!existing && !eventIds.has(emergencyId)) {
+      res.status(400).json({ error: 'packet references an unknown emergency' });
+      return;
+    }
+  }
+
   tx(() => {
     for (const e of events) {
       const info = db.prepare(
@@ -95,9 +113,12 @@ syncRouter.get('/pull', requireAuth, (req: AuthedRequest, res) => {
   const cursor = typeof req.query.cursor === 'string' ? req.query.cursor : new Date(0).toISOString();
   const limit = Math.min(Number(req.query.limit ?? config.syncBatchSize ?? 50), 200);
   const rows = db.prepare(
-    `SELECT id, emergency_id, type, priority, payload, signature, hop_count, created_at
-     FROM emergency_messages WHERE created_at > ? ORDER BY created_at ASC LIMIT ?`,
-  ).all(cursor, limit + 1) as Array<Record<string, unknown>>;
+    `SELECT m.id, m.emergency_id, m.type, m.priority, m.payload, m.signature, m.hop_count, m.created_at
+     FROM emergency_messages m
+     JOIN emergency_events e ON e.id = m.emergency_id
+     WHERE e.user_id = ? AND m.created_at > ?
+     ORDER BY m.created_at ASC LIMIT ?`,
+  ).all(req.user!.userId, cursor, limit + 1) as Array<Record<string, unknown>>;
 
   const hasMore = rows.length > limit;
   const page = rows.slice(0, limit);
@@ -123,7 +144,10 @@ syncRouter.post('/ack', requireAuth, (req: AuthedRequest, res) => {
   const now = new Date().toISOString();
   tx(() => {
     for (const pid of parsed.data.packetIds) {
-      db.prepare('UPDATE emergency_messages SET synced_at = ? WHERE id = ?').run(now, pid);
+      db.prepare(
+        `UPDATE emergency_messages SET synced_at = ? WHERE id = ?
+         AND emergency_id IN (SELECT id FROM emergency_events WHERE user_id = ?)`,
+      ).run(now, pid, req.user!.userId);
     }
   });
   res.json({ ok: true, acked: parsed.data.packetIds.length });

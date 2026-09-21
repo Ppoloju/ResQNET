@@ -60,6 +60,7 @@ export class LocalNetworkTransport implements Transport {
           ...(localStorage.getItem('resqnet.token') ? { authorization: `Bearer ${localStorage.getItem('resqnet.token')}` } : {}),
         },
         body: JSON.stringify({
+          emergencyId: packet.emergencyId,
           type: packet.type === 'QUICK_HELP' ? 'QUICK_HELP' : 'SOS',
           severity: packet.priority,
           message: packet.message,

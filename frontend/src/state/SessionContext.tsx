@@ -3,6 +3,7 @@ import { createContext, useContext, useEffect, useMemo, useState, type ReactNode
 export interface SessionUser {
   id: string;
   email: string;
+  phone?: string | null;
   displayName: string;
   role: string;
   emailVerified?: boolean;
@@ -45,12 +46,14 @@ const SessionContext = createContext<SessionState>(null as unknown as SessionSta
 export const API_BASE = (import.meta.env.VITE_API_URL as string | undefined) ?? '/api';
 
 /** Token storage: localStorage is acceptable for the prototype; production plan = HttpOnly cookie + refresh (docs/security.md). */
-const TOKEN_KEY = 'resqnet.token';
+const TOKEN_KEY = 'iqoo.token';
+const USER_KEY = 'iqoo.sessionUser';
+const DEVICE_KEY = 'iqoo.device';
 
-function persistSession(r: { token: string; user: SessionUser; device?: DeviceInfo | null; withSecret?: boolean }) {
-  localStorage.setItem(TOKEN_KEY, r.token);
-  if (r.device) {
-    localStorage.setItem('resqnet.device', JSON.stringify(r.device));
+export class ApiError extends Error {
+  constructor(message: string, public readonly status: number) {
+    super(message);
+    this.name = 'ApiError';
   }
 }
 
@@ -60,7 +63,7 @@ export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise
   if (token) headers.authorization = `Bearer ${token}`;
   const res = await fetch(`${API_BASE}${path}`, { ...init, headers });
   const body = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error((body as { error?: string }).error ?? `HTTP ${res.status}`);
+  if (!res.ok) throw new ApiError((body as { error?: string }).error ?? `HTTP ${res.status}`, res.status);
   return body as T;
 }
 
@@ -70,6 +73,16 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    try {
+      const cachedUser = localStorage.getItem(USER_KEY);
+      const cachedDevice = localStorage.getItem(DEVICE_KEY);
+      if (cachedUser) setUser(JSON.parse(cachedUser) as SessionUser);
+      if (cachedDevice) setDevice(JSON.parse(cachedDevice) as DeviceInfo);
+    } catch {
+      localStorage.removeItem(USER_KEY);
+      localStorage.removeItem(DEVICE_KEY);
+    }
+
     if (!localStorage.getItem(TOKEN_KEY)) {
       setLoading(false);
       return;
@@ -77,12 +90,23 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     apiFetch<{ user: SessionUser }>('/auth/me')
       .then((r) => {
         setUser(r.user);
+        localStorage.setItem(USER_KEY, JSON.stringify(r.user));
         try {
-          const d = localStorage.getItem('resqnet.device');
+          const d = localStorage.getItem(DEVICE_KEY);
           if (d) setDevice(JSON.parse(d) as DeviceInfo);
         } catch { /* ignore corrupt device cache */ }
       })
-      .catch(() => localStorage.removeItem(TOKEN_KEY))
+      .catch((error: unknown) => {
+        // A network outage must not sign the user out. Only an explicit auth
+        // rejection means the persisted session is no longer valid.
+        if (error instanceof ApiError && (error.status === 401 || error.status === 403)) {
+          localStorage.removeItem(TOKEN_KEY);
+          localStorage.removeItem(USER_KEY);
+          localStorage.removeItem(DEVICE_KEY);
+          setUser(null);
+          setDevice(null);
+        }
+      })
       .finally(() => setLoading(false));
   }, []);
 
@@ -93,10 +117,17 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     async login(email, password) {
       const r = await apiFetch<{ token?: string; twoFactorRequired?: boolean; email?: string; user?: SessionUser; device?: DeviceInfo | null }>('/auth/login', {
         method: 'POST',
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email: email.trim(), password }),
       });
-      if (r.twoFactorRequired) {
-        return { ok: true, twoFactorRequired: true, maskedEmail: r.email };
+      localStorage.setItem(TOKEN_KEY, r.token);
+      setUser(r.user);
+      localStorage.setItem(USER_KEY, JSON.stringify(r.user));
+      if (r.device) {
+        setDevice(r.device);
+        localStorage.setItem(DEVICE_KEY, JSON.stringify(r.device));
+      } else {
+        setDevice(null);
+        localStorage.removeItem(DEVICE_KEY);
       }
       if (!r.token || !r.user) throw new Error('login failed');
       persistSession({ token: r.token, user: r.user, device: r.device });
@@ -119,34 +150,18 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     async register(email, password, displayName) {
       const r = await apiFetch<{ token: string; user: SessionUser; device: DeviceInfo }>('/auth/register', {
         method: 'POST',
-        body: JSON.stringify({ email, password, displayName }),
+        body: JSON.stringify({ email: email.trim(), password, displayName: displayName.trim() }),
       });
       persistSession({ token: r.token, user: r.user, device: r.device });
       setUser(r.user);
       setDevice(r.device);
-    },
-    async verifyEmail(email, code) {
-      await apiFetch('/auth/verify-email', { method: 'POST', body: JSON.stringify({ email, code }) });
-      setUser((u) => (u ? { ...u, emailVerified: true } : u));
-    },
-    async resendVerification(email) {
-      await apiFetch('/auth/resend-verification', { method: 'POST', body: JSON.stringify({ email }) });
-    },
-    async forgotPassword(email) {
-      await apiFetch('/auth/forgot-password', { method: 'POST', body: JSON.stringify({ email }) });
-    },
-    async resetPassword(email, code, newPassword) {
-      await apiFetch('/auth/reset-password', { method: 'POST', body: JSON.stringify({ email, code, newPassword }) });
-    },
-    async sendChangeCode() {
-      await apiFetch('/auth/send-change-code', { method: 'POST', body: '{}' });
-    },
-    async changePassword(currentPassword, code, newPassword) {
-      await apiFetch('/auth/change-password', { method: 'POST', body: JSON.stringify({ currentPassword, code, newPassword }) });
+      localStorage.setItem(USER_KEY, JSON.stringify(r.user));
+      localStorage.setItem(DEVICE_KEY, JSON.stringify(r.device));
     },
     logout() {
       localStorage.removeItem(TOKEN_KEY);
-      localStorage.removeItem('resqnet.device');
+      localStorage.removeItem(USER_KEY);
+      localStorage.removeItem(DEVICE_KEY);
       setUser(null);
       setDevice(null);
     },

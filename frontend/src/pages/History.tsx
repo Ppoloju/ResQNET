@@ -13,11 +13,11 @@ interface EmergencyRecord {
   severity: string;
   category?: string | null;
   message?: string | null;
-  location_state: string;
+  location?: { state: string } | null;
   battery?: number | null;
-  created_at: string;
-  resolved_at?: string | null;
-  resolved_how?: string | null;
+  createdAt: string;
+  resolvedAt?: string | null;
+  resolvedHow?: string | null;
 }
 
 export default function History() {
@@ -84,7 +84,7 @@ export default function History() {
       {user && (
         <section aria-label="Past emergencies">
           <h3>Past emergencies</h3>
-          {records.length === 0 && !loading && <p className="dim">No emergencies recorded. 🙏</p>}
+          {records.length === 0 && !loading && <p className="dim">No emergencies recorded.</p>}
           {records.map((r) => (
             <article className="card" key={r.id}>
               <header className="emergency-head">
@@ -102,9 +102,9 @@ export default function History() {
               </header>
               {r.message && <p className="small dim">“{r.message}”</p>}
               <p className="small dim">
-                {fmt(r.created_at)}
+                {fmt(r.createdAt)}
                 {r.category && <> · AI: {r.category}</>}
-                {r.resolved_how && <> · resolved: {r.resolved_how}</>}
+                {r.resolvedHow && <> · resolved: {r.resolvedHow}</>}
               </p>
               {expanded === r.id && (
                 <div id={`timeline-${r.id}`} className="timeline-box">

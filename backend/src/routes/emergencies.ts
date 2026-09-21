@@ -8,8 +8,14 @@ import { audit } from '../middleware/audit.js';
 import { requireAuth, type AuthedRequest } from '../middleware/auth.js';
 import { logger } from '../logger.js';
 import { broadcastEvent } from './realtime.js';
+import { encryptIfPresent, decryptIfEncrypted } from '../security/fieldCrypto.js';
+import { enqueueEmergencyNotifications } from '../notifications.js';
 
 export const emergenciesRouter = Router();
+
+/** Client-local haptic cue; the server never attempts to access device hardware. */
+const SOS_VIBRATION_PATTERN_MS = [120, 60, 180] as const;
+const DISARMED_VIBRATION_PATTERN_MS = [60, 40, 60] as const;
 
 const locationSchema = z.object({
   latitude: z.number().min(-90).max(90),
@@ -19,6 +25,10 @@ const locationSchema = z.object({
 });
 
 const emergencySchema = z.object({
+  // The device creates this before it knows whether a gateway is reachable.
+  // Keeping it on the online path makes an SOS id stable across offline and
+  // online delivery, so the resolution packet can always target the same event.
+  emergencyId: z.string().regex(/^IQ-[0-9A-Z]{6,12}$/).optional(),
   type: z.enum(['SOS', 'QUICK_HELP', 'CHECK_IN', 'DISASTER_BROADCAST']).default('SOS'),
   severity: z.enum(['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']).default('HIGH'),
   category: z.string().max(40).optional(),
@@ -33,6 +43,14 @@ const emergencySchema = z.object({
     confidence: z.number().min(0).max(1),
     recommendedAction: z.string(),
   }).optional(),
+});
+
+const safePingSchema = z.object({
+  message: z.string().max(280).default('All safe - please acknowledge when able.'),
+});
+
+const emergencySitrepSchema = z.object({
+  text: z.string().min(1).max(280),
 });
 
 const deviceIdByUser = (userId: string): string => {
@@ -68,7 +86,7 @@ emergenciesRouter.post('/', requireAuth, async (req: AuthedRequest, res) => {
   const userId = req.user!.userId;
 
   try {
-    const emergencyId = newEmergencyId();
+    const emergencyId = input.emergencyId ?? newEmergencyId();
     const now = new Date().toISOString();
     const networkState = 'ONLINE'; // reaching the backend proves internet is available
 
@@ -121,24 +139,27 @@ emergenciesRouter.post('/', requireAuth, async (req: AuthedRequest, res) => {
 
     audit(userId, 'emergency.create', 'emergency_event', emergencyId, { type: input.type, severity: input.severity });
     logger.info({ emergencyId, type: input.type }, 'emergency created');
-
-    // Real-time fan-out (§18): every connected device sees the emergency the
-    // moment it reaches the backend — no polling, no refresh. Public payload
-    // only: emergency id, type, severity, coarse location. Never user identity.
-    broadcastEvent('emergency', {
+    enqueueEmergencyNotifications({
       emergencyId,
-      type: input.type,
+      ownerUserId: userId,
       severity: input.severity,
-      category: input.category ?? null,
       message: input.message,
-      location: input.location.state !== 'LOCATION_UNAVAILABLE'
-        ? { latitude: input.location.latitude, longitude: input.location.longitude, accuracyMeters: input.location.accuracyMeters }
-        : null,
-      createdAt: now,
+      requiresMedicalHelp: input.requiresMedicalHelp,
+      requiresPoliceHelp: input.requiresPoliceHelp,
+      includeEmergencyService: true,
     });
-
-    res.status(201).json({ emergencyId, status: 'ACTIVE' });
+    res.status(201).json({
+      emergencyId,
+      status: 'ACTIVE',
+      clientFeedback: { vibrationPatternMs: SOS_VIBRATION_PATTERN_MS },
+    });
   } catch (err) {
+    // A client-generated id may very rarely collide. Report a usable conflict
+    // instead of a generic server failure (and never overwrite an emergency).
+    if (err instanceof Error && /UNIQUE constraint failed: emergency_events\.id/.test(err.message)) {
+      res.status(409).json({ error: 'emergency id already exists' });
+      return;
+    }
     logger.error({ err }, 'emergency creation failed');
     res.status(500).json({ error: err instanceof Error ? err.message : 'creation failed' });
   }
@@ -195,8 +216,67 @@ emergenciesRouter.post('/:id/resolve', requireAuth, async (req: AuthedRequest, r
   });
 
   audit(req.user!.userId, 'emergency.resolve', 'emergency_event', row.id as string);
-  broadcastEvent('emergency_resolved', { emergencyId: row.id, resolvedAt: now });
-  res.json({ ok: true, status: 'RESOLVED', resolutionPacketId: packet.id });
+  res.json({
+    ok: true,
+    status: 'RESOLVED',
+    resolutionPacketId: packet.id,
+    clientFeedback: { state: 'DISARMED', vibrationPatternMs: DISARMED_VIBRATION_PATTERN_MS },
+  });
+});
+
+/** Broadcast a safe-ping notification to every family node on an active SOS. */
+emergenciesRouter.post('/:id/safe-ping', requireAuth, (req: AuthedRequest, res) => {
+  const parsed = safePingSchema.safeParse(req.body);
+  if (!parsed.success) { res.status(400).json({ error: 'validation failed', issues: parsed.error.issues }); return; }
+  const emergency = db.prepare('SELECT id, status FROM emergency_events WHERE id = ? AND user_id = ?')
+    .get(req.params.id, req.user!.userId) as { id: string; status: string } | undefined;
+  if (!emergency) { res.status(404).json({ error: 'emergency not found' }); return; }
+  if (emergency.status !== 'ACTIVE') { res.status(409).json({ error: `emergency already ${emergency.status}` }); return; }
+
+  const members = db.prepare('SELECT id FROM family_members WHERE owner_user_id = ? ORDER BY priority ASC')
+    .all(req.user!.userId) as Array<{ id: string }>;
+  const now = new Date().toISOString();
+  enqueueEmergencyNotifications({
+    emergencyId: emergency.id,
+    ownerUserId: req.user!.userId,
+    severity: 'HIGH',
+    message: parsed.data.message.trim(),
+    includeEmergencyService: false,
+  });
+  audit(req.user!.userId, 'emergency.safe_ping', 'emergency_event', emergency.id, { notifiedCount: members.length });
+  broadcastEvent('family_safe_ping', { emergencyId: emergency.id, message: parsed.data.message.trim(), notifiedCount: members.length, createdAt: now });
+  res.json({ ok: true, emergencyId: emergency.id, notifiedCount: members.length, createdAt: now });
+});
+
+/** Store a private, encrypted field note for the owning active emergency. */
+emergenciesRouter.post('/:id/sitrep', requireAuth, (req: AuthedRequest, res) => {
+  const parsed = emergencySitrepSchema.safeParse(req.body);
+  if (!parsed.success) { res.status(400).json({ error: 'validation failed', issues: parsed.error.issues }); return; }
+  const emergency = db.prepare('SELECT id, status FROM emergency_events WHERE id = ? AND user_id = ?')
+    .get(req.params.id, req.user!.userId) as { id: string; status: string } | undefined;
+  if (!emergency) { res.status(404).json({ error: 'emergency not found' }); return; }
+  if (emergency.status !== 'ACTIVE') { res.status(409).json({ error: `emergency already ${emergency.status}` }); return; }
+
+  const id = `esit_${randomUUID()}`;
+  const now = new Date().toISOString();
+  const encrypted = encryptIfPresent(parsed.data.text.trim());
+  if (!encrypted) { res.status(400).json({ error: 'sitrep text required' }); return; }
+  db.prepare(`INSERT INTO emergency_sitreps (id, emergency_id, author_user_id, note_encrypted, created_at)
+              VALUES (?, ?, ?, ?, ?)`)
+    .run(id, emergency.id, req.user!.userId, encrypted, now);
+  audit(req.user!.userId, 'emergency.sitrep', 'emergency_sitrep', id, { encrypted: true });
+  broadcastEvent('emergency_sitrep', { emergencyId: emergency.id, sitrepId: id, createdAt: now });
+  res.status(201).json({ id, emergencyId: emergency.id, createdAt: now, encrypted: true });
+});
+
+/** Read the owner's emergency notes; plaintext never leaves this owner boundary. */
+emergenciesRouter.get('/:id/sitreps', requireAuth, (req: AuthedRequest, res) => {
+  const owned = db.prepare('SELECT id FROM emergency_events WHERE id = ? AND user_id = ?')
+    .get(req.params.id, req.user!.userId) as { id: string } | undefined;
+  if (!owned) { res.status(404).json({ error: 'emergency not found' }); return; }
+  const rows = db.prepare('SELECT id, note_encrypted, created_at FROM emergency_sitreps WHERE emergency_id = ? ORDER BY created_at DESC')
+    .all(owned.id) as Array<{ id: string; note_encrypted: string; created_at: string }>;
+  res.json({ sitreps: rows.map((row) => ({ id: row.id, text: decryptIfEncrypted(row.note_encrypted), createdAt: row.created_at })) });
 });
 
 /**

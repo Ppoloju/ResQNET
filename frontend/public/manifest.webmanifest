@@ -1,17 +1,15 @@
 {
-  "name": "ResQNET — Offline AI Emergency Network",
-  "short_name": "ResQNET",
-  "description": "Offline-first emergency communication over nearby-device mesh",
-  "start_url": "/",
-  "display": "standalone",
-  "background_color": "#0b0f14",
-  "theme_color": "#b3001b",
-  "icons": [
-    {
-      "src": "/icon.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
-      "purpose": "any"
-    }
-  ]
+    "name": "ResQNET — Offline AI Emergency Network",
+    "short_name": "ResQNET",
+    "description": "Offline-first emergency communication over nearby-device mesh",
+    "start_url": "/",
+    "display": "standalone",
+    "background_color": "#090D12",
+    "theme_color": "#F85149",
+    "icons": [{
+        "src": "/icon.svg",
+        "sizes": "any",
+        "type": "image/svg+xml",
+        "purpose": "any"
+    }]
 }

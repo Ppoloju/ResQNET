@@ -34,6 +34,15 @@ CREATE TABLE IF NOT EXISTS devices (
 
 CREATE INDEX IF NOT EXISTS idx_devices_user ON devices(user_id);
 
+CREATE TABLE IF NOT EXISTS device_settings (
+  device_id                    TEXT PRIMARY KEY REFERENCES devices(id) ON DELETE CASCADE,
+  relay_consent                INTEGER NOT NULL DEFAULT 1,
+  low_power_mode               INTEGER NOT NULL DEFAULT 0,
+  critical_threshold_pct       INTEGER NOT NULL DEFAULT 20,
+  relay_hero_mode              INTEGER NOT NULL DEFAULT 0,
+  updated_at                   TEXT NOT NULL
+);
+
 -- ------------------------------------------------------------
 -- Emergency profile (§7). Sensitive medical fields are stored
 -- encrypted-at-rest when MSG_SIGNING_PEPPER-derived key present;
@@ -130,6 +139,18 @@ CREATE TABLE IF NOT EXISTS emergency_messages (
 
 CREATE INDEX IF NOT EXISTS idx_messages_emergency ON emergency_messages(emergency_id);
 CREATE INDEX IF NOT EXISTS idx_messages_sync ON emergency_messages(synced_at);
+
+-- Short private notes attached to an active emergency. Content is encrypted
+-- before storage and is only returned through the owning emergency route.
+CREATE TABLE IF NOT EXISTS emergency_sitreps (
+  id            TEXT PRIMARY KEY,
+  emergency_id  TEXT NOT NULL REFERENCES emergency_events(id) ON DELETE CASCADE,
+  author_user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  note_encrypted TEXT NOT NULL,
+  created_at    TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_emergency_sitreps_emergency ON emergency_sitreps(emergency_id, created_at DESC);
 
 CREATE TABLE IF NOT EXISTS message_deliveries (
   id                TEXT PRIMARY KEY,
@@ -253,8 +274,11 @@ CREATE TABLE IF NOT EXISTS notifications (
   user_id       TEXT NOT NULL,
   emergency_id  TEXT NOT NULL REFERENCES emergency_events(id) ON DELETE CASCADE,
   family_member_id TEXT REFERENCES family_members(id) ON DELETE SET NULL,
-  channel       TEXT NOT NULL DEFAULT 'MESH' CHECK (channel IN ('MESH','SSE','SMS')),
+  channel       TEXT NOT NULL DEFAULT 'MESH' CHECK (channel IN ('MESH','SSE','SMS','PUSH','EMERGENCY_SERVICE')),
   delivery_state TEXT NOT NULL DEFAULT 'PENDING' CHECK (delivery_state IN ('PENDING','SENT','DELIVERED','FAILED')),
+  attempts       INTEGER NOT NULL DEFAULT 0,
+  last_attempt_at TEXT,
+  provider_error TEXT,
   created_at    TEXT NOT NULL,
   delivered_at  TEXT
 );

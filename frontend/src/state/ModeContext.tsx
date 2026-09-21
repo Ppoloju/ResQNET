@@ -22,9 +22,14 @@ export function ModeProvider({ children }: { children: ReactNode }) {
   const { broadcast, events } = useMeshEvents();
 
   const value = useMemo<ModeState>(() => {
-    // Crowd-sourced detection (§13): distinct emergency ids seen live on the mesh
-    // event feed. Events stream in via SSE; the window is inherently recent.
-    const nearbyEmergencyIds = [...new Set(events.map((e) => e.emergencyId).filter(Boolean))];
+    // Crowd-sourced detection (§13): only distinct emergency ids observed in
+    // the documented sliding window count toward Disaster Mode.
+    const cutoff = Date.now() - 30 * 60_000;
+    const nearbyEmergencyIds = [...new Set(
+      events
+        .filter((event) => event.ts >= cutoff && Boolean(event.emergencyId))
+        .map((event) => event.emergencyId),
+    )];
     const decision = deriveMode({
       activeEmergency: active !== null,
       disasterBroadcast: broadcast !== null,

@@ -34,7 +34,7 @@
 | Auth | Argon2id (`@node-rs/argon2`), HS256 JWT (free), per-device token | No paid auth service. |
 | Signing | **HMAC-SHA256 over canonical JSON** via WebCrypto (identical code client+server) | Works in every modern browser and Node; Ed25519 noted as production upgrade. |
 | Mesh simulation | `MeshEngine` (deterministic, in-process) + `/api/sim/*` endpoints | §51: proves routing logic without physical radios; clearly labeled SIMULATION. |
-| Local AI | `LocalAIEngine` interface planned; rule-based classifier first (§61: no big model downloads) | ONNX Runtime Web = upgrade path. |
+| Local AI | `LocalAIEngine` interface + deterministic rule-based classifier implemented (§61: no big model downloads) | ONNX Runtime Web remains an optional upgrade path. |
 | Location | Geolocation API with accuracy-honest states (§20) | Browser GPS; `LOCATION_UNAVAILABLE` when it fails. |
 | Docker | `docker compose` (node:24-alpine multi-stage) | `node:sqlite` requires Node ≥ 22.5 → base image is 24. |
 
@@ -67,7 +67,7 @@ The frontend is a web PWA. Browser Bluetooth cannot do background BLE mesh; iOS/
 
 - [x] Monorepo structure (frontend/ backend/ shared/ database/ docker/)
 - [x] Environment configuration (.env.example with LOCAL/DEV/DEMO/PRODUCTION guidance)
-- [x] Docker (compose + multi-stage Dockerfile; node:24-alpine; daemon-off on dev machine — build pending daemon start)
+- [x] Docker (compose + multi-stage Dockerfile; node:24-alpine; image and compose E2E path verified)
 - [x] Database (SQLite schema v1: users, devices, emergency_profiles, family_members, emergency_events, emergency_messages, message_deliveries, check_ins, responders, responder_locations, audit_log, emergency_media)
 - [x] Authentication (register/login, Argon2id, JWT, per-device secrets shown once)
 - [x] Logging (pino, structured, secret + medical redaction)
@@ -78,11 +78,11 @@ The frontend is a web PWA. Browser Bluetooth cannot do background BLE mesh; iOS/
 - [x] Anonymous device identity (SOS works logged-out; public ID carries no personal info)
 
 **Status:** Complete
-**Implementation:** Everything above; backend boots (`/healthz` + register/login verified via curl), `npm run build` green for all three workspaces.
+**Implementation:** Everything above; backend boots (`/healthz` + register/login verified via curl), and the shared, backend, and frontend production builds are green.
 **Files changed:** package.json, .gitignore, .env.example, database/schema.sql, docker/*, backend/**, frontend/**, shared/**, README.md, idea.html, implementation.md
-**Tests:** 25 passing (22 backend: crypto/validation/mesh scenarios/API smoke incl. sim demo path; 3 frontend: SOS countdown/cancel, offline activation → outbox, resolve)
-**Known limitations:** BLE/real radio transports not yet started (Phase 5 remainder); local AI not yet started (Phase 6); responder dashboard not yet (Phase 7); medical fields not yet encrypted-at-rest (Phase 10); Docker image build pending Docker daemon.
-**Next step:** Phase 2-3 polish (profile/family sync from PWA is done vs server), then Phase 5 remainder: WebBluetoothTransport `[P]` + LocalNetworkTransport (same-LAN HTTP), then Phase 6 local AI.
+**Tests:** 102 passing (31 shared, 63 backend, 8 frontend), covering crypto, validation, mesh scenarios, API smoke, AI triage, offline SOS, maps/resource ranking, and sync.
+**Known limitations:** native background BLE/Wi-Fi Direct, SMS/push delivery, and sensor-stream fusion remain production integrations `[R]`; the web PWA provides foreground/browser-safe fallbacks.
+**Next step:** native client integration for background radios and sensors; no web-only implementation can provide those platform capabilities honestly.
 
 # Phase 2 — Emergency Profile
 
@@ -127,7 +127,7 @@ The frontend is a web PWA. Browser Bluetooth cannot do background BLE mesh; iOS/
 - [x] WebBluetoothTransport `[P]` (foreground GATT via Nordic-UART-style service; implements shared `Transport` interface; feature-detected, honest availability states; iOS/unsupported browsers degrade cleanly)
 - [x] CommunicationManager + Transport interfaces in shared (`shared/src/transport.ts`); TransportProvider wires them app-wide
 - [x] LocalNetworkTransport (same-LAN backend via configurable URL, real `/healthz` probing with TTL cache — never trusts `navigator.onLine`)
-- [ ] Wi-Fi Direct / Wi-Fi Aware `[R]` (needs native client)
+- [R] Wi-Fi Direct / Wi-Fi Aware (needs native client)
 - [x] InternetTransport SSE live push (`/api/realtime/stream`, JWT via header or `?token=` for EventSource)
 - [x] Delivery status UI in Emergency Mode (queued/delivered state + live responder ACK cards via SSE for the active emergency)
 
@@ -156,7 +156,7 @@ The frontend is a web PWA. Browser Bluetooth cannot do background BLE mesh; iOS/
 - [x] Quick Help (low-profile nearby alert with reason categories; distinct from SOS)
 - [x] Safety Check-In UI (I'm Safe + At-risk buttons, own last-status with timestamp via GET /check-ins, per-member family statuses on Family page)
 - [x] Disaster Broadcast (responder/admin issue/cancel, TTL-mandatory, SSE banner on all clients, active list on Home)
-- [x] Missing Person mode backend (authorized creation, status, sightings; NO automatic facial recognition — human-reviewed by design)
+- [x] Missing Person mode backend (authorized creation and status updates; NO automatic facial recognition — human-reviewed by design)
 - [x] Emergency Black Box (timeline in Emergency Mode + persisted `iqoo.blackbox` + History screen with expandable per-emergency timeline + offline outbox view)
 - [x] Battery-aware routing tiers (engine-level + **user-configurable thresholds in Settings** with live tier preview; low-power mode toggle)
 - [x] Relay Readiness score (§37: `shared/src/net.ts` + `/sim/relay-readiness` + Network page meter with reason + consent toggle in More)
@@ -193,7 +193,7 @@ The frontend is a web PWA. Browser Bluetooth cannot do background BLE mesh; iOS/
 - [x] Network simulation tests (A→B→C→G relay, dedupe, TTL, retry, ACK, link-down/recovery)
 - [x] Gateway sync + responders + broadcasts integration suite (8 tests: real DB write, idempotency, family fan-out, RBAC 403s, ACK dedupe, nearby sort, broadcast RBAC, E2E sim flood→gateway→DB)
 - [x] Field-encryption tests (roundtrip, idempotency, tamper fail-closed, profile codec)
-- [x] AI classifier tests (8: categories, severity ladders, immobility, battery-context, determinism)
+- [x] AI classifier and triage tests (11: categories, severity ladders, immobility, battery-context, determinism, map/SOS/chat routing)
 - [x] Battery-tier boundary tests (20%/50% edges exact; engine-level forwarding gate verified — fixed real bug: low-battery devices previously could not RECEIVE packets, now reception is never blocked and only onward relay is gated per §29)
 - [x] E2E offline flow test (API-level: sync.test.ts offline→push→idempotent; browser-level: sos.test.tsx offline→online→outbox drained with fetch-mocked sync ack)
 
@@ -208,20 +208,20 @@ The frontend is a web PWA. Browser Bluetooth cannot do background BLE mesh; iOS/
 - [x] docs/ (architecture.md, api-contract.md, security.md, offline-network.md, ai-architecture.md, demo.md)
 - [x] Demo instructions (docs/demo.md)
 - [x] Settings page (§29/§37: relay consent, low-power mode, scan interval, battery thresholds, transport status + pairing, reset)
-- [x] Final README (refreshed with full feature set, 65-test count, verified Docker path)
+- [x] Final README (refreshed with full feature set, current test count, verified Docker path)
 - [x] Docker image build verification — **DONE 2026-09-15**: image builds (node:24-alpine), compose stack boots healthy, live E2E inside the container: register → topology → inject → 3-hop flood → gateway → `IQ-DOCKERE1` row with `received_via: mesh:3-hops` in the persisted volume. Fixed Dockerfile bug found during verification: `shared/dist` was not shipped to the runtime layer (ERR_MODULE_NOT_FOUND) and WORKDIR did not match the schema path.
 
 # Phase 13 — 3-Mode Architecture — **COMPLETE 2026-09-18**
 
-- [x] Normal Mode: Standard app usage with minimal resource consumption, background monitoring of sensors (low power), family circle and emergency profile stored securely — the existing app IS normal mode; battery-tier relay gating (§29) + Settings thresholds govern background cost, profile stays AES-GCM encrypted at rest
+- [P/R] Normal Mode: Standard web-PWA usage, family circle and emergency profile stored securely; background sensor monitoring requires the native client
 - [x] Emergency Mode: Triggered by SOS button or AI detection (fall, accident, distress signals), device-to-device Bluetooth mesh for multi-hop alerts, shares emergency profile + location with trusted contacts, prioritizes critical alerts using local AI classification — deriveMode() raises EMERGENCY on an active SOS; WebBluetooth [P] + transports carry multi-hop packets; AI classification attaches to every packet
 - [x] Disaster Mode: Activated when multiple emergencies are detected in a region or disaster signals (earthquake, flood, fire) are identified — deriveMode() (shared/modes.ts): official DISASTER_BROADCAST or ≥5 distinct emergencies on the live feed ⇒ DISASTER; app-wide banner shows mode + reason
 - [x] Disaster Mode - Community mesh expansion: Devices form a larger ad-hoc network for group coordination — mesh engine opens in disaster mode on CRITICAL broadcast (outbox drains CRITICAL-first; sim engine state visible on Network page)
-- [x] Disaster Mode - Resource mapping: AI identifies safe zones, shelters, medical aid points from local data — /api/resources/nearby (reviewed seed dataset, haversine-ranked MEDICAL-first, verifiedAt + source per point; honest scope, no fake live feed)
-- [x] Disaster Mode - Crowdsourced situational awareness: Each device contributes sensor data (smoke, noise, GPS movement) to build a disaster map — Situations page: community bulletins posted/listed via /api/sitreps (mesh-propagated packet format in shared/sitrep.ts, SSE push, 280-char budget); sensor-stream fusion [R] documented
+- [x] Disaster Mode - Resource mapping: AI identifies safe zones, shelters, medical aid points from local data — /api/resources/nearby (reviewed seed dataset, haversine-ranked nearest-first with kind tie-breaker, verifiedAt + source per point; honest scope, no fake live feed)
+- [P/R] Disaster Mode - Crowdsourced situational awareness: community bulletins and location-tagged reports are implemented; smoke/noise/sensor-stream fusion requires native hardware integration
 - [x] Disaster Mode - Priority routing: Critical alerts (injuries, trapped individuals) are given bandwidth priority — priorityForMode() promotes one notch in disaster mode (CRITICAL never degrades); engine outbox drains priority-ranked; covered by unit tests
 - [x] Disaster Mode - Offline disaster bulletin: Updates propagate through mesh (e.g., "Bridge collapsed ahead", "Shelter open at school") — sitreps flow like packets (shared format + validation), STALE flag after 6 h, live feed + post UI on /situations
-- [x] Disaster Mode - AI assistant: Guides basic first aid, evacuation steps, or connects survivors to nearest responders — guidance.ts: deterministic curated topics (bleeding/fracture/burns/trapped/evacuation) auto-selected from AI category or free text; GuidanceCard on Home; disclaimer + escalation criteria on every topic
+- [x] Disaster Mode - AI assistant: deterministic offline guidance and triage are implemented on the dedicated `/ai-assistance` page; disclaimer + escalation criteria are shown for each topic
 
 # Phase 14 — Real-Time + Accounts + Live Map — **COMPLETE 2026-09-19**
 
@@ -244,7 +244,11 @@ Verification: 88 tests passing (28 shared · 56 backend · 4 frontend), zero typ
 
 ## Changelog
 
-- 2026-09-19 — Phase 14: ResQNET rebrand across app/IDs/docs; email two-step auth (nodemailer SMTP + console-dev fallback, register verify / login 2FA / reset / change flows, hashed single-use codes); real-time emergency broadcast over public SSE + /emergencies/feed/public; Leaflet live map with exact GPS (watchPosition + locationStore feeding SOS packets); vite LAN host for two-phone testing; fixed SSE-buffering compression bug; 88 tests green (28·56·4), E2E verified live incl. cross-device push.
+- 2026-09-20 — Quick Help is now cross-layer AI triage: shared rules and authenticated `/api/ai/triage` classify lost/navigation requests as `OFFLINE_MAP`, high-risk medical/safety events as `SOS`, and general assistance as `CHAT`. Home uses the backend when online and the same shared policy offline; nearby resource ranking is distance-first so maps show resources nearest to the user. Added triage regression tests.
+- 2026-09-20 — Family Map upgraded from a synthetic clustered canvas to a real Leaflet/OpenStreetMap map: geographic pan/zoom, fit-to-family bounds, live geolocation watch, 15-second backend refresh, distinct user/family/hospital/police/shelter/resource pins, popups, and Google Maps links for resource locations.
+- 2026-09-20 — Full application contract audit: workspace typechecks, tests, and builds are green; frontend API calls match mounted backend routes. Corrected stale API documentation for missing-person, sync cursor, public sitrep reads, family map locations, and nearby police/hospital resources. Remaining production boundaries are explicitly documented: browser BLE is foreground-only, and the seeded resource dataset is not a live emergency-services feed.
+- 2026-09-20 — Navigation polish: removed `More` from the bottom section navigation and added an accessible burger menu beside Settings. The drawer exposes secondary routes, closes on navigation or scrim click, and preserves the existing primary tabs. Frontend typecheck, 8 tests, and production build pass.
+- 2026-09-20 — Mesh audit: the deterministic simulator is verified end-to-end for A → B → C → Gateway forwarding, dedupe, ACKs, hop limits, retries, battery tiers, and link recovery. The audit also confirmed that the real Web Bluetooth path remains prototype-only: it pairs with one foreground peer, but the PWA has no background advertising/scanning and no connected packet-router that re-broadcasts incoming packets. Native Android/iOS transport integration is required before claiming real person-to-person multi-hop; this limitation is now kept explicit rather than presented as fully functional radio mesh.
 - 2026-09-18 (3) — Frontend design system + theming + phone navigation. Found and fixed a foundational gap: styles.css only held Phase 7/12 supplements — the base design system (.card, .sos-btn, .footer-nav, all tokens) had never been written and pages rendered on browser defaults. Wrote the complete system (~430 lines): theme tokens on :root dark + [data-theme=light] overrides, app shell (sticky topbar, statusbar, page host, skip link), and every component class the pages use (cards, buttons, SOS pulse/countdown, emergency banner, severity pills, banners, demo steps, readiness meter, event lists, timelines, responder cards). New navigation: phone gets a sticky topbar with burger (animated to X) + slide-in drawer (scrim, auto-close on nav, 48px touch targets); desktop keeps the bottom tab bar. Light/dark/system theme: SettingsContext gains theme preference + applies data-theme to <html> and follows OS changes live on 'system'; quick toggle in the topbar (🖥/☀️/🌙 cycles), 3-way selector on Settings. Verified live: full theme cycle applies + persists (light bg rgb(238,242,247)), drawer open/close/scrim/nav all work, screenshots confirm both themes. Two real bugs found and fixed along the way: (1) CommunicationManager.register() dedupes by name — React StrictMode double-mount was registering transports twice (duplicate Settings rows, double packet fan-out); (2) stop() cleared transports AFTER awaiting teardown, so a late clear wiped what the remount had registered (empty transport list) — registries now clear synchronously before the async stops. 86 tests passing (28 shared · 54 backend · 4 frontend), zero type errors, all builds green, Docker frontend image rebuilt with the new UI.
 - 2026-09-18 (2) — Relay Hero ⚡ (iQOO enhancement, §29) + idea.html rebuilt as a 15-slide deck. Shared: relayReadiness() gains hardwareTier ('standard'|'large_cell'|'large_cell_bypass') — endurance floor drops 20%→15%→10% and +10/+15 readiness for big-cell/bypass hardware; honest self-report, never fabricated. Engine: setRelayHero()/getRelayHero() nominates a backbone node that relays at full strength regardless of battery (Math.max(battery,60) for the tier check) while every other node keeps conserving; auto-release when the hero hits 0%; nomination flows through snapshot.relayHero; engine reset clears it. Routes: POST /api/sim/relay-hero (auth, 404 on unknown node, SSE broadcast on change). Frontend: Settings toggle (⚡ Relay Hero mode, tier line reflects it — overrides low-power), Network page per-node 'make hero / release hero' controls with ⚡ HERO pill. Tests: engine scenario proving hero relays full-strength at 12% battery while a non-hero node at the same battery stays suppressed (15 engine tests total); 86 tests passing overall (28 shared · 54 backend · 4 frontend), zero type errors, all builds green. idea.html rewritten: one reusable slideCard() component renders all 15 slides (hero + 14 cards) from a data array — intro → problem → solution → 3-mode architecture → 5 technical-flow slides (packet anatomy, local AI, mesh DTN, gateway→family, offline sync) → security → disaster mode → why-iQOO table → user story with phone mockups → outro; sticky slide nav, accent-colored card variants, print-friendly. Verified in preview: all slides render, computed styles confirm CSS applies (gradients, accent bars, shadows), JS syntax validated. Live stack re-verified: Docker backend rebuilt with the relay-hero endpoint (404 on unknown node, ok on null), Vite dev server restarted, app+settings toggled live in preview.
 - 2026-09-18 — Phase 13 (3-Mode Architecture) complete + deployment packaging. Shared: modes.ts (deriveMode with honest reasons, priorityForMode promotion, DISASTER_CLUSTER_THRESHOLD=5), guidance.ts (5 curated offline first-aid/evacuation topics), resources.ts (haversine ranking), sitrep.ts (validated 280-char bulletin packet format). Backend: sitreps + resources routes (auth, zod validation, SSE push), engine.setDisasterMode() wired to CRITICAL broadcasts (auto-clear when last one ends), sitreps table. Frontend: ModeContext (derived, never stored — restart-survivable, explainable), app-wide mode banner, GuidanceCard on Home, /situations page (bulletin feed + post + nearby resource map with verifiedAt/source). Deployment: frontend.Dockerfile (Vite build + nginx SPA + /api + /realtime/stream proxy + /healthz pass-through), compose gains frontend service on :8080, docs/deployment.md; fixed missing Vite dev proxy (frontend could not reach the API in dev) and corrupted .env.example header; recreated .env.example with stream config. Verification: 85 tests passing (28 shared incl. 15 new §13 tests, 53 backend incl. 4 route tests, 4 frontend); typecheck + builds green; live compose stack E2E through nginx: SPA 200 on / and /situations, /healthz pass-through OK, register→sitrep post/list→resources ranked nearby. 28-test shared suite includes mode-derivation edge cases and the CRITICAL-never-degrades guarantee.

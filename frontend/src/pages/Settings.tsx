@@ -1,215 +1,90 @@
-// Settings (§29/§37/§45): large touch targets, plain language, honest labels.
-// Every control maps to real behavior: relay tiers feed the engine-consistent
-// readiness meter, low-power mode forces CRITICAL-only, scan interval is a
-// documented prototype knob.
-
-import { useState } from 'react';
-import { useSession } from '../state/SessionContext';
+import { useEffect, useState, type ReactNode } from 'react';
+import { Link } from 'react-router-dom';
+import { ArrowLeft, Bluetooth, CheckCircle2, ChevronRight, Copy, RadioTower, RotateCcw, ShieldCheck, Smartphone, UserRound } from 'lucide-react';
 import { useSettings, type ThemePreference } from '../state/SettingsContext';
 import { useTransports } from '../state/TransportContext';
 import { useStatus } from '../state/StatusContext';
+import { apiFetch, useSession } from '../state/SessionContext';
+import MedicalCard from '../components/MedicalCard';
+import { applyMedical, GENDER_OPTIONS, loadMedicalInfo, medicalFromProfile, saveMedicalInfo, type EmergencyProfilePayload, type MedicalInfo } from '../state/medicalProfile';
 
-/** Account security: change password (current password + emailed code). */
-function AccountSecurity() {
-  const { user, sendChangeCode, changePassword } = useSession();
-  const [step, setStep] = useState<'idle' | 'code-sent'>('idle');
-  const [currentPassword, setCurrentPassword] = useState('');
-  const [code, setCode] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [msg, setMsg] = useState('');
-  const [err, setErr] = useState('');
-  const [busy, setBusy] = useState(false);
-  if (!user) return null;
+const AV_LABEL: Record<string, string> = { UNSUPPORTED: 'not available', PERMISSION_NEEDED: 'permission needed', READY: 'ready', UNAVAILABLE: 'unavailable' };
 
-  const run = async (fn: () => Promise<void>, okMsg: string) => {
-    setBusy(true); setErr('');
-    try { await fn(); setMsg(okMsg); }
-    catch (e) { setErr(e instanceof Error ? e.message : 'failed'); }
-    finally { setBusy(false); }
-  };
-
-  return (
-    <div className="card">
-      <h2>Account security</h2>
-      <p className="muted" style={{ marginTop: 0 }}>
-        Signed in as <strong>{user.email}</strong>
-        {user.emailVerified === false && ' — email not yet verified'}
-      </p>
-      {step === 'idle' ? (
-        <button className="btn-secondary" style={{ width: '100%' }} disabled={busy}
-          onClick={() => void run(async () => {
-            await sendChangeCode();
-            setStep('code-sent');
-          }, '')}
-        >
-          Change password (we email you a code)
-        </button>
-      ) : (
-        <>
-          <label htmlFor="cur-pass">Current password</label>
-          <input id="cur-pass" type="password" autoComplete="current-password" value={currentPassword}
-            onChange={(e) => setCurrentPassword(e.target.value)} />
-          <label htmlFor="chg-code">6-digit code sent to {user.email}</label>
-          <input id="chg-code" className="code-input" inputMode="numeric" maxLength={6}
-            autoComplete="one-time-code" value={code}
-            onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))} placeholder="••••••" />
-          <label htmlFor="new-pass">New password (min 8 chars)</label>
-          <input id="new-pass" type="password" autoComplete="new-password" value={newPassword}
-            onChange={(e) => setNewPassword(e.target.value)} />
-          {msg && <p className="muted" role="status">{msg}</p>}
-          {err && <p className="error-text" role="alert">{err}</p>}
-          <div className="row wrap mt">
-            <button className="btn-primary" disabled={busy || code.length !== 6 || newPassword.length < 8 || !currentPassword}
-              onClick={() => void run(async () => {
-                await changePassword(currentPassword, code, newPassword);
-                setStep('idle'); setCurrentPassword(''); setCode(''); setNewPassword('');
-                setMsg('Password changed — a confirmation email is on its way.');
-              }, 'Password changed.')}
-            >
-              {busy ? '…' : 'Change password'}
-            </button>
-            <button className="btn-ghost" disabled={busy}
-              onClick={() => void run(async () => { await sendChangeCode(); setMsg('New code sent.'); }, 'New code sent.')}
-            >Resend code</button>
-          </div>
-        </>
-      )}
-    </div>
-  );
+function Toggle({ checked, onChange, label }: { checked: boolean; onChange: (value: boolean) => void; label: string }) {
+  return <button className={`hardware-toggle ${checked ? 'is-on' : ''}`} type="button" role="switch" aria-checked={checked} aria-label={label} onClick={() => onChange(!checked)}><span /></button>;
 }
 
-const AV_LABEL: Record<string, string> = {
-  UNSUPPORTED: 'not available in this browser',
-  PERMISSION_NEEDED: 'needs your permission',
-  READY: 'ready',
-  UNAVAILABLE: 'unavailable right now',
-};
+function Row({ icon, title, detail, children }: { icon: ReactNode; title: string; detail?: string; children: ReactNode }) {
+  return <div className="hardware-row"><div className="hardware-row-icon">{icon}</div><div className="hardware-row-copy"><strong>{title}</strong>{detail && <span>{detail}</span>}</div>{children}</div>;
+}
 
-function tierFor(battery: number | null, s: ReturnType<typeof useSettings>): 'CRITICAL-ONLY' | 'REDUCED' | 'NORMAL' | 'OFF' {
-  if (!s.relayConsent) return 'OFF';
-  if (s.relayHeroMode) return 'NORMAL'; // Relay Hero relays at full strength (§29 iQOO)
-  if (s.lowPowerMode) return 'CRITICAL-ONLY';
-  if (battery === null) return 'NORMAL';
-  if (battery < s.criticalThresholdPct) return 'CRITICAL-ONLY';
-  if (battery <= s.normalThresholdPct) return 'REDUCED';
+function Section({ icon, title, badge, children }: { icon: ReactNode; title: string; badge?: string; children: ReactNode }) {
+  return <section className="hardware-section"><div className="hardware-section-title"><span className="hardware-section-icon">{icon}</span><h2>{title}</h2>{badge && <span className="hardware-badge">{badge}</span>}</div>{children}</section>;
+}
+
+function tierFor(battery: number | null, settings: ReturnType<typeof useSettings>) {
+  if (!settings.relayConsent) return 'OFF';
+  if (settings.relayHeroMode) return 'NORMAL';
+  if (settings.lowPowerMode || (battery !== null && battery < settings.criticalThresholdPct)) return 'CRITICAL-ONLY';
   return 'NORMAL';
 }
 
 export default function Settings() {
-  const s = useSettings();
+  const settings = useSettings();
+  const { user, device, logout } = useSession();
   const { rows, requestingBluetooth, requestBluetooth } = useTransports();
   const { battery } = useStatus();
+  const [medical, setMedical] = useState<MedicalInfo>(loadMedicalInfo);
+  const [remoteProfile, setRemoteProfile] = useState<EmergencyProfilePayload | null>(null);
+  const [medicalStatus, setMedicalStatus] = useState('');
+  const [savingMedical, setSavingMedical] = useState(false);
 
-  const currentTier = tierFor(battery, s);
+  useEffect(() => {
+    const local = loadMedicalInfo();
+    setMedical(!local.name && user?.displayName ? { ...local, name: user.displayName } : local);
+    if (!user) { setRemoteProfile(null); return; }
+    apiFetch<{ profile: EmergencyProfilePayload }>('/emergency-profiles/me').then((response) => {
+      setRemoteProfile(response.profile);
+      setMedical(medicalFromProfile(response.profile));
+    }).catch(() => undefined);
+  }, [user]);
 
-  const THEMES: Array<{ value: ThemePreference; label: string; icon: string }> = [
-    { value: 'system', label: 'System', icon: '🖥' },
-    { value: 'light', label: 'Light', icon: '☀️' },
-    { value: 'dark', label: 'Dark', icon: '🌙' },
-  ];
+  function updateMedical<K extends keyof MedicalInfo>(key: K, value: MedicalInfo[K]) {
+    setMedical((current) => ({ ...current, [key]: value }));
+  }
 
-  return (
-    <div>
-      <h1>Settings</h1>
+  async function saveMedical() {
+    setMedicalStatus('');
+    if (!medical.name.trim()) { setMedicalStatus('Add a name before saving.'); return; }
+    setSavingMedical(true);
+    try {
+      saveMedicalInfo(medical);
+      if (user) {
+        const base = remoteProfile ?? { name: medical.name, visibility: 'PRIVATE' as const, consentMedicalShare: false };
+        const payload = applyMedical(base, medical);
+        await apiFetch('/emergency-profiles/me', { method: 'PUT', body: JSON.stringify(payload) });
+        setRemoteProfile(payload);
+      }
+      setMedicalStatus(user ? 'Saved to account' : 'Saved on this device');
+    } catch (error) { setMedicalStatus(error instanceof Error ? error.message : 'Could not save'); }
+    finally { setSavingMedical(false); }
+  }
 
-      <div className="card">
-        <h2>Appearance</h2>
-        <label htmlFor="theme-select">Color theme</label>
-        <div className="row wrap" role="radiogroup" aria-label="Color theme">
-          {THEMES.map((t) => (
-            <button
-              key={t.value}
-              className="chip"
-              style={s.theme === t.value ? { borderColor: 'var(--red)', color: 'var(--red-soft)', fontWeight: 700 } : undefined}
-              onClick={() => s.update({ theme: t.value })}
-              aria-pressed={s.theme === t.value}
-            >
-              {t.icon} {t.label}
-            </button>
-          ))}
-        </div>
-        <p className="muted small" style={{ marginBottom: 0 }}>
-          Light mode helps screen readability in bright sun; dark saves OLED battery at night.
-        </p>
-      </div>
+  const update = <K extends keyof typeof settings>(key: K, value: (typeof settings)[K]) => settings.update({ [key]: value } as Partial<typeof settings>);
+  const bluetooth = rows.find((row) => row.name === 'bluetooth');
+  const syncLabel = settings.syncStatus === 'synced' ? 'BACKEND SYNCED' : settings.syncStatus === 'syncing' ? 'SYNCING...' : settings.syncStatus === 'offline' ? 'LOCAL / OFFLINE' : 'LOCAL MODE';
 
-      <div className="card">
-        <h2>Relaying</h2>
-        <label className="row spread" style={{ alignItems: 'center', gap: 8, minHeight: 48 }}>
-          <span>Relay emergency packets for nearby people</span>
-          <input type="checkbox" style={{ width: 24, height: 24 }} checked={s.relayConsent}
-            onChange={(e) => s.update({ relayConsent: e.target.checked })} aria-label="Relay consent" />
-        </label>
-        <label className="row spread" style={{ alignItems: 'center', gap: 8, minHeight: 48 }}>
-          <span>Low-power mode (relay only CRITICAL alerts)</span>
-          <input type="checkbox" style={{ width: 24, height: 24 }} checked={s.lowPowerMode}
-            onChange={(e) => s.update({ lowPowerMode: e.target.checked })} aria-label="Low power mode" />
-        </label>
-        <label className="row spread" style={{ alignItems: 'center', gap: 8, minHeight: 48 }}>
-          <span>
-            ⚡ Relay Hero mode <span className="muted small">(iQOO flagships [P])</span><br />
-            <span className="muted" style={{ fontSize: '0.8rem', fontWeight: 400 }}>
-              Volunteer as the mesh backbone: relay everything even on low battery —
-              built for large-cell + bypass-charging hardware.
-            </span>
-          </span>
-          <input type="checkbox" style={{ width: 24, height: 24 }} checked={s.relayHeroMode}
-            onChange={(e) => s.update({ relayHeroMode: e.target.checked })} aria-label="Relay Hero mode" />
-        </label>
+  return <div className="hardware-settings">
+    <header className="hardware-header"><Link to="/" className="hardware-back" aria-label="Back to home"><ArrowLeft size={20} /></Link><div><h1>Settings<br />Hardware</h1><span>RESQNET DEVICE CONTROLS</span></div><div className={`hardware-sync settings-sync-${settings.syncStatus}`}><CheckCircle2 size={16} /><small>{syncLabel}</small></div></header>
 
-        <label htmlFor="scan-interval">Discovery scan interval: {s.scanIntervalSec}s <span className="muted">(prototype knob [P])</span></label>
-        <input id="scan-interval" type="range" min={10} max={120} step={5} value={s.scanIntervalSec}
-          onChange={(e) => s.update({ scanIntervalSec: Number(e.target.value) })}
-          style={{ width: '100%' }} aria-valuemin={10} aria-valuemax={120} aria-valuenow={s.scanIntervalSec} />
+    <Section icon={<UserRound size={17} />} title="Operator & Device" badge={user ? 'SIGNED IN' : 'LOCAL MODE'}><div className="operator-grid"><div><small>OPERATOR</small><strong>{user?.displayName ?? 'LOCAL OPERATOR'}</strong><span>{user?.role?.toUpperCase() ?? 'EMERGENCY PROFILE STORED LOCALLY'}</span></div><div className="hardware-fingerprint"><small>DEVICE ID</small><code>{device?.publicId ?? 'LOCAL DEVICE'}</code><button type="button" disabled={!device?.publicId} onClick={() => void navigator.clipboard?.writeText(device?.publicId ?? '')}><Copy size={13} /> COPY</button></div></div>{user && <button className="hardware-signout" type="button" onClick={logout}>Sign out</button>}</Section>
 
-        <label htmlFor="crit-thresh">CRITICAL-only below: {s.criticalThresholdPct}% battery</label>
-        <input id="crit-thresh" type="range" min={5} max={40} step={5} value={s.criticalThresholdPct}
-          onChange={(e) => s.update({ criticalThresholdPct: Math.min(Number(e.target.value), s.normalThresholdPct - 10) })}
-          style={{ width: '100%' }} />
+    <Section icon={<RadioTower size={17} />} title="Relay Policy" badge={`${battery ?? '--'}% / ${tierFor(battery, settings)}`}><Row icon={<ShieldCheck size={15} />} title="Relay emergency packets" detail="Allow this device to forward nearby alerts"><Toggle checked={settings.relayConsent} onChange={(value) => update('relayConsent', value)} label="Relay emergency packets" /></Row><Row icon={<ShieldCheck size={15} />} title="Low-power relay mode" detail="Forward only CRITICAL alerts"><Toggle checked={settings.lowPowerMode} onChange={(value) => update('lowPowerMode', value)} label="Low-power relay mode" /></Row><Row icon={<Smartphone size={15} />} title="Relay Hero mode" detail="Use this device as a full-strength mesh backbone"><Toggle checked={settings.relayHeroMode} onChange={(value) => update('relayHeroMode', value)} label="Relay Hero mode" /></Row><label className="hardware-range"><span>CRITICAL-ONLY BELOW <b>{settings.criticalThresholdPct}%</b></span><input type="range" min="5" max="40" step="5" value={settings.criticalThresholdPct} onChange={(event) => update('criticalThresholdPct', Number(event.target.value))} /></label><p className="hardware-scale">The Network page uses these values for its live relay-readiness calculation.</p></Section>
 
-        <label htmlFor="norm-thresh">Normal relay above: {s.normalThresholdPct}% battery</label>
-        <input id="norm-thresh" type="range" min={50} max={90} step={5} value={s.normalThresholdPct}
-          onChange={(e) => s.update({ normalThresholdPct: Math.max(Number(e.target.value), s.criticalThresholdPct + 10) })}
-          style={{ width: '100%' }} />
+    <Section icon={<Bluetooth size={17} />} title="Radio Transport" badge={AV_LABEL[bluetooth?.availability ?? 'UNAVAILABLE']}><div className="hardware-transport"><strong>Bluetooth LE</strong><span>{bluetooth?.detail ?? AV_LABEL[bluetooth?.availability ?? 'UNAVAILABLE']}</span><button type="button" disabled={requestingBluetooth} onClick={() => void requestBluetooth()}>{requestingBluetooth ? 'PAIRING' : 'PAIR DEVICE'}</button></div><p className="hardware-scale">Bluetooth pairing is foreground-only in this browser. LAN availability is shown in Network.</p></Section>
 
-        <p className="muted mt" data-testid="current-tier">
-          At your current battery ({battery === null ? 'unknown' : `${battery}%`}) this device would relay:
-          {' '}<strong>{currentTier}</strong>
-        </p>
-        <button className="btn-ghost" onClick={s.reset}>Reset to defaults</button>
-      </div>
+    <Section icon={<UserRound size={17} />} title="Medical Profile" badge={medical.name ? 'READY' : 'INCOMPLETE'}><div className="medical-mini-grid"><div><small>NAME</small><strong>{medical.name || 'NOT SET'}</strong></div><div><small>ALLERGIES</small><strong>{medical.allergies || 'NONE RECORDED'}</strong></div></div><details className="medical-details"><summary>Edit medical profile <ChevronRight size={15} /></summary><label htmlFor="med-name">Name</label><input id="med-name" value={medical.name} onChange={(event) => updateMedical('name', event.target.value)} /><div className="grid2"><div><label htmlFor="med-age">Age</label><input id="med-age" type="number" min={0} max={120} value={medical.age ?? ''} onChange={(event) => updateMedical('age', event.target.value ? Number(event.target.value) : undefined)} /></div><div><label htmlFor="med-gender">Gender</label><select id="med-gender" value={medical.gender ?? ''} onChange={(event) => updateMedical('gender', event.target.value || undefined)}><option value="">Select</option>{GENDER_OPTIONS.map((gender) => <option key={gender} value={gender}>{gender}</option>)}</select></div><div><label htmlFor="med-blood">Blood group</label><input id="med-blood" value={medical.bloodGroup ?? ''} onChange={(event) => updateMedical('bloodGroup', event.target.value)} placeholder="O+" /></div><div><label htmlFor="med-contact-name">Emergency contact</label><input id="med-contact-name" value={medical.emergencyContactName ?? ''} onChange={(event) => updateMedical('emergencyContactName', event.target.value)} /></div><div><label htmlFor="med-contact-phone">Contact phone</label><input id="med-contact-phone" value={medical.emergencyContactPhone ?? ''} onChange={(event) => updateMedical('emergencyContactPhone', event.target.value)} /></div></div><label htmlFor="med-allergies">Allergies</label><textarea id="med-allergies" rows={2} value={medical.allergies ?? ''} onChange={(event) => updateMedical('allergies', event.target.value)} /><label htmlFor="med-medications">Medications</label><textarea id="med-medications" rows={2} value={medical.medications ?? ''} onChange={(event) => updateMedical('medications', event.target.value)} /><label htmlFor="med-conditions">Medical conditions</label><textarea id="med-conditions" rows={2} value={medical.medicalConditions ?? ''} onChange={(event) => updateMedical('medicalConditions', event.target.value)} /><label htmlFor="med-accessibility">Accessibility needs</label><textarea id="med-accessibility" rows={2} value={medical.accessibilityNeeds ?? ''} onChange={(event) => updateMedical('accessibilityNeeds', event.target.value)} /><label htmlFor="med-notes">Emergency notes</label><textarea id="med-notes" rows={2} value={medical.emergencyNotes ?? ''} onChange={(event) => updateMedical('emergencyNotes', event.target.value)} /><button className="btn-primary" type="button" disabled={savingMedical} onClick={() => void saveMedical()}>{savingMedical ? 'Saving...' : 'Save medical profile'}</button>{medicalStatus && <p className="ok-text">{medicalStatus}</p>}<MedicalCard info={medical} /></details></Section>
 
-      <div className="card">
-        <h2>Transports</h2>
-        {rows.map((r) => (
-          <div key={r.name} className="row spread" style={{ minHeight: 44, alignItems: 'center' }}>
-            <span>{r.name === 'bluetooth' ? '🔵 Bluetooth [P]' : '🌐 LAN/Internet'}</span>
-            <span className={`pill small ${r.availability === 'READY' ? 'on' : r.availability === 'PERMISSION_NEEDED' ? 'warn' : 'off'}`}>
-              {AV_LABEL[r.availability]}
-            </span>
-          </div>
-        ))}
-        <p className="muted" style={{ fontSize: '0.8rem' }}>{rows.find((r) => r.name === 'bluetooth')?.detail}</p>
-        <button
-          className="btn-secondary"
-          style={{ width: '100%' }}
-          disabled={requestingBluetooth}
-          onClick={() => void requestBluetooth()}
-        >
-          {requestingBluetooth ? 'Waiting for picker…' : 'Pair a nearby ResQNET device [P]'}
-        </button>
-      </div>
-
-      <AccountSecurity />
-
-      <div className="card">
-        <h2>About</h2>
-        <p className="muted" style={{ fontSize: '0.85rem' }}>
-          ResQNET is a hackathon prototype. Mesh links are simulated unless a real radio is
-          active (<span className="mono">[P]</span> labels mark prototypes). ResQNET augments
-          emergency response — it never replaces 100/112/911.
-        </p>
-      </div>
-    </div>
-  );
+    <section className="hardware-footer-controls"><div><small>APPEARANCE</small>{(['system', 'light', 'dark'] as ThemePreference[]).map((theme) => <button key={theme} className={settings.theme === theme ? 'active' : ''} type="button" onClick={() => settings.update({ theme })}>{theme}</button>)}</div><button className="hardware-reset" type="button" onClick={settings.reset}><RotateCcw size={14} /> Reset relay settings</button></section>
+  </div>;
 }

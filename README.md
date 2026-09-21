@@ -22,8 +22,7 @@ ResQNET operates in three distinct modes, adapting its behavior to the situation
 
 ### 🟢 Normal Mode
 - Standard app usage with minimal resource consumption
-- Background monitoring of sensors (low power)
-- Family circle and emergency profile stored securely
+- Secure family circle and emergency profile storage
 - Periodic relay-readiness checks
 
 ### 🔴 Emergency Mode
@@ -36,11 +35,11 @@ ResQNET operates in three distinct modes, adapting its behavior to the situation
 ### 🟠 Disaster Mode
 - Activated when multiple emergencies detected in a region or disaster signals identified
 - **Community mesh expansion**: devices form a larger ad-hoc network for group coordination
-- **Resource mapping**: AI identifies safe zones, shelters, medical aid points from local data
-- **Crowdsourced situational awareness**: each device contributes sensor data to build a disaster map
+- **Resource mapping**: nearby hospitals, police stations, shelters, safe zones, water, and supply points from reviewed local data
+- **Crowdsourced situational awareness**: community bulletins and location-tagged reports are supported; sensor fusion requires native hardware
 - **Priority routing**: critical alerts (injuries, trapped) get bandwidth priority
 - **Offline disaster bulletin**: updates propagate through mesh (e.g., "Bridge collapsed", "Shelter open at school")
-- **AI assistant**: guides basic first aid, evacuation steps, connects survivors to nearest responders
+- **AI assistant**: guides basic first aid and evacuation steps; emergency-service feeds remain a production integration
 
 ## ⚡ Quickstart
 
@@ -52,7 +51,7 @@ npm install
 npm run dev:backend
 npm run dev:frontend   # second terminal
 
-# 3) run all tests (65+ passing: crypto, mesh scenarios, gateway sync, RBAC,
+# 3) run all tests (102 passing: crypto, mesh scenarios, gateway sync, RBAC,
 #    field encryption, AI classifier, replay cache, Ed25519 keys, offline sync,
 #    profile conflicts, SOS UI incl. offline→online drain)
 npm test
@@ -69,10 +68,10 @@ Environment: copy `.env.example` to `.env`. Generate secrets with
 ```
 ResQNET/
 ├── backend/    Express + SQLite (node:sqlite) + auth + mesh simulator
-├── frontend/   React PWA (SOS, AI assist, family, network map, responders,
-│               history/black box, demo mode, missing person, settings)
+├── frontend/   React PWA (SOS, AI assist, family, live family map, network map,
+│               responders, history/black box, demo mode, missing person, settings)
 ├── shared/     Packet schema, canonical JSON + HMAC signing, validation rules,
-│               on-device AI classifier, geo + relay-readiness helpers
+│               on-device AI classifier/triage, geo + relay-readiness helpers
 ├── database/   schema.sql (v2: 18 tables incl. notifications, responder_acks)
 ├── docker/     docker-compose.yml + backend.Dockerfile (node:24-alpine)
 ├── docs/       architecture, api-contract, security, offline-network,
@@ -122,17 +121,31 @@ The central emergency feature with 3-2-1 countdown and cancel. When activated:
 On-device rule-based classifier: typed or voice-transcribed description → category ×
 severity × confidence × recommended action. Fully offline, consent-first mic with
 persistent RECORDING indicator. AI identifies: accidents, distress signals, fire, medical
-emergencies, dangerous environments.
+emergencies, dangerous environments. Voice recognition depends on browser support.
 
-### 5. Person-to-Person Communication
+### 5. Quick Help Triage and Family Map
+Need Help uses fixed quick actions rather than duplicating the full AI Assistance page:
+lost/navigation requests open the live Family Map, high-risk medical or safety requests
+recommend SOS, and general assistance opens the dedicated AI guidance page. The Family Map
+uses Leaflet/OpenStreetMap tiles, live device geolocation, backend-linked family check-ins,
+and nearby resource pins ranked by distance. Hospitals, police stations, shelters, and aid
+points can open in Google Maps. OpenStreetMap tiles require connectivity; family/resource
+data remains sourced from the ResQNET backend.
+
+### 6. Person-to-Person Communication
 Device-to-device relay mechanism:
 ```
 Person in danger → Nearby User → Another User → Emergency Contact/Responder
 ```
 Multi-hop store-and-forward with duplicate detection, TTL + hop limits, per-hop ACKs,
-priority-based retries, and battery-aware relay tiers.
+priority-based retries, and battery-aware relay tiers. The routing behavior is fully
+implemented and tested in the deterministic mesh simulator. The browser PWA's Bluetooth
+adapter is a foreground prototype: Web Bluetooth permits a user-selected GATT connection,
+but does not provide background advertising/scanning or a 100-device relay network. True
+person-to-person multi-hop over Bluetooth requires a native Android/iOS transport with
+advertising, discovery, peer sessions, packet forwarding, and persistent relay service.
 
-### 6. Intelligent Emergency Prioritization
+### 7. Intelligent Emergency Prioritization
 Local AI classifies urgency:
 - **CRITICAL**: Accident, severe distress, fire
 - **HIGH**: Medical emergency, unsafe situation
@@ -141,7 +154,7 @@ Local AI classifies urgency:
 Battery-aware relay: >50% relay all · 20–50% HIGH+ only · <20% CRITICAL-only.
 Reception is never blocked.
 
-### 7. Privacy & Security
+### 8. Privacy & Security
 - Passwords: **Argon2id** (bank-grade hashing)
 - Packets: **HMAC-SHA256** signed, ±5 min anti-replay window
 - Medical fields: **AES-256-GCM** encrypted at rest, consent-gated
@@ -159,8 +172,11 @@ Reception is never blocked.
 | Mesh routing logic (dedupe/TTL/ACK/retry/battery) | **Implemented + tested (simulation)** |
 | Normal + Emergency modes (derived mode + banner + reason) | **Implemented** |
 | Disaster Mode (derivation, priority routing, sitreps, resource map, AI guidance) | **Implemented** |
-| Mesh over real radios | **Prototype** — Web Bluetooth foreground only |
+| Quick Help triage (map / SOS / AI guidance routing) | **Implemented + tested** |
+| Family Map (Leaflet/OpenStreetMap, live location, family/resource pins) | **Implemented** — resource data is reviewed seed data, not a live government feed |
+| Mesh over real radios | **Prototype** — Web Bluetooth foreground single-peer link; no real 100-node relay |
 | Background BLE, Wi-Fi Direct/Near | **Requires native mobile client** |
+| Confidential end-to-end packet encryption | **Requires key exchange/native transport integration**; current HMAC is integrity/authentication, not encryption |
 | Direct police/hospital integration | **Requires Production Integration** |
 | Responder dashboard, demo mode, network map, AI assist | **Implemented** |
 | Situations page (community bulletins + nearby resources) | **Implemented** |
@@ -182,7 +198,7 @@ See **docs/deployment.md** for the full guide (env, secrets, production boundary
 ## 🛠️ Tech Stack (Free/Open-Source Only)
 
 React 18 · Vite · TypeScript · Express · `node:sqlite` (no native builds) · Argon2id ·
-JWT · WebCrypto HMAC · pino · zod · vitest · Docker (node:24-alpine). No paid APIs,
+JWT · WebCrypto HMAC · Leaflet/OpenStreetMap · pino · zod · vitest · Docker (node:24-alpine). No paid APIs,
 services, models, or hosting anywhere in the dependency tree.
 
 ## 📱 Optimized for iQOO

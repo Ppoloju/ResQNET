@@ -191,7 +191,7 @@ export default function Missing() {
 
         {!cameraOn ? (
           <button className="btn-secondary" style={{ width: '100%', marginTop: 8 }} onClick={() => void startCamera()}>
-            📷 Take photo with camera [P]
+            Take photo with camera [P]
           </button>
         ) : (
           <div className="mt">

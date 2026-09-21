@@ -18,15 +18,39 @@ db.exec('PRAGMA foreign_keys = ON;');
 const schemaPath = path.resolve(__dirname, '../../database/schema.sql');
 db.exec(fs.readFileSync(schemaPath, 'utf8'));
 
-// Lightweight idempotent migrations for databases created before the
-// account-security phase (email 2FA). CREATE TABLE IF NOT EXISTS does not
-// touch existing tables, so pre-existing users tables get the new columns here.
-const userColumns = db.prepare('PRAGMA table_info(users)').all() as Array<{ name: string }>;
-if (!userColumns.some((c) => c.name === 'email_verified')) {
-  db.exec("ALTER TABLE users ADD COLUMN email_verified INTEGER NOT NULL DEFAULT 0");
+// Expand legacy notification rows without losing existing SSE delivery state.
+const notificationColumns = db.prepare('PRAGMA table_info(notifications)').all() as Array<{ name: string }>;
+if (notificationColumns.length > 0 && !notificationColumns.some((column) => column.name === 'attempts')) {
+  db.exec('ALTER TABLE notifications RENAME TO notifications_legacy');
+  db.exec(`CREATE TABLE notifications (
+    id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    emergency_id TEXT NOT NULL REFERENCES emergency_events(id) ON DELETE CASCADE,
+    family_member_id TEXT REFERENCES family_members(id) ON DELETE SET NULL,
+    channel TEXT NOT NULL DEFAULT 'MESH' CHECK (channel IN ('MESH','SSE','SMS','PUSH','EMERGENCY_SERVICE')),
+    delivery_state TEXT NOT NULL DEFAULT 'PENDING' CHECK (delivery_state IN ('PENDING','SENT','DELIVERED','FAILED')),
+    attempts INTEGER NOT NULL DEFAULT 0,
+    last_attempt_at TEXT,
+    provider_error TEXT,
+    created_at TEXT NOT NULL,
+    delivered_at TEXT
+  )`);
+  db.exec(`INSERT INTO notifications
+    (id, user_id, emergency_id, family_member_id, channel, delivery_state, created_at, delivered_at)
+    SELECT id, user_id, emergency_id, family_member_id, channel, delivery_state, created_at, delivered_at
+    FROM notifications_legacy`);
+  db.exec('DROP TABLE notifications_legacy');
 }
-if (!userColumns.some((c) => c.name === 'two_factor_enabled')) {
-  db.exec("ALTER TABLE users ADD COLUMN two_factor_enabled INTEGER NOT NULL DEFAULT 1");
+
+// Older development databases may already have the template-only settings
+// columns. Add the functional relay columns without requiring data loss.
+for (const column of [
+  'relay_consent INTEGER NOT NULL DEFAULT 1',
+  'low_power_mode INTEGER NOT NULL DEFAULT 0',
+  'critical_threshold_pct INTEGER NOT NULL DEFAULT 20',
+  'relay_hero_mode INTEGER NOT NULL DEFAULT 0',
+]) {
+  try { db.exec(`ALTER TABLE device_settings ADD COLUMN ${column}`); } catch { /* already present */ }
 }
 
 /**

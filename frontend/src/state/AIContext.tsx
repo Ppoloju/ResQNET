@@ -36,6 +36,7 @@ type SpeechRecognitionLike = {
   onresult: ((e: { results: ArrayLike<ArrayLike<{ transcript: string }>> }) => void) | null;
   onerror: ((e: { error: string }) => void) | null;
   onend: (() => void) | null;
+  onnomatch?: (() => void) | null;
 };
 
 function getRecognition(): SpeechRecognitionLike | null {
@@ -55,44 +56,35 @@ export function AIProvider({ children }: { children: ReactNode }) {
   const [transcript, setTranscript] = useState('');
   const [micError, setMicError] = useState<string | null>(null);
   const recRef = useRef<SpeechRecognitionLike | null>(null);
-  const streamRef = useRef<MediaStream | null>(null);
 
   const speechSupported = voiceState !== 'UNSUPPORTED';
 
   // Hard cleanup on unmount: never leave a mic open (§16).
   useEffect(() => () => {
     try { recRef.current?.stop(); } catch { /* already stopped */ }
-    streamRef.current?.getTracks().forEach((t) => t.stop());
   }, []);
 
   const stopVoice = useCallback(() => {
     try { recRef.current?.stop(); } catch { /* noop */ }
     recRef.current = null;
-    streamRef.current?.getTracks().forEach((t) => t.stop());
-    streamRef.current = null;
-    setVoiceState((s) => (s === 'RECORDING' ? 'PROCESSING' : s));
+    setVoiceState((s) => (s === 'RECORDING' ? 'IDLE' : s));
   }, []);
 
   const startVoice = useCallback(async () => {
     if (!speechSupported) return;
+    if (recRef.current) return;
     setMicError(null);
     setTranscript('');
     try {
-      // 1) Explicit mic permission — the user pressed the button (§16).
-      streamRef.current = await navigator.mediaDevices.getUserMedia({ audio: true });
-      // 2) Persistent visible indicator becomes active via voiceState=RECORDING.
-      setVoiceState('RECORDING');
       const rec = getRecognition();
       if (!rec) {
-        // Mic granted but no speech engine — fall back to typed text.
         setVoiceState('UNSUPPORTED');
-        streamRef.current.getTracks().forEach((t) => t.stop());
-        streamRef.current = null;
+        setMicError('Voice input is not supported in this browser');
         return;
       }
       recRef.current = rec;
       rec.lang = 'en-US';
-      rec.interimResults = false;
+      rec.interimResults = true;
       rec.continuous = false;
       rec.onresult = (e) => {
         let text = '';
@@ -100,23 +92,30 @@ export function AIProvider({ children }: { children: ReactNode }) {
         setTranscript(text.trim());
       };
       rec.onerror = (e) => {
-        setMicError(e.error === 'not-allowed' ? 'Microphone permission denied' : `Voice error: ${e.error}`);
+        const message = e.error === 'not-allowed'
+          ? 'Microphone permission denied. Allow microphone access and try again.'
+          : e.error === 'service-not-allowed'
+            ? 'Speech recognition is blocked in this browser or by its privacy settings.'
+            : e.error === 'audio-capture'
+              ? 'No microphone is available. Check your microphone and try again.'
+              : `Voice error: ${e.error}`;
+        setMicError(message);
+        recRef.current = null;
+        setVoiceState('IDLE');
       };
       rec.onend = () => {
-        // Auto-stop (§16): indicator clears as soon as processing begins.
-        streamRef.current?.getTracks().forEach((t) => t.stop());
-        streamRef.current = null;
         recRef.current = null;
-        setVoiceState((s) => (s === 'RECORDING' ? 'PROCESSING' : s));
+        setVoiceState((s) => (s === 'RECORDING' ? 'IDLE' : s));
       };
+      rec.onnomatch = () => setMicError('No speech was recognized. Try speaking closer to the microphone.');
+      setVoiceState('RECORDING');
       rec.start();
     } catch (err) {
-      streamRef.current?.getTracks().forEach((t) => t.stop());
-      streamRef.current = null;
+      recRef.current = null;
       setVoiceState('IDLE');
-      setMicError(err instanceof Error && err.name === 'NotAllowedError'
-        ? 'Microphone permission denied'
-        : 'Microphone unavailable');
+      setMicError(err instanceof Error && (err.name === 'NotAllowedError' || err.name === 'SecurityError')
+        ? 'Microphone permission was denied or voice input requires a secure connection (HTTPS).' 
+        : err instanceof Error ? err.message : 'Microphone unavailable');
     }
   }, [speechSupported]);
 

@@ -69,18 +69,26 @@ function getLocation(): Promise<GeoLocation> {
 interface MeshState {
   phase: SosPhase;
   active: ActiveEmergency | null;
+  safePulse: boolean;
   countdown: number;
   blackBox: BlackBoxEntry[];
   outboxCount: number;
   lastSyncAt: number | null;
-  startSos: (message?: string, ai?: AIResult) => void;
+  startSos: (message?: string, ai?: AIResult, options?: { skipCountdown?: boolean }) => void;
   cancelCountdown: () => void;
   resolveActive: () => Promise<void>;
+  showSafePulse: () => void;
 }
 
 const MeshContext = createContext<MeshState>(null as unknown as MeshState);
 
-const ACTIVE_KEY = 'resqnet.activeEmergency';
+const ACTIVE_KEY = 'iqoo.activeEmergency';
+const DEFAULT_SOS_VIBRATION_PATTERN_MS = [120, 60, 180];
+const DISARMED_VIBRATION_PATTERN_MS = [60, 40, 60];
+
+function vibrateForSos(pattern = DEFAULT_SOS_VIBRATION_PATTERN_MS): void {
+  if (typeof navigator.vibrate === 'function') navigator.vibrate(pattern);
+}
 
 /**
  * Anonymous local identity (§34): SOS must work with NO account and NO network.
@@ -107,6 +115,7 @@ export function MeshProvider({ children }: { children: ReactNode }) {
   const { online, battery } = useStatus();
   const [phase, setPhase] = useState<SosPhase>('IDLE');
   const [active, setActive] = useState<ActiveEmergency | null>(null);
+  const [safePulse, setSafePulse] = useState(false);
   const [countdown, setCountdown] = useState(3);
   const [blackBox, setBlackBox] = useState<BlackBoxEntry[]>([]);
   const [outboxCount, setOutboxCount] = useState(0);
@@ -166,16 +175,17 @@ export function MeshProvider({ children }: { children: ReactNode }) {
   /** Transmit: direct to backend when online AND authenticated, otherwise store-and-forward outbox. */
   const transmit = useCallback(async (
     packet: EmergencyPacket, emergencyId: string, type: 'SOS' | 'QUICK_HELP', severity: ActiveEmergency['severity'],
-  ): Promise<boolean> => {
+  ): Promise<{ sent: boolean; vibrationPatternMs?: number[] }> => {
     if (!onlineRef.current || !userRef.current) {
       pushOutbox(packet, emergencyId, type, severity);
       log('QUEUED_LOCAL', packet.id);
-      return false;
+      return { sent: false };
     }
     try {
-      await apiFetch('/emergencies', {
+      const response = await apiFetch<{ clientFeedback?: { vibrationPatternMs?: number[] } }>('/emergencies', {
         method: 'POST',
         body: JSON.stringify({
+          emergencyId,
           type,
           severity,
           category: packet.ai?.category,
@@ -187,11 +197,11 @@ export function MeshProvider({ children }: { children: ReactNode }) {
           ai: packet.ai,
         }),
       });
-      return true;
+      return { sent: true, vibrationPatternMs: response.clientFeedback?.vibrationPatternMs };
     } catch {
       pushOutbox(packet, emergencyId, type, severity);
       log('SEND_FAILED_QUEUED', packet.id);
-      return false;
+      return { sent: false };
     }
   }, [log, pushOutbox]);
 
@@ -271,58 +281,66 @@ export function MeshProvider({ children }: { children: ReactNode }) {
     return () => clearInterval(id);
   }, [syncOutbox]);
 
-  const startSos = useCallback((message = '', ai?: AIResult) => {
+  const startSos = useCallback((message = '', ai?: AIResult, options?: { skipCountdown?: boolean }) => {
     // Identity: server device when signed in, else anonymous local identity.
     // SOS is NEVER blocked by login state (§23 — keep activation trivial).
     const identity = device?.secret
       ? { id: device.id, publicId: device.publicId, secret: device.secret }
       : getOrCreateLocalIdentity();
+    const type: 'SOS' | 'QUICK_HELP' = message.startsWith('NEED_HELP:') ? 'QUICK_HELP' : 'SOS';
+    const activate = async () => {
+      const emergencyId = newEmergencyId();
+      const location = await getLocation();
+      const sev: ActiveEmergency['severity'] =
+        type === 'SOS' ? 'CRITICAL' : ai?.severity === 'CRITICAL' ? 'CRITICAL' : 'HIGH';
+      if (ai) log('AI_CLASSIFIED', `${ai.category}/${ai.severity} conf=${ai.confidence} engine=${ai.engine}`);
+      log('SOS_ACTIVATED', emergencyId);
+      log(location.state === 'LOCATION_UNAVAILABLE' ? 'LOCATION_UNAVAILABLE' : 'LOCATION_ACQUIRED', `${location.latitude.toFixed(5)}, ${location.longitude.toFixed(5)} ±${location.accuracyMeters ?? '?'}m`);
+      log('BATTERY_SNAPSHOT', battery !== null ? `${battery}%` : 'unknown');
+
+      const packet = await signPacket({
+        id: `msg_${crypto.randomUUID()}`,
+        emergencyId,
+        senderId: identity.id,
+        senderPublicId: identity.publicId,
+        type,
+        priority: (sev === 'CRITICAL' ? 'CRITICAL' : 'HIGH') as 'CRITICAL' | 'HIGH',
+        timestamp: Date.now(),
+        location,
+        battery,
+        message: message.replace(/^NEED_HELP:/, ''),
+        hopCount: 0,
+        ttl: 3600,
+        requiresMedicalHelp: true,
+        requiresPoliceHelp: type === 'SOS',
+        ai,
+      }, identity.secret);
+
+      const delivery = await transmit(packet, emergencyId, type, sev);
+      vibrateForSos(delivery.vibrationPatternMs);
+      log(delivery.sent ? 'PACKET_SENT_TO_BACKEND' : 'PACKET_HELD_LOCALLY', packet.id);
+
+      setActive({
+        emergencyId, type, severity: sev, message: message.replace(/^NEED_HELP:/, ''),
+        location, battery, startedAt: Date.now(), packetId: packet.id,
+        signature: packet.signature, queuedOffline: !delivery.sent, ai,
+      });
+      setPhase('ACTIVE');
+    };
+
+    if (options?.skipCountdown) {
+      void activate();
+      return;
+    }
+
     setPhase('COUNTDOWN');
     setCountdown(3);
     log('SOS_COUNTDOWN_STARTED');
-    const type: 'SOS' | 'QUICK_HELP' = message.startsWith('NEED_HELP:') ? 'QUICK_HELP' : 'SOS';
     timerRef.current = setInterval(() => {
       setCountdown((c) => {
         if (c <= 1) {
           if (timerRef.current) clearInterval(timerRef.current);
-          void (async () => {
-            const emergencyId = newEmergencyId();
-            const location = await getLocation();
-            const sev: ActiveEmergency['severity'] =
-              type === 'SOS' ? 'CRITICAL' : ai?.severity === 'CRITICAL' ? 'CRITICAL' : 'HIGH';
-            if (ai) log('AI_CLASSIFIED', `${ai.category}/${ai.severity} conf=${ai.confidence} engine=${ai.engine}`);
-            log('SOS_ACTIVATED', emergencyId);
-            log(location.state === 'LOCATION_UNAVAILABLE' ? 'LOCATION_UNAVAILABLE' : 'LOCATION_ACQUIRED', `${location.latitude.toFixed(5)}, ${location.longitude.toFixed(5)} ±${location.accuracyMeters ?? '?'}m`);
-            log('BATTERY_SNAPSHOT', battery !== null ? `${battery}%` : 'unknown');
-
-            const packet = await signPacket({
-              id: `msg_${crypto.randomUUID()}`,
-              emergencyId,
-              senderId: identity.id,
-              senderPublicId: identity.publicId,
-              type,
-              priority: (sev === 'CRITICAL' ? 'CRITICAL' : 'HIGH') as 'CRITICAL' | 'HIGH',
-              timestamp: Date.now(),
-              location,
-              battery,
-              message: message.replace(/^NEED_HELP:/, ''),
-              hopCount: 0,
-              ttl: 3600,
-              requiresMedicalHelp: true,
-              requiresPoliceHelp: type === 'SOS',
-              ai,
-            }, identity.secret);
-
-            const sent = await transmit(packet, emergencyId, type, sev);
-            log(sent ? 'PACKET_SENT_TO_BACKEND' : 'PACKET_HELD_LOCALLY', packet.id);
-
-            setActive({
-              emergencyId, type, severity: sev, message: message.replace(/^NEED_HELP:/, ''),
-              location, battery, startedAt: Date.now(), packetId: packet.id,
-              signature: packet.signature, queuedOffline: !sent, ai,
-            });
-            setPhase('ACTIVE');
-          })();
+          void activate();
           return 0;
         }
         log('COUNTDOWN_TICK', String(c - 1));
@@ -337,28 +355,35 @@ export function MeshProvider({ children }: { children: ReactNode }) {
     log('SOS_CANCELLED');
   }, [log]);
 
+  const showSafePulse = useCallback(() => {
+    setSafePulse(true);
+    window.setTimeout(() => setSafePulse(false), 5000);
+  }, []);
+
   const resolveActive = useCallback(async () => {
     if (!active) return;
     log('RESOLVE_STARTED', active.emergencyId);
     if (onlineRef.current) {
       try {
-        await apiFetch(`/emergencies/${active.emergencyId}/resolve`, { method: 'POST' });
+        const response = await apiFetch<{ clientFeedback?: { vibrationPatternMs?: number[] } }>(`/emergencies/${active.emergencyId}/resolve`, { method: 'POST' });
+        vibrateForSos(response.clientFeedback?.vibrationPatternMs ?? DISARMED_VIBRATION_PATTERN_MS);
         log('RESOLUTION_SENT');
       } catch {
         log('RESOLUTION_SEND_FAILED', 'will retry');
       }
     } else {
+      vibrateForSos(DISARMED_VIBRATION_PATTERN_MS);
       log('RESOLUTION_QUEUED_OFFLINE');
     }
     setActive(null);
     setPhase('RESOLVED');
-    setTimeout(() => setPhase('IDLE'), 2500);
-  }, [active, log]);
+    showSafePulse();
+  }, [active, log, showSafePulse]);
 
   const value = useMemo<MeshState>(() => ({
-    phase, active, countdown, blackBox, outboxCount, lastSyncAt,
-    startSos, cancelCountdown, resolveActive,
-  }), [phase, active, countdown, blackBox, outboxCount, lastSyncAt, startSos, cancelCountdown, resolveActive]);
+    phase, active, safePulse, countdown, blackBox, outboxCount, lastSyncAt,
+    startSos, cancelCountdown, resolveActive, showSafePulse,
+  }), [phase, active, safePulse, countdown, blackBox, outboxCount, lastSyncAt, startSos, cancelCountdown, resolveActive, showSafePulse]);
 
   return <MeshContext.Provider value={value}>{children}</MeshContext.Provider>;
 }
