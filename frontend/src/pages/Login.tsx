@@ -203,7 +203,7 @@ export default function Login() {
             <>
               <label htmlFor="identifier">Email or mobile number</label>
               <input id="identifier" required value={identifier} onChange={(e) => setIdentifier(e.target.value)}
-                autoComplete="username" placeholder="vinturi@student.gitam.edu" />
+                autoComplete="username" />
             </>
           )}
 

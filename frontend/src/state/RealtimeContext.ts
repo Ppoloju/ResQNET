@@ -52,11 +52,10 @@ export function useRealtime(handlers: Record<string, Handler> = {}) {
     // The live emergency stream is public safety information: subscribe with or
     // without a token (identity-gated events arrive only on the authed stream).
     if (typeof EventSource === 'undefined') return; // e.g. jsdom test environment
-    const token = localStorage.getItem('resqnet.token');
-    const url = token
-      ? `${API_BASE}/realtime/stream?token=${encodeURIComponent(token)}`
-      : `${API_BASE}/realtime/stream`;
-    const es = new EventSource(url);
+    // This feed is intentionally public. Do not attach a stale local JWT to a
+    // public EventSource URL: an expired token would turn a healthy feed into a
+    // repeating 401/reconnect loop for logged-out users.
+    const es = new EventSource(`${API_BASE}/realtime/stream`);
     es.onopen = () => setConnected(true);
     es.onerror = () => setConnected(false); // EventSource retries automatically
 

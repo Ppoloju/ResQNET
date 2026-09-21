@@ -6,6 +6,7 @@ export default defineConfig({
   server: {
     host: true,
     port: 5173,
+    strictPort: true,
     // Dev proxy: the app calls same-origin /api; in dev Vite forwards to the
     // separately running backend. Netlify uses VITE_API_URL in production.
     proxy: {
