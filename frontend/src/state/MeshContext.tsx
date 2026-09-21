@@ -290,11 +290,23 @@ export function MeshProvider({ children }: { children: ReactNode }) {
     const type: 'SOS' | 'QUICK_HELP' = message.startsWith('NEED_HELP:') ? 'QUICK_HELP' : 'SOS';
     const activate = async () => {
       const emergencyId = newEmergencyId();
-      const location = await getLocation();
       const sev: ActiveEmergency['severity'] =
         type === 'SOS' ? 'CRITICAL' : ai?.severity === 'CRITICAL' ? 'CRITICAL' : 'HIGH';
-      if (ai) log('AI_CLASSIFIED', `${ai.category}/${ai.severity} conf=${ai.confidence} engine=${ai.engine}`);
+      const cleanMessage = message.replace(/^NEED_HELP:/, '');
+
+      // Enter Emergency Mode immediately. GPS, signing, and backend delivery
+      // are deliberately completed after the safety-critical screen appears.
+      setActive({
+        emergencyId, type, severity: sev, message: cleanMessage,
+        location: null, battery, startedAt: Date.now(), packetId: 'pending',
+        signature: '', queuedOffline: true, ai,
+      });
+      setPhase('ACTIVE');
+      vibrateForSos();
       log('SOS_ACTIVATED', emergencyId);
+
+      const location = await getLocation();
+      if (ai) log('AI_CLASSIFIED', `${ai.category}/${ai.severity} conf=${ai.confidence} engine=${ai.engine}`);
       log(location.state === 'LOCATION_UNAVAILABLE' ? 'LOCATION_UNAVAILABLE' : 'LOCATION_ACQUIRED', `${location.latitude.toFixed(5)}, ${location.longitude.toFixed(5)} ±${location.accuracyMeters ?? '?'}m`);
       log('BATTERY_SNAPSHOT', battery !== null ? `${battery}%` : 'unknown');
 
@@ -317,15 +329,12 @@ export function MeshProvider({ children }: { children: ReactNode }) {
       }, identity.secret);
 
       const delivery = await transmit(packet, emergencyId, type, sev);
-      vibrateForSos(delivery.vibrationPatternMs);
+      if (delivery.vibrationPatternMs) vibrateForSos(delivery.vibrationPatternMs);
       log(delivery.sent ? 'PACKET_SENT_TO_BACKEND' : 'PACKET_HELD_LOCALLY', packet.id);
 
-      setActive({
-        emergencyId, type, severity: sev, message: message.replace(/^NEED_HELP:/, ''),
-        location, battery, startedAt: Date.now(), packetId: packet.id,
-        signature: packet.signature, queuedOffline: !delivery.sent, ai,
-      });
-      setPhase('ACTIVE');
+      setActive((current) => current?.emergencyId === emergencyId ? {
+        ...current, location, packetId: packet.id, signature: packet.signature, queuedOffline: !delivery.sent,
+      } : current);
     };
 
     if (options?.skipCountdown) {

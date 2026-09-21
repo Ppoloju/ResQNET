@@ -357,16 +357,16 @@ interface ActiveFamilyNode {
 }
 
 function LongPressButton({ onComplete, className, ariaLabel, showProgress = true, children }: { onComplete: () => void; className: string; ariaLabel: string; showProgress?: boolean; children: (progress: number) => ReactNode }) {
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const timerRef = useRef<number | null>(null);
   const startedAtRef = useRef(0);
   const [progress, setProgress] = useState(0);
 
   useEffect(() => () => {
-    if (timerRef.current) clearInterval(timerRef.current);
+    if (timerRef.current) cancelAnimationFrame(timerRef.current);
   }, []);
 
   const stop = () => {
-    if (timerRef.current) clearInterval(timerRef.current);
+    if (timerRef.current) cancelAnimationFrame(timerRef.current);
     timerRef.current = null;
     setProgress(0);
   };
@@ -375,15 +375,17 @@ function LongPressButton({ onComplete, className, ariaLabel, showProgress = true
     if (timerRef.current) return;
     startedAtRef.current = Date.now();
     setProgress(0);
-    timerRef.current = setInterval(() => {
+    const tick = () => {
       const next = Math.min(100, ((Date.now() - startedAtRef.current) / 3000) * 100);
       setProgress(next);
       if (next >= 100) {
-        if (timerRef.current) clearInterval(timerRef.current);
         timerRef.current = null;
         onComplete();
+        return;
       }
-    }, 40);
+      timerRef.current = requestAnimationFrame(tick);
+    };
+    timerRef.current = requestAnimationFrame(tick);
   };
 
   return (

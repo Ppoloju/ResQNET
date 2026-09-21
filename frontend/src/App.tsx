@@ -128,7 +128,6 @@ function LayoutModeToggle({ mode, onChange }: { mode: LayoutMode; onChange: (mod
         onClick={() => onChange('mobile')}
       >
         <Smartphone size={16} aria-hidden="true" />
-        <span>Mobile</span>
       </button>
       <button
         className={mode === 'desktop' ? 'active' : ''}
@@ -139,7 +138,6 @@ function LayoutModeToggle({ mode, onChange }: { mode: LayoutMode; onChange: (mod
         onClick={() => onChange('desktop')}
       >
         <Monitor size={16} aria-hidden="true" />
-        <span>Desktop</span>
       </button>
     </div>
   );
@@ -151,7 +149,7 @@ export default function App({ children }: { children: ReactNode }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [layoutMode, setLayoutMode] = useState<LayoutMode>(() => {
     const saved = localStorage.getItem('resqnet.layoutMode');
-    return saved === 'mobile' || saved === 'desktop' ? saved : 'auto';
+    return saved === 'desktop' ? 'desktop' : 'mobile';
   });
 
   useEffect(() => {
