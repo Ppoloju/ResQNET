@@ -1461,6 +1461,7 @@
             display: flex;
             flex-direction: column;
             gap: 4px;
+            overflow: hidden;
             transform: translateX(105%);
             transition: transform 0.25s ease;
             box-shadow: var(--shadow);
@@ -1468,6 +1469,12 @@
         
         .drawer.open {
             transform: translateX(0);
+        }
+        
+        .drawer nav {
+            min-height: 0;
+            overflow-y: auto;
+            overscroll-behavior: contain;
         }
         
         .drawer a {
@@ -1502,9 +1509,57 @@
         }
         
         .drawer-foot {
-            margin-top: auto;
+            flex: 0 0 auto;
             padding-top: 12px;
+            padding-bottom: max(8px, env(safe-area-inset-bottom));
             border-top: 1px dashed var(--line);
+        }
+        
+        .drawer-foot a {
+            min-height: 40px;
+            padding: 8px 14px;
+        }
+        
+        .drawer-foot a .ico {
+            color: var(--blue);
+        }
+        
+        #faq {
+            scroll-margin-top: 84px;
+        }
+        
+        #faq .eyebrow {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        #faq details {
+            border-top: 1px solid var(--line);
+        }
+        
+        #faq details:first-of-type {
+            margin-top: 14px;
+        }
+        
+        #faq summary {
+            display: flex;
+            align-items: center;
+            min-height: 52px;
+            padding: 10px 4px;
+            color: var(--text);
+            cursor: pointer;
+            font-weight: 700;
+            list-style-position: inside;
+        }
+        
+        #faq summary::marker {
+            color: var(--blue);
+        }
+        
+        #faq details p {
+            margin: 0 4px 14px 24px;
+            line-height: 1.55;
         }
         
         .scrim {

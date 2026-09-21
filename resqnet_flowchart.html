@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>ResQNET - Offline Emergency Network Flow</title>
+    <style>
+        @page {
+            size: 10cm 10cm;
+            margin: 0;
+        }
+        
+        html,
+        body {
+            margin: 0;
+            padding: 0;
+            background: #fff;
+        }
+        
+        svg {
+            display: block;
+            width: 10cm;
+            height: 10cm;
+        }
+    </style>
+</head>
+
+<body>
+    <!--
+  ResQNET - 10cm x 10cm print-ready flowchart.
+  Flow: PROFILE -> SIGNAL -> LOCAL AI -> PACKET -> TRANSPORT -> GATEWAY
+        -> FAN-OUT -> RESPOND -> RESOLVE.
+  Side paths show safety check-ins, disaster bulletins, resources, and missing persons.
+  [P] simulated radio links; [R] native transport/provider integration required.
+-->
+    <svg viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg" font-family="Arial, Helvetica, sans-serif">
+  <defs>
+    <marker id="arrow" markerWidth="7" markerHeight="7" refX="5.5" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 z" fill="#197a78"/></marker>
+    <marker id="arrowDark" markerWidth="7" markerHeight="7" refX="5.5" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 z" fill="#155e75"/></marker>
+  </defs>
+
+  <rect width="400" height="400" fill="#ffffff"/>
+
+  <!-- ROW 1: start -> local decision -> packet -->
+  <rect x="6" y="8" width="388" height="18" rx="4" fill="#d9f0ed" stroke="#197a78" stroke-width="0.8"/>
+  <text x="200" y="16" text-anchor="middle" font-size="6.2" font-weight="bold" fill="#123d42">RESQNET / OFFLINE EMERGENCY NETWORK</text>
+  <text x="200" y="22.2" text-anchor="middle" font-size="3.7" fill="#155e75">protect people when the network is weak, intermittent, or absent</text>
+  <line x1="200" y1="26" x2="200" y2="31" stroke="#197a78" stroke-width="1" marker-end="url(#arrow)"/>
+
+  <rect x="6" y="33" width="92" height="55" rx="4" fill="#f2fbfa" stroke="#73b8b1" stroke-width="0.8"/>
+  <rect x="9" y="35.5" width="53" height="6.5" rx="2" fill="#197a78"/>
+  <text x="35.5" y="40.2" text-anchor="middle" font-size="4.4" font-weight="bold" fill="#fff">1 · READY DEVICE</text>
+  <text x="12" y="50" font-size="4" font-weight="bold" fill="#123d42">Profile + consent</text>
+  <text x="12" y="56" font-size="3.45" fill="#28727a">medical card · visibility</text>
+  <text x="12" y="62" font-size="3.45" fill="#28727a">family circle · device key</text>
+  <text x="12" y="70" font-size="3.45" fill="#28727a">GPS + battery when available</text>
+  <text x="12" y="80" font-size="3.45" fill="#28727a">local profile works offline</text>
+  <line x1="98" y1="60" x2="105.4" y2="60" stroke="#197a78" stroke-width="1" marker-end="url(#arrow)"/>
+
+  <rect x="106" y="33" width="92" height="55" rx="4" fill="#f2fbfa" stroke="#73b8b1" stroke-width="0.8"/>
+  <rect x="109" y="35.5" width="45" height="6.5" rx="2" fill="#197a78"/>
+  <text x="131.5" y="40.2" text-anchor="middle" font-size="4.4" font-weight="bold" fill="#fff">2 · SIGNAL</text>
+  <text x="112" y="50" font-size="4" font-weight="bold" fill="#123d42">SOS / Quick Help</text>
+  <text x="112" y="56" font-size="3.45" fill="#28727a">hold to activate · countdown</text>
+  <text x="112" y="63" font-size="3.45" fill="#28727a">typed or optional voice</text>
+  <text x="112" y="70" font-size="3.45" fill="#28727a">check-in: SAFE / AT RISK</text>
+  <text x="112" y="80" font-size="3.45" fill="#28727a">location may be unavailable</text>
+  <line x1="198" y1="60" x2="205.4" y2="60" stroke="#197a78" stroke-width="1" marker-end="url(#arrow)"/>
+
+  <rect x="206" y="33" width="92" height="55" rx="4" fill="#f2fbfa" stroke="#73b8b1" stroke-width="0.8"/>
+  <rect x="209" y="35.5" width="59" height="6.5" rx="2" fill="#197a78"/>
+  <text x="238.5" y="40.2" text-anchor="middle" font-size="4.4" font-weight="bold" fill="#fff">3 · LOCAL AI TRIAGE</text>
+  <text x="212" y="50" font-size="4" font-weight="bold" fill="#123d42">Deterministic rule engine</text>
+  <text x="212" y="56" font-size="3.45" fill="#28727a">on-device · no cloud upload</text>
+  <text x="212" y="63" font-size="3.45" fill="#28727a">category · severity · confidence</text>
+  <text x="212" y="70" font-size="3.45" fill="#28727a">recommended action + guidance</text>
+  <text x="212" y="80" font-size="3.45" fill="#28727a">human decides whether to broadcast</text>
+  <line x1="298" y1="60" x2="305.4" y2="60" stroke="#197a78" stroke-width="1" marker-end="url(#arrow)"/>
+
+  <rect x="306" y="33" width="88" height="55" rx="4" fill="#e6f4f3" stroke="#73b8b1" stroke-width="0.8"/>
+  <rect x="309" y="35.5" width="55" height="6.5" rx="2" fill="#197a78"/>
+  <text x="336.5" y="40.2" text-anchor="middle" font-size="4.4" font-weight="bold" fill="#fff">4 · SIGN PACKET</text>
+  <text x="312" y="50" font-size="4" font-weight="bold" fill="#123d42">EmergencyPacket</text>
+  <text x="312" y="56" font-size="3.45" fill="#28727a">HMAC signature · TTL · hop count</text>
+  <text x="312" y="63" font-size="3.45" fill="#28727a">GPS state · battery · message</text>
+  <text x="312" y="70" font-size="3.45" fill="#28727a">shared validation rules</text>
+  <text x="312" y="80" font-size="3.45" fill="#28727a">stable RQ-XXXXXXXX identity</text>
+  <line x1="350" y1="88" x2="350" y2="94" stroke="#197a78" stroke-width="1" marker-end="url(#arrow)"/>
+
+  <!-- ROW 2: transport -> gateway -> storage -->
+  <rect x="306" y="95" width="88" height="65" rx="4" fill="#f2fbfa" stroke="#73b8b1" stroke-width="0.8"/>
+  <rect x="309" y="97.5" width="64" height="6.5" rx="2" fill="#197a78"/>
+  <text x="341" y="102.2" text-anchor="middle" font-size="4.4" font-weight="bold" fill="#fff">5 · TRANSPORT CHOICE</text>
+  <rect x="310" y="108" width="80" height="12" rx="2" fill="#d9f0ed" stroke="#197a78" stroke-width="0.5"/>
+  <text x="350" y="112.5" text-anchor="middle" font-size="3.9" font-weight="bold" fill="#123d42">ONLINE → HTTPS API</text>
+  <text x="350" y="117" text-anchor="middle" font-size="3.2" fill="#28727a">JWT auth · direct POST</text>
+  <rect x="310" y="123" width="80" height="12" rx="2" fill="#fff" stroke="#197a78" stroke-width="0.5" stroke-dasharray="2 1.3"/>
+  <text x="350" y="127.5" text-anchor="middle" font-size="3.9" font-weight="bold" fill="#123d42">OFFLINE → LOCAL OUTBOX</text>
+  <text x="350" y="132" text-anchor="middle" font-size="3.2" fill="#28727a">store-and-forward · retry</text>
+  <rect x="310" y="138" width="80" height="17" rx="2" fill="#d9f0ed" stroke="#197a78" stroke-width="0.5"/>
+  <text x="350" y="143" text-anchor="middle" font-size="3.9" font-weight="bold" fill="#123d42">DEVICE MESH [P]</text>
+  <text x="350" y="148" text-anchor="middle" font-size="3.2" fill="#28727a">relay · dedupe · ACK · TTL</text>
+  <text x="350" y="152" text-anchor="middle" font-size="3.2" fill="#28727a">native radio [R]</text>
+  <line x1="306" y1="128" x2="298.6" y2="128" stroke="#197a78" stroke-width="1" marker-end="url(#arrow)"/>
+
+  <rect x="206" y="95" width="92" height="65" rx="4" fill="#f2fbfa" stroke="#73b8b1" stroke-width="0.8"/>
+  <rect x="209" y="97.5" width="54" height="6.5" rx="2" fill="#197a78"/>
+  <text x="236" y="102.2" text-anchor="middle" font-size="4.4" font-weight="bold" fill="#fff">6 · GATEWAY</text>
+  <text x="212" y="113" font-size="4" font-weight="bold" fill="#123d42">Verify + persist</text>
+  <text x="212" y="120" font-size="3.45" fill="#28727a">signature · expiry · replay</text>
+  <text x="212" y="127" font-size="3.45" fill="#28727a">real emergency row + packet</text>
+  <text x="212" y="134" font-size="3.45" fill="#28727a">SQLite WAL · audit trail</text>
+  <text x="212" y="143" font-size="3.45" fill="#28727a">SSE realtime event stream</text>
+  <text x="212" y="152" font-size="3.45" fill="#28727a">sync is idempotent</text>
+  <line x1="206" y1="128" x2="198.6" y2="128" stroke="#197a78" stroke-width="1" marker-end="url(#arrow)"/>
+
+  <rect x="106" y="95" width="92" height="65" rx="4" fill="#f2fbfa" stroke="#73b8b1" stroke-width="0.8"/>
+  <rect x="109" y="97.5" width="62" height="6.5" rx="2" fill="#197a78"/>
+  <text x="140" y="102.2" text-anchor="middle" font-size="4.4" font-weight="bold" fill="#fff">7 · STORE + FAN-OUT</text>
+  <text x="112" y="113" font-size="4" font-weight="bold" fill="#123d42">Priority response record</text>
+  <text x="112" y="120" font-size="3.45" fill="#28727a">active emergency + location</text>
+  <text x="112" y="127" font-size="3.45" fill="#28727a">medical snapshot, consent-gated</text>
+  <text x="112" y="134" font-size="3.45" fill="#28727a">family notification rows</text>
+  <text x="112" y="143" font-size="3.45" fill="#28727a">SSE · queued SMS/push [R]</text>
+  <text x="112" y="152" font-size="3.45" fill="#28727a">delivery retries + ACK states</text>
+  <line x1="106" y1="128" x2="98.6" y2="128" stroke="#197a78" stroke-width="1" marker-end="url(#arrow)"/>
+
+  <rect x="6" y="95" width="92" height="65" rx="4" fill="#e6f4f3" stroke="#73b8b1" stroke-width="0.8"/>
+  <rect x="9" y="97.5" width="54" height="6.5" rx="2" fill="#197a78"/>
+  <text x="36" y="102.2" text-anchor="middle" font-size="4.4" font-weight="bold" fill="#fff">8 · LIVE AWARENESS</text>
+  <text x="12" y="113" font-size="4" font-weight="bold" fill="#123d42">Family + responders</text>
+  <text x="12" y="120" font-size="3.45" fill="#28727a">active feed · responder ACK</text>
+  <text x="12" y="127" font-size="3.45" fill="#28727a">family status + map</text>
+  <text x="12" y="134" font-size="3.45" fill="#28727a">nearby helpers / resources</text>
+  <text x="12" y="143" font-size="3.45" fill="#28727a">broadcasts + safety check-ins</text>
+  <text x="12" y="152" font-size="3.45" fill="#28727a">history and notifications</text>
+  <line x1="52" y1="160" x2="52" y2="166" stroke="#197a78" stroke-width="1" marker-end="url(#arrow)"/>
+
+  <!-- ROW 3: action -> resolution, plus review loop -->
+  <rect x="6" y="168" width="190" height="62" rx="4" fill="#f2fbfa" stroke="#73b8b1" stroke-width="0.8"/>
+  <rect x="9" y="170.5" width="72" height="6.5" rx="2" fill="#197a78"/>
+  <text x="45" y="175.2" text-anchor="middle" font-size="4.4" font-weight="bold" fill="#fff">9 · COORDINATED ACTION</text>
+  <rect x="10" y="181" width="56" height="19" rx="2" fill="#d9f0ed" stroke="#197a78" stroke-width="0.5"/>
+  <text x="38" y="189" text-anchor="middle" font-size="3.8" font-weight="bold" fill="#123d42">Responder ACK</text>
+  <text x="38" y="194" text-anchor="middle" font-size="3.2" fill="#28727a">priority queue</text>
+  <line x1="66" y1="190" x2="71.4" y2="190" stroke="#197a78" stroke-width="0.9" marker-end="url(#arrow)"/>
+  <rect x="72" y="181" width="56" height="19" rx="2" fill="#d9f0ed" stroke="#197a78" stroke-width="0.5"/>
+  <text x="100" y="189" text-anchor="middle" font-size="3.8" font-weight="bold" fill="#123d42">Intervene</text>
+  <text x="100" y="194" text-anchor="middle" font-size="3.2" fill="#28727a">medical · police</text>
+  <line x1="128" y1="190" x2="133.4" y2="190" stroke="#197a78" stroke-width="0.9" marker-end="url(#arrow)"/>
+  <rect x="134" y="181" width="56" height="19" rx="2" fill="#aedbd5" stroke="#197a78" stroke-width="0.5"/>
+  <text x="162" y="189" text-anchor="middle" font-size="3.8" font-weight="bold" fill="#123d42">Resolve</text>
+  <text x="162" y="194" text-anchor="middle" font-size="3.2" fill="#28727a">safe / cancelled</text>
+  <text x="12" y="211" font-size="3.55" fill="#28727a">signed resolution packet closes the event and updates every view</text>
+  <text x="12" y="222" font-size="3.55" font-weight="bold" fill="#155e75">goal: faster help, fewer missed signals, accountable delivery</text>
+
+  <rect x="204" y="168" width="190" height="62" rx="4" fill="#f2fbfa" stroke="#73b8b1" stroke-width="0.8"/>
+  <rect x="207" y="170.5" width="74" height="6.5" rx="2" fill="#197a78"/>
+  <text x="244" y="175.2" text-anchor="middle" font-size="4.4" font-weight="bold" fill="#fff">SIDE CHANNELS</text>
+  <text x="210" y="187" font-size="3.9" font-weight="bold" fill="#123d42">Check-in</text>
+  <text x="210" y="193" font-size="3.3" fill="#28727a">SAFE / AT RISK / NEEDS_HELP -> family status</text>
+  <text x="210" y="202" font-size="3.9" font-weight="bold" fill="#123d42">Situations</text>
+  <text x="210" y="208" font-size="3.3" fill="#28727a">human bulletin -> mesh/gateway -> shared map</text>
+  <text x="210" y="217" font-size="3.9" font-weight="bold" fill="#123d42">Missing person</text>
+  <text x="210" y="223" font-size="3.3" fill="#28727a">minimal alert -> human matching, never facial recognition</text>
+
+  <!-- Offline retry loop -->
+  <path d="M 306 160 L 306 238 L 174 238 L 174 230" fill="none" stroke="#155e75" stroke-width="1" stroke-dasharray="3 2" marker-end="url(#arrowDark)"/>
+  <rect x="207" y="233" width="74" height="8" rx="1.5" fill="#fff" stroke="#155e75" stroke-width="0.4"/>
+  <text x="244" y="238.5" text-anchor="middle" font-size="3.6" font-weight="bold" fill="#155e75">offline queue retries on reconnect</text>
+
+  <!-- Metrics / boundaries -->
+  <rect x="6" y="246" width="388" height="43" rx="4" fill="#f2fbfa" stroke="#73b8b1" stroke-width="0.8"/>
+  <rect x="9" y="248.5" width="64" height="6.5" rx="2" fill="#197a78"/>
+  <text x="41" y="253.2" text-anchor="middle" font-size="4.4" font-weight="bold" fill="#fff">TRUST + VALIDATION</text>
+  <line x1="198" y1="259" x2="198" y2="286" stroke="#73b8b1" stroke-width="0.5"/>
+  <text x="13" y="264" font-size="4.1" font-weight="bold" fill="#123d42">Privacy and integrity by construction</text>
+  <text x="13" y="270" font-size="3.5" fill="#28727a">consent-gated medical sharing · encrypted fields · audit log</text>
+  <text x="13" y="277" font-size="3.5" fill="#28727a">signed packets · replay rejection · idempotent sync</text>
+  <text x="205" y="264" font-size="4.1" font-weight="bold" fill="#123d42">Honest system boundaries</text>
+  <text x="205" y="270" font-size="3.5" fill="#28727a">[P] radio topology is simulated in web demo/test engine</text>
+  <text x="205" y="277" font-size="3.5" fill="#28727a">[R] native BLE + SMS/push providers complete deployment</text>
+  <text x="205" y="284" font-size="3.5" fill="#28727a">no fabricated GPS, battery, delivery, or government feed data</text>
+
+  <!-- Single event vs community picture -->
+  <rect x="6" y="297" width="190" height="58" rx="4" fill="#f2fbfa" stroke="#73b8b1" stroke-width="0.8"/>
+  <rect x="9" y="299.5" width="76" height="6.5" rx="2" fill="#197a78"/>
+  <text x="47" y="304.2" text-anchor="middle" font-size="4.4" font-weight="bold" fill="#fff">ONE PERSON — ONE EVENT</text>
+  <text x="12" y="316" font-size="4" font-weight="bold" fill="#123d42">Describe -> classify -> broadcast</text>
+  <text x="12" y="323" font-size="3.45" fill="#28727a">SOS / Quick Help · GPS · battery</text>
+  <text x="12" y="330" font-size="3.45" fill="#28727a">outbox or mesh keeps the packet moving</text>
+  <text x="12" y="337" font-size="3.45" fill="#28727a">responder ACK -> resolution</text>
+  <text x="12" y="347" font-size="3.45" font-weight="bold" fill="#155e75">seconds to a durable, traceable emergency row</text>
+
+  <rect x="204" y="297" width="190" height="58" rx="4" fill="#f2fbfa" stroke="#73b8b1" stroke-width="0.8"/>
+  <rect x="207" y="299.5" width="91" height="6.5" rx="2" fill="#197a78"/>
+  <text x="252.5" y="304.2" text-anchor="middle" font-size="4.4" font-weight="bold" fill="#fff">MANY SIGNALS — COMMUNITY PICTURE</text>
+  <text x="210" y="316" font-size="4" font-weight="bold" fill="#123d42">Check-ins + bulletins + locations</text>
+  <text x="210" y="323" font-size="3.45" fill="#28727a">family map · shelters · medical · water</text>
+  <text x="210" y="330" font-size="3.45" fill="#28727a">broadcast mode derived from live facts</text>
+  <text x="210" y="337" font-size="3.45" fill="#28727a">history, notifications, responder feed</text>
+  <text x="210" y="347" font-size="3.45" font-weight="bold" fill="#155e75">shared awareness before isolated harm escalates</text>
+
+  <!-- Legend -->
+  <g font-size="3.6" fill="#123d42">
+    <rect x="10" y="363" width="10" height="5" fill="#d9f0ed" stroke="#197a78" stroke-width="0.5"/><text x="24" y="367">main processing</text>
+    <rect x="87" y="363" width="10" height="5" fill="#aedbd5" stroke="#197a78" stroke-width="0.5"/><text x="101" y="367">key outcome</text>
+    <rect x="157" y="363" width="10" height="5" fill="#fff" stroke="#197a78" stroke-width="0.5" stroke-dasharray="1.5 1"/><text x="171" y="367">offline / optional</text>
+    <line x1="248" y1="365.5" x2="267" y2="365.5" stroke="#197a78" stroke-width="1" marker-end="url(#arrow)"/><text x="271" y="367">main flow</text>
+    <line x1="10" y1="376" x2="29" y2="376" stroke="#155e75" stroke-width="1" stroke-dasharray="3 2" marker-end="url(#arrowDark)"/><text x="34" y="377.5">retry / feedback loop</text>
+    <text x="390" y="377.5" text-anchor="end" fill="#73b8b1">10 cm x 10 cm · print at 100%</text>
+  </g>
+  <text x="200" y="391" text-anchor="middle" font-size="4.6" fill="#73b8b1">RESQNET · connect care when infrastructure cannot · act with evidence</text>
+</svg>
+</body>
+
+</html>

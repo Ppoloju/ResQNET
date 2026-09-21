@@ -93,7 +93,7 @@ export default function Demo() {
         method: 'POST',
         body: JSON.stringify({
           from: 'A',
-          emergencyId: `IQ-${Date.now().toString(36).toUpperCase().replace(/[^0-9A-Z]/g, '').slice(-8).padStart(6, '0')}`,
+          emergencyId: `RQ-${Date.now().toString(36).toUpperCase().replace(/[^0-9A-Z]/g, '').slice(-8).padStart(6, '0')}`,
           message: 'Demo: injured trekker, cannot walk',
           priority: 'CRITICAL',
           battery: 85,

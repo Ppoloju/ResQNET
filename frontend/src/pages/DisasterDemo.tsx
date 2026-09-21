@@ -69,7 +69,7 @@ export default function DisasterDemo() {
       setActive(true);
       setDone((steps) => new Set(steps).add('activated'));
 
-      const emergencyId = `IQ-DS${Date.now().toString(36).toUpperCase().replace(/[^0-9A-Z]/g, '').slice(-6).padStart(6, '0')}`;
+      const emergencyId = `RQ-DS${Date.now().toString(36).toUpperCase().replace(/[^0-9A-Z]/g, '').slice(-6).padStart(6, '0')}`;
       const injected = await apiFetch<{ accepted: boolean; snapshot: Snapshot }>('/sim/inject', {
         method: 'POST',
         body: JSON.stringify({

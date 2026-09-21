@@ -2,8 +2,8 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { NavLink, useLocation } from 'react-router-dom';
 import {
-  Bell, Brain, History, Home as HomeIcon, Laptop, Map, MapPinned, Menu, Network as NetworkIcon,
-  Play, QrCode, Settings as SettingsIcon, ShieldCheck, Smartphone, UserRound, UserSearch, Users, X,
+  Bell, Brain, HelpCircle, History, Home as HomeIcon, Laptop, Map, MapPinned, Menu, Network as NetworkIcon,
+  Monitor, Play, QrCode, Settings as SettingsIcon, ShieldCheck, Smartphone, UserRound, UserSearch, Users, X,
   type LucideIcon,
 } from 'lucide-react';
 import { Battery, BatteryCharging } from 'lucide-react';
@@ -229,6 +229,7 @@ export default function App({ children }: { children: ReactNode }) {
         </nav>
         <div className="drawer-foot">
           <NavLink to="/more">About ResQNET</NavLink>
+          <NavLink to="/more#faq"><HelpCircle className="ico" size={19} /><span>FAQs</span></NavLink>
         </div>
       </aside>
       {menuOpen && <button className="scrim" type="button" aria-label="Close menu" onClick={() => setMenuOpen(false)} />}
