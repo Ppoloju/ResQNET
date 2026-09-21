@@ -30,6 +30,8 @@ const nearbySchema = z.object({
   limit: z.coerce.number().int().min(1).max(50).optional(),
 });
 
+const MAX_RELEVANT_DISTANCE_M = 50_000;
+
 /** Nearby resource points, MEDICAL/SHELTER kind-prioritized then by distance. */
 resourcesRouter.get('/nearby', requireAuth, (req: AuthedRequest, res) => {
   const parsed = nearbySchema.safeParse(req.query);
@@ -38,13 +40,14 @@ resourcesRouter.get('/nearby', requireAuth, (req: AuthedRequest, res) => {
     return;
   }
   const { lat, lon, limit } = parsed.data;
-  const ranked = rankResources(SEED_RESOURCES, lat, lon);
+  const ranked = rankResources(SEED_RESOURCES, lat, lon)
+    .filter((resource) => resource.distanceM <= MAX_RELEVANT_DISTANCE_M);
   res.json({
     resources: (limit ? ranked.slice(0, limit) : ranked).map((r) => ({
       ...r,
       // Round for display sanity; raw meters kept for sorting upstream.
       distanceM: Math.round(r.distanceM),
     })),
-    note: 'Demo seed dataset — verify locally before relying on any point (§13 honest scope).',
+    note: 'Reviewed seed dataset, limited to points within 50 km — verify locally before relying on any point (§13 honest scope).',
   });
 });

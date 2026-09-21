@@ -52,7 +52,7 @@ function googleMapsUrl(latitude: number, longitude: number): string {
 
 function markerIcon(kind: 'self' | 'family' | Point['kind'], status?: string): L.DivIcon {
   const className = kind === 'self' ? 'self' : kind === 'family' && status === 'NEEDS_HELP' ? 'danger' : kind ? kind.toLowerCase() : 'family';
-  const symbol = kind === 'MEDICAL' ? '+' : kind === 'POLICE' ? 'P' : kind === 'SHELTER' ? 'S' : kind === 'SAFE_ZONE' ? 'Z' : kind === 'WATER' ? 'W' : kind === 'SUPPLIES' ? '□' : kind === 'self' ? '↑' : '•';
+  const symbol = kind === 'MEDICAL' ? '+' : kind === 'POLICE' ? 'P' : kind === 'SHELTER' ? 'S' : kind === 'SAFE_ZONE' ? 'Z' : kind === 'WATER' ? 'W' : kind === 'SUPPLIES' ? '□' : kind === 'self' ? '' : '•';
   return L.divIcon({
     className: 'family-leaflet-icon',
     html: `<span class="family-leaflet-pin ${className}"><span class="family-leaflet-symbol">${symbol}</span></span>`,

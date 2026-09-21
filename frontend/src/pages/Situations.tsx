@@ -8,6 +8,7 @@ import { apiFetch, useSession } from '../state/SessionContext';
 import { useStatus } from '../state/StatusContext';
 import { SITREP_STALE_MS } from '@iqoo/shared';
 import DemoMap, { type DemoMapMarker } from '../components/DemoMap';
+import { useHighAccuracyLocation } from '../components/EmergencyMap';
 
 interface Sitrep {
   id: string; kind: string; text: string;
@@ -33,12 +34,12 @@ const RES_META: Record<string, string> = {
 export default function Situations() {
   const { user } = useSession();
   const { online } = useStatus();
+  const { fix, state: locationState } = useHighAccuracyLocation();
   const [sitreps, setSitreps] = useState<Sitrep[]>([]);
   const [resources, setResources] = useState<ResourcePoint[] | null>(null);
   const [kind, setKind] = useState('HAZARD');
   const [text, setText] = useState('');
   const [shareLoc, setShareLoc] = useState(false);
-  const [coords, setCoords] = useState<{ lat: number; lon: number } | null>(null);
   const [locNote, setLocNote] = useState('');
   const [posting, setPosting] = useState(false);
   const [error, setError] = useState('');
@@ -62,18 +63,15 @@ export default function Situations() {
 
   useEffect(() => { void load(); const t = setInterval(() => void load(), 20_000); return () => clearInterval(t); }, [load]);
 
+  useEffect(() => {
+    if (!fix) return;
+    setLocNote(`Live location (±${Math.round(fix.accuracyMeters ?? 0)} m)`);
+    void loadResources(fix.latitude, fix.longitude);
+  }, [fix, loadResources]);
+
   const locate = () => {
-    if (!('geolocation' in navigator)) { setLocNote('Location not available on this device'); return; }
-    setLocNote('Locating…');
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setCoords({ lat: pos.coords.latitude, lon: pos.coords.longitude });
-        setLocNote(`Location set (±${Math.round(pos.coords.accuracy)} m)`);
-        void loadResources(pos.coords.latitude, pos.coords.longitude);
-      },
-      () => setLocNote('Location denied — resource map needs a location'),
-      { enableHighAccuracy: true, timeout: 8000 },
-    );
+    if (fix) void loadResources(fix.latitude, fix.longitude);
+    else setLocNote(locationState === 'denied' ? 'Location denied — resource map needs a location' : 'Locating…');
   };
 
   const post = async () => {
@@ -85,8 +83,8 @@ export default function Situations() {
         method: 'POST',
         body: JSON.stringify({
           kind, text: text.trim(),
-          lat: shareLoc && coords ? coords.lat : null,
-          lon: shareLoc && coords ? coords.lon : null,
+          lat: shareLoc && fix ? fix.latitude : null,
+          lon: shareLoc && fix ? fix.longitude : null,
         }),
       });
       setText('');
@@ -144,7 +142,7 @@ export default function Situations() {
           <input type="checkbox" checked={shareLoc} onChange={(e) => setShareLoc(e.target.checked)} />
           Attach my location
         </label>
-        {shareLoc && !coords && (
+        {shareLoc && !fix && (
           <button className="btn-ghost" style={{ marginTop: 6 }} onClick={locate}>Get my location</button>
         )}
         {locNote && <p className="muted" style={{ fontSize: '0.8rem', margin: '4px 0 0' }}>{locNote}</p>}
@@ -202,12 +200,12 @@ export default function Situations() {
         {resources && resources.length > 0 && (
           <DemoMap
             title="Nearby resource overview"
-            subtitle="Temporary local visualization of verified resource points. Distances remain authoritative; map positions are illustrative."
-            markers={resources.slice(0, 8).map((resource, index): DemoMapMarker => ({
+            subtitle="Verified resource points are plotted at their reported coordinates on live OpenStreetMap tiles."
+            markers={resources.slice(0, 8).map((resource): DemoMapMarker => ({
               id: resource.id,
               label: resource.kind,
-              x: 14 + (index * 17) % 74,
-              y: 24 + (index * 29) % 56,
+              latitude: resource.lat,
+              longitude: resource.lon,
               tone: resource.kind === 'MEDICAL' ? 'primary' : 'tertiary',
               detail: `${Math.round(resource.distanceM)} m`,
             }))}

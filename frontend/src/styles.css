@@ -3756,6 +3756,13 @@
             color: #ffaaa5;
         }
         
+        .family-leaflet-pin.self .family-leaflet-symbol {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #ffaaa5;
+        }
+        
         .family-leaflet-pin.medical {
             border-color: #63e7a5;
             background: #123c2b;
@@ -4723,6 +4730,16 @@
             border: 1px solid rgba(143, 154, 167, 0.16);
             border-radius: 5px;
             background: #090d12;
+        }
+        
+        .demo-map-canvas.demo-leaflet-map {
+            height: 300px;
+        }
+        
+        .demo-leaflet-map .leaflet-container {
+            height: 100%;
+            width: 100%;
+            min-height: 240px;
         }
         
         .demo-map-grid {
@@ -7128,6 +7145,36 @@
             display: flex;
             flex-direction: column;
             gap: 0;
+        }
+        /* All route surfaces use one fixed phone column in Mobile mode. */
+        
+        .app.layout-mobile .page-host .card,
+        .app.layout-mobile .page-host .hero-panel,
+        .app.layout-mobile .page-host .panel-surface,
+        .app.layout-mobile .page-host .list-item,
+        .app.layout-mobile .page-host article,
+        .app.layout-mobile .page-host section {
+            width: 100%;
+            max-width: 100%;
+            min-width: 0;
+            box-sizing: border-box;
+            grid-column: 1 / -1;
+        }
+        
+        .app.layout-mobile .page-host .card>*,
+        .app.layout-mobile .page-host .hero-panel>*,
+        .app.layout-mobile .page-host .panel-surface>* {
+            min-width: 0;
+            max-width: 100%;
+        }
+        
+        .app.layout-mobile .page-host h1,
+        .app.layout-mobile .page-host h2,
+        .app.layout-mobile .page-host h3,
+        .app.layout-mobile .page-host p,
+        .app.layout-mobile .page-host span,
+        .app.layout-mobile .page-host strong {
+            overflow-wrap: anywhere;
         }
         
         .app.layout-mobile .grid2,
