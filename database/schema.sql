@@ -81,7 +81,7 @@ CREATE TABLE IF NOT EXISTS family_members (
     ('FATHER','MOTHER','BROTHER','SISTER','PARTNER','FRIEND','GUARDIAN','OTHER')),
   phone          TEXT NOT NULL,
   iqoo_account_id TEXT,
-  priority       INTEGER NOT NULL DEFAULT 5,     -- 1 = highest
+  priority       INTEGER NOT NULL DEFAULT 3,     -- 1 = highest, 3 = standard
   trusted        INTEGER NOT NULL DEFAULT 0,     -- boolean
   status         TEXT NOT NULL DEFAULT 'UNKNOWN' CHECK (status IN ('UNKNOWN','SAFE','AT_RISK','UNREACHABLE')),
   last_seen_at   TEXT,

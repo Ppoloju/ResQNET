@@ -133,7 +133,7 @@ function Shell({ label, hint, children }: FieldShell) {
   );
 }
 
-export function TextField({ label, hint, value, onChange, placeholder, type = 'text', required, maxLength, inputMode, autoComplete }: {
+export function TextField({ label, hint, value, onChange, placeholder, type = 'text', required, minLength, maxLength, inputMode, autoComplete }: {
   label: string;
   hint?: string;
   value: string;
@@ -141,6 +141,7 @@ export function TextField({ label, hint, value, onChange, placeholder, type = 't
   placeholder?: string;
   type?: string;
   required?: boolean;
+  minLength?: number;
   maxLength?: number;
   inputMode?: 'text' | 'tel' | 'numeric' | 'email';
   autoComplete?: string;
@@ -152,6 +153,7 @@ export function TextField({ label, hint, value, onChange, placeholder, type = 't
         value={value}
         placeholder={placeholder}
         required={required}
+        minLength={minLength}
         maxLength={maxLength}
         inputMode={inputMode}
         autoComplete={autoComplete}
@@ -219,6 +221,23 @@ export function TextAreaField({ label, hint, value, onChange, rows = 2, maxLengt
         onChange={(e) => onChange(e.target.value)}
       />
     </Shell>
+  );
+}
+
+export function CheckboxField({ label, checked, onChange, hint }: {
+  label: string;
+  checked: boolean;
+  onChange: (checked: boolean) => void;
+  hint?: string;
+}) {
+  return (
+    <label className="rq-checkbox-field">
+      <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} />
+      <span>
+        <span className="rq-field-label">{label}</span>
+        {hint && <span className="rq-field-hint">{hint}</span>}
+      </span>
+    </label>
   );
 }
 

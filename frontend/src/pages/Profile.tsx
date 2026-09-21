@@ -4,7 +4,7 @@ import { apiFetch, useSession } from '../state/SessionContext';
 import MedicalCard from '../components/MedicalCard';
 import { medicalFromProfile, saveMedicalInfo, type EmergencyProfilePayload } from '../state/medicalProfile';
 import {
-  Card, CardHeader, PageHeader, TextField, NumberField, SelectField, TextAreaField, ActionButton,
+  Card, CardHeader, PageHeader, TextField, NumberField, SelectField, TextAreaField, CheckboxField, ActionButton,
 } from '../components/ui';
 
 type ProfileData = EmergencyProfilePayload;
@@ -108,15 +108,11 @@ export default function Profile() {
             { value: 'NEARBY_HELPERS', label: 'Nearby helpers during SOS' },
           ]}
         />
-        <label style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 10 }}>
-          <input
-            type="checkbox"
-            style={{ width: 20, height: 20 }}
-            checked={p.consentMedicalShare}
-            onChange={(e) => setP({ ...p, consentMedicalShare: e.target.checked })}
-          />
-          Include medical details (allergies, conditions, medications) when shared
-        </label>
+        <CheckboxField
+          label="Include medical details (allergies, conditions, medications) when shared"
+          checked={p.consentMedicalShare}
+          onChange={(consentMedicalShare) => setP({ ...p, consentMedicalShare })}
+        />
         {!p.consentMedicalShare && (
           <p className="muted">Medical details stay on this device unless you consent above.</p>
         )}

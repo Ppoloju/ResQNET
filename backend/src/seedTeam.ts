@@ -2,12 +2,19 @@
 // that works for these three emails (any older hash is overwritten).
 
 import { randomBytes, randomUUID } from 'node:crypto';
-import { hash, verify } from '@node-rs/argon2';
+import { Algorithm, hash, verify } from '@node-rs/argon2';
 import { db, tx } from './db.js';
 import { logger } from './logger.js';
 import { canonicalPhone } from './lib/phone.js';
 
 export const TEAM_PASSWORD = 'Gitam@2028';
+
+const PASSWORD_HASH_OPTIONS = {
+  algorithm: Algorithm.Argon2id,
+  memoryCost: 65_536,
+  timeCost: 3,
+  parallelism: 1,
+} as const;
 
 export const TEAM_ACCOUNTS = [
   {
@@ -39,7 +46,7 @@ function newPublicId(): string {
 
 export async function seedTeamAccounts(): Promise<void> {
   const now = new Date().toISOString();
-  const passwordHash = await hash(TEAM_PASSWORD);
+  const passwordHash = await hash(TEAM_PASSWORD, PASSWORD_HASH_OPTIONS);
 
   for (const account of TEAM_ACCOUNTS) {
     const phone = canonicalPhone(process.env[account.phoneEnv] || account.defaultPhone);

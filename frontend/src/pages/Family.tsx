@@ -1,13 +1,13 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
-  Activity, CheckCircle2, ChevronUp, CircleHelp, HeartPulse, Link2, MessageSquare, Plus, RefreshCw, ShieldCheck, Star, Trash2,
+  Activity, ChevronUp, CircleHelp, HeartPulse, Link2, MessageSquare, Plus, ShieldCheck, Star, Trash2,
   UserRound, Users, X,
 } from 'lucide-react';
 import { apiFetch, useSession } from '../state/SessionContext';
 import { useStatus } from '../state/StatusContext';
 import { queueCheckIn } from '../state/checkInQueue';
 import {
-  Card, CardHeader, Modal, TextField, SelectField, StatusPill, toneForStatus, EmptyState, ActionButton,
+  Card, CardHeader, Modal, TextField, SelectField, StatusPill, toneForStatus, EmptyState, ActionButton, CheckboxField,
 } from '../components/ui';
 
 interface Member {
@@ -16,6 +16,7 @@ interface Member {
   relation: string;
   phone: string;
   iqooAccountId: string | null;
+  iqooEmail?: string | null;
   priority: number;
   trusted: boolean;
   status: string;
@@ -71,9 +72,6 @@ export default function Family() {
 
   useEffect(() => { void load(); }, [load]);
 
-  const safeCount = members.filter((member) => member.checkInStatus === 'SAFE').length;
-  const linkedCount = members.filter((member) => member.linked).length;
-
   if (!user) return <div className="card">Sign in to manage your family circle.</div>;
 
   async function addMember() {
@@ -96,13 +94,15 @@ export default function Family() {
   }
 
   async function unlink(id: string) {
-    await update(id, { iqooAccountId: null } as unknown as Partial<Member>);
-    load();
+    try {
+      await apiFetch(`/family/${id}/link`, { method: 'DELETE' });
+      await load();
+    } catch (e) { setError(e instanceof Error ? e.message : 'unlink failed'); }
   }
 
   function openLink(member: Member) {
     setLinkTarget(member);
-    setLinkEmail(member.iqooAccountId ?? '');
+    setLinkEmail(member.iqooEmail ?? '');
     setLinkNote('');
   }
 
@@ -149,12 +149,6 @@ export default function Family() {
           <p className="muted">Manage emergency contacts and see their latest linked check-in.</p>
         </div>
         <div className="family-node-badge">{members.length} CONTACTS</div>
-      </section>
-
-      <section className="family-summary" aria-live="polite">
-        <span><CheckCircle2 size={16} /> {safeCount}/{members.length} marked safe</span>
-        <span>{linkedCount} linked account{linkedCount === 1 ? '' : 's'}</span>
-        <button className="family-icon-action" type="button" aria-label="Refresh family status" title="Refresh family status" onClick={load}><RefreshCw size={18} /></button>
       </section>
 
       <section className="family-members-section">
@@ -220,7 +214,7 @@ export default function Family() {
               placeholder="family@student.gitam.edu"
               inputMode="email"
             />
-            <label className="family-check-label"><input type="checkbox" checked={draft.trusted} onChange={(e) => setDraft({ ...draft, trusted: e.target.checked })} /> Trusted contact</label>
+            <CheckboxField label="Trusted contact" checked={draft.trusted} onChange={(trusted) => setDraft({ ...draft, trusted })} />
             <div className="row mt">
               <ActionButton variant="primary" onClick={() => void addMember()} disabled={!draft.name.trim() || !draft.relation || !draft.phone.trim()}>Add node</ActionButton>
               <ActionButton variant="ghost" onClick={() => setAdding(false)}>Cancel</ActionButton>

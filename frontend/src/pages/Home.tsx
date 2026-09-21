@@ -144,8 +144,8 @@ function CheckInCard() {
         actions={<StatusPill tone={toneForStatus(last?.status)}>{last?.status ?? 'NO STATUS'}</StatusPill>}
       />
       <div className="row wrap">
-        <button className="btn-safe btn-ok" onClick={() => void checkIn('SAFE')} disabled={busy}>I'm Safe</button>
-        <button className="btn-ghost" onClick={() => void checkIn('AT_RISK')} disabled={busy}>At risk</button>
+        <ActionButton variant="primary" onClick={() => void checkIn('SAFE')} disabled={busy}>I'm Safe</ActionButton>
+        <ActionButton variant="ghost" onClick={() => void checkIn('AT_RISK')} disabled={busy}>At risk</ActionButton>
       </div>
       {note && <p className="muted" style={{ fontSize: '0.8rem', margin: '8px 0 0' }}>{note}</p>}
     </Card>
@@ -181,7 +181,7 @@ function NearbyCard() {
         icon={<Radio size={17} />}
         title="Nearby devices"
         subtitle="Server-side discovery for the prototype; on phones this list comes from BLE."
-        actions={<button className="btn-ghost" onClick={load} style={{ minHeight: 36 }}>Refresh</button>}
+        actions={<ActionButton variant="ghost" onClick={load}>Refresh</ActionButton>}
       />
       {state === 'locating' && <p className="muted">Locating…</p>}
       {state === 'denied' && <p className="muted">Location permission denied — enable it to see nearby devices.</p>}

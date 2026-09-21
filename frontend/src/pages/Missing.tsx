@@ -7,7 +7,7 @@ import { UserSearch, Camera, Send, MapPin } from 'lucide-react';
 import { apiFetch, useSession } from '../state/SessionContext';
 import { useStatus } from '../state/StatusContext';
 import {
-  Card, CardHeader, PageHeader, TextField, TextAreaField, ActionButton, EmptyState, StatusPill,
+  Card, CardHeader, PageHeader, TextField, TextAreaField, CheckboxField, ActionButton, EmptyState, StatusPill,
 } from '../components/ui';
 
 interface Report {
@@ -174,7 +174,6 @@ export default function Missing() {
           </div>
           <TextAreaField label="Description" rows={2} maxLength={2000} value={form.description} placeholder="Age, build, language spoken, distinguishing details…" onChange={(description) => setForm({ ...form, description })} />
           <TextField label="Clothing" value={form.clothing} onChange={(clothing) => setForm({ ...form, clothing })} />
-          <TextField label="Photo (optional, ≤150 KB)" type="file" value="" onChange={() => undefined} />
           <input
             id="mp-photo"
             type="file"
@@ -201,11 +200,11 @@ export default function Missing() {
           )}
           {photo && <p className="ok-text small" style={{ margin: 0 }}>Photo attached ✓</p>}
 
-          <label style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-            <input type="checkbox" style={{ width: 20, height: 20 }} checked={useLocation}
-              onChange={(e) => { setUseLocation(e.target.checked); if (e.target.checked) grabLocation(); }} />
-            Include last-known location (from this device)
-          </label>
+          <CheckboxField
+            label="Include last-known location (from this device)"
+            checked={useLocation}
+            onChange={(checked) => { setUseLocation(checked); if (checked) grabLocation(); }}
+          />
           {useLocation && coords && (
             <p className="muted mono small" style={{ margin: 0 }}>{coords.lat.toFixed(5)}, {coords.lon.toFixed(5)}</p>
           )}

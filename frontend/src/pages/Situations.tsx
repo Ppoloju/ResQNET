@@ -10,7 +10,7 @@ import { useStatus } from '../state/StatusContext';
 import { SITREP_STALE_MS } from '@iqoo/shared';
 import DemoMap, { type DemoMapMarker } from '../components/DemoMap';
 import { useHighAccuracyLocation } from '../components/EmergencyMap';
-import { Card, CardHeader, PageHeader, Chip, TextAreaField, ActionButton } from '../components/ui';
+import { Card, CardHeader, PageHeader, Chip, TextAreaField, CheckboxField, ActionButton } from '../components/ui';
 
 interface Sitrep {
   id: string; kind: string; text: string;
@@ -112,10 +112,11 @@ export default function Situations() {
           ))}
         </div>
         <TextAreaField label="What is happening?" value={text} onChange={(v) => setText(v.slice(0, 280))} rows={2} maxLength={280} placeholder="Max 280 characters" />
-        <label style={{ display: 'flex', gap: 6, alignItems: 'center', fontSize: '0.85rem' }}>
-          <input type="checkbox" checked={shareLoc} onChange={(e) => setShareLoc(e.target.checked)} />
-          Attach my location{fix ? ` (±${Math.round(fix.accuracyMeters ?? 0)} m)` : ''}
-        </label>
+        <CheckboxField
+          label={`Attach my location${fix ? ` (±${Math.round(fix.accuracyMeters ?? 0)} m)` : ''}`}
+          checked={shareLoc}
+          onChange={setShareLoc}
+        />
         {shareLoc && !fix && (
           <p className="muted small" style={{ margin: 0 }}>
             {locationState === 'denied' ? 'Location denied — the bulletin posts without coordinates.' : 'Waiting for a location fix…'}

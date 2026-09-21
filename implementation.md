@@ -117,7 +117,7 @@ The frontend is a web PWA. Browser Bluetooth cannot do background BLE mesh; iOS/
 
 # Phase 3 — Family Circle
 
-- [x] Add member (name, relation, phone, priority 1-9, trusted flag)
+- [x] Add member (name, relation, phone, priority 1-3, trusted flag)
 - [x] Edit member (priority ▲, trusted ★ toggle)
 - [x] Remove member
 - [x] Priority ordering (server sorts by priority)

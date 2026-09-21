@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Mail, ShieldCheck, Smartphone } from 'lucide-react';
 import { apiFetch, useSession } from '../state/SessionContext';
+import { TextField } from '../components/ui';
 
 type Mode = 'login' | 'register' | 'verify2fa' | 'verifyEmail' | 'forgot' | 'reset';
 
@@ -188,31 +189,23 @@ export default function Login() {
         <form onSubmit={(event) => void submit(event)}>
           {mode === 'register' && (
             <>
-              <label htmlFor="displayName">Your name</label>
-              <input id="displayName" value={displayName} onChange={(e) => setDisplayName(e.target.value)}
-                placeholder="Inturi Vaishnavi" autoComplete="name" required />
-              <label htmlFor="email">College email</label>
-              <input id="email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" />
-              <label htmlFor="phone">Mobile number</label>
-              <input id="phone" type="tel" required value={phone} onChange={(e) => setPhone(e.target.value)}
-                placeholder="10-digit Indian mobile" autoComplete="tel" />
+              <TextField label="Your name" value={displayName} onChange={setDisplayName} placeholder="Inturi Vaishnavi" autoComplete="name" required />
+              <TextField label="College email" type="email" required value={email} onChange={setEmail} autoComplete="email" />
+              <TextField label="Mobile number" type="tel" required value={phone} onChange={setPhone}
+                placeholder="10-digit Indian mobile" autoComplete="tel" inputMode="tel" />
             </>
           )}
 
           {(mode === 'login' || mode === 'forgot') && (
             <>
-              <label htmlFor="identifier">Email or mobile number</label>
-              <input id="identifier" required value={identifier} onChange={(e) => setIdentifier(e.target.value)}
-                autoComplete="username" />
+              <TextField label="Email or mobile number" required value={identifier} onChange={setIdentifier} autoComplete="username" />
             </>
           )}
 
           {(mode === 'login' || mode === 'register') && (
             <>
-              <label htmlFor="password">{mode === 'register' ? 'Password (min 8 characters)' : 'Password'}</label>
-              <input id="password" type="password" required minLength={mode === 'register' ? 8 : 1} value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                autoComplete={mode === 'login' ? 'current-password' : 'new-password'} />
+              <TextField label={mode === 'register' ? 'Password (min 8 characters)' : 'Password'} type="password" required minLength={mode === 'register' ? 8 : 1} value={password}
+                onChange={setPassword} autoComplete={mode === 'login' ? 'current-password' : 'new-password'} />
             </>
           )}
 
@@ -225,9 +218,8 @@ export default function Login() {
 
           {mode === 'reset' && (
             <>
-              <label htmlFor="newPassword">New password</label>
-              <input id="newPassword" type="password" required minLength={8} value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)} autoComplete="new-password" />
+              <TextField label="New password" type="password" required minLength={8} value={newPassword}
+                onChange={setNewPassword} autoComplete="new-password" />
             </>
           )}
 

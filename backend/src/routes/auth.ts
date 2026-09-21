@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { createHash, randomBytes, randomUUID, randomInt } from 'node:crypto';
 import { z } from 'zod';
-import { hash, verify } from '@node-rs/argon2';
+import { Algorithm, hash, verify } from '@node-rs/argon2';
 import jwt from 'jsonwebtoken';
 import { db, tx } from '../db.js';
 import { config } from '../config.js';
@@ -14,6 +14,13 @@ import { sendOtpSms, smsMode, smsProvider } from '../lib/sms.js';
 import { canonicalPhone, looksLikeEmail, maskEmail, maskPhone, phoneTail } from '../lib/phone.js';
 
 export const authRouter = Router();
+
+const PASSWORD_HASH_OPTIONS = {
+  algorithm: Algorithm.Argon2id,
+  memoryCost: 65_536,
+  timeCost: 3,
+  parallelism: 1,
+} as const;
 
 authRouter.get('/channels', (_req, res) => {
   res.json({
@@ -211,7 +218,7 @@ authRouter.post('/register', authLimiter, async (req, res) => {
 
   const userId = randomUUID();
   const now = new Date().toISOString();
-  const passwordHash = await hash(password);
+  const passwordHash = await hash(password, PASSWORD_HASH_OPTIONS);
 
   const deviceId = randomUUID();
   const deviceSecret = randomBytes(32).toString('hex');
@@ -417,7 +424,7 @@ authRouter.post('/reset-password', authLimiter, async (req, res) => {
     return;
   }
   const now = new Date().toISOString();
-  const passwordHash = await hash(parsed.data.newPassword);
+  const passwordHash = await hash(parsed.data.newPassword, PASSWORD_HASH_OPTIONS);
   tx(() => {
     db.prepare('UPDATE users SET password_hash = ?, updated_at = ? WHERE id = ?').run(passwordHash, now, user.id);
     db.prepare('DELETE FROM email_codes WHERE user_id = ?').run(user.id);
@@ -457,7 +464,7 @@ authRouter.post('/change-password', requireAuth, async (req: AuthedRequest, res)
     return;
   }
   const now = new Date().toISOString();
-  const passwordHash = await hash(parsed.data.newPassword);
+  const passwordHash = await hash(parsed.data.newPassword, PASSWORD_HASH_OPTIONS);
   db.prepare('UPDATE users SET password_hash = ?, updated_at = ? WHERE id = ?').run(passwordHash, now, user.id);
   try {
     await sendPasswordChangedNotice(user.email, now, 'CHANGE');

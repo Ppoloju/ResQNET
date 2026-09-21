@@ -393,7 +393,7 @@
         body {
             margin: 0;
             min-height: 100dvh;
-            background: #000;
+            background: var(--bg-2);
             color: var(--text);
             font-family: 'JetBrains Mono', 'Segoe UI', sans-serif;
             line-height: 1.55;
@@ -583,18 +583,18 @@
             letter-spacing: 0.04em;
             text-transform: uppercase;
         }
-
+        
         .layout-switcher:hover {
             color: var(--text);
             background: var(--tint-blue-bg);
         }
-
+        
         .layout-switcher.active {
             color: var(--blue-soft);
             background: var(--tint-blue-bg);
             box-shadow: inset 0 0 0 1px var(--tint-blue-line);
         }
-
+        
         .layout-switcher button {
             display: inline-flex;
             align-items: center;
@@ -5918,6 +5918,67 @@
             }
         }
         
+        @media (max-width: 560px) {
+            .family-page .family-title-row,
+            .family-page .family-summary,
+            .rq-page-head {
+                align-items: flex-start;
+                flex-direction: column;
+            }
+            .family-page .family-node-badge,
+            .rq-page-head-side {
+                margin-left: 0;
+            }
+            .family-member-actions {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+            .family-member-actions button {
+                min-height: 44px;
+                border-radius: 12px;
+                font-size: 0.66rem;
+            }
+            .family-telemetry {
+                grid-template-columns: 1fr;
+            }
+            .rq-hub-grid {
+                grid-template-columns: 1fr;
+            }
+            .rq-card-head {
+                align-items: flex-start;
+            }
+        }
+        
+        [data-theme="light"] .network-channel,
+        [data-theme="light"] .family-location-row,
+        [data-theme="light"] .family-telemetry div,
+        [data-theme="light"] .family-member-name span,
+        [data-theme="light"] .family-status,
+        [data-theme="light"] .family-node-badge,
+        [data-theme="light"] .family-member-card,
+        [data-theme="light"] .family-tool-card,
+        [data-theme="light"] .family-summary,
+        [data-theme="light"] .activated-relay-panel,
+        [data-theme="light"] .activated-topology,
+        [data-theme="light"] .activated-stat-grid div,
+        [data-theme="light"] .activated-family-card,
+        [data-theme="light"] .activated-sitrep,
+        [data-theme="light"] .disarmed-audit,
+        [data-theme="light"] .disarmed-control-panel,
+        [data-theme="light"] .tactical-status-strip,
+        [data-theme="light"] .network-device-panel,
+        [data-theme="light"] .network-boundary {
+            background: var(--surface-soft) !important;
+            color: var(--text);
+        }
+        
+        [data-theme="light"] .activated-sos-page,
+        [data-theme="light"] .disarmed-sos-page,
+        [data-theme="light"] .tactical-beacon-panel,
+        [data-theme="light"] .rq-modal {
+            background: var(--surface) !important;
+            color: var(--text);
+        }
+        
         @media (prefers-reduced-motion: reduce) {
             .family-page *,
             .family-page *::before,
@@ -7333,24 +7394,23 @@
         .app.layout-mobile .safe-global-frame {
             border-radius: 0;
         }
-
         /* =============================================================
            Shared UI primitives (components/ui.tsx) — uniform look across
            cards, dialogs, fields, status pills, and compact list rows.
            ============================================================= */
-
+        
         .rq-card {
             padding: 16px;
             border-radius: 16px;
         }
-
+        
         .rq-card-head {
             display: flex;
             align-items: center;
             gap: 10px;
             margin-bottom: 12px;
         }
-
+        
         .rq-card-icon {
             display: inline-flex;
             align-items: center;
@@ -7363,50 +7423,49 @@
             color: var(--blue-soft, #7db4e8);
             border: 1px solid var(--tint-blue-line, rgba(96, 165, 250, 0.25));
         }
-
+        
         .rq-card-head.tone-danger .rq-card-icon {
             background: rgba(248, 81, 73, 0.12);
             color: var(--red);
             border-color: rgba(248, 81, 73, 0.3);
         }
-
+        
         .rq-card-head.tone-ok .rq-card-icon {
             background: rgba(63, 185, 80, 0.12);
             color: #3fb950;
             border-color: rgba(63, 185, 80, 0.3);
         }
-
+        
         .rq-card-head.tone-warn .rq-card-icon {
             background: rgba(210, 153, 34, 0.14);
             color: #d29922;
             border-color: rgba(210, 153, 34, 0.3);
         }
-
+        
         .rq-card-titles {
             min-width: 0;
             flex: 1;
         }
-
+        
         .rq-card-titles h2 {
             margin: 0;
             font-size: 0.98rem;
             letter-spacing: 0.02em;
         }
-
+        
         .rq-card-titles p {
             margin: 2px 0 0;
             font-size: 0.78rem;
         }
-
+        
         .rq-card-actions {
             display: flex;
             align-items: center;
             gap: 8px;
             margin-left: auto;
         }
-
         /* ---- Modal dialog ---- */
-
+        
         .rq-scrim {
             position: fixed;
             inset: 0;
@@ -7417,7 +7476,7 @@
             padding: 0;
             cursor: pointer;
         }
-
+        
         .rq-modal {
             position: fixed;
             z-index: 150;
@@ -7433,28 +7492,28 @@
             box-shadow: 0 24px 70px rgba(0, 0, 0, 0.45);
             padding: 18px;
         }
-
+        
         .rq-modal-wide {
             width: min(94vw, 640px);
         }
-
+        
         .rq-modal-head {
             display: flex;
             align-items: flex-start;
             gap: 10px;
             margin-bottom: 14px;
         }
-
+        
         .rq-modal-head h2 {
             margin: 0;
             font-size: 1.05rem;
         }
-
+        
         .rq-modal-head p {
             margin: 3px 0 0;
             font-size: 0.8rem;
         }
-
+        
         .rq-modal-close {
             margin-left: auto;
             display: inline-flex;
@@ -7469,25 +7528,24 @@
             color: var(--text);
             cursor: pointer;
         }
-
+        
         .rq-modal-close:hover {
             background: rgba(248, 81, 73, 0.12);
             color: var(--red);
         }
-
+        
         .rq-modal-body {
             display: grid;
             gap: 12px;
         }
-
         /* ---- Uniform form fields ---- */
-
+        
         .rq-field {
             display: grid;
             gap: 5px;
             margin: 0;
         }
-
+        
         .rq-field-label {
             font-size: 0.72rem;
             font-weight: 800;
@@ -7495,7 +7553,7 @@
             text-transform: uppercase;
             color: var(--text-dim, #93a4b3);
         }
-
+        
         .rq-field input,
         .rq-field select,
         .rq-field textarea {
@@ -7510,11 +7568,11 @@
             font: inherit;
             font-size: 0.92rem;
         }
-
+        
         .rq-field textarea {
             resize: vertical;
         }
-
+        
         .rq-field input:focus,
         .rq-field select:focus,
         .rq-field textarea:focus {
@@ -7522,14 +7580,33 @@
             border-color: var(--blue-soft, #7db4e8);
             box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.18);
         }
-
+        
         .rq-field-hint {
             font-size: 0.74rem;
             color: var(--text-dim, #93a4b3);
         }
-
+        
+        .rq-checkbox-field {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            margin: 0;
+            cursor: pointer;
+        }
+        
+        .rq-checkbox-field input {
+            width: 20px;
+            height: 20px;
+            flex: 0 0 20px;
+            margin: 0;
+        }
+        
+        .rq-checkbox-field>span {
+            display: grid;
+            gap: 3px;
+        }
         /* ---- Status pills ---- */
-
+        
         .rq-status-pill {
             display: inline-flex;
             align-items: center;
@@ -7541,46 +7618,45 @@
             letter-spacing: 0.08em;
             white-space: nowrap;
         }
-
+        
         .rq-status-pill i {
             width: 6px;
             height: 6px;
             border-radius: 50%;
             background: currentColor;
         }
-
+        
         .rq-status-pill.rq-safe {
             background: rgba(63, 185, 80, 0.14);
             color: #4ade80;
             border: 1px solid rgba(63, 185, 80, 0.35);
         }
-
+        
         .rq-status-pill.rq-danger {
             background: rgba(248, 81, 73, 0.14);
             color: var(--red, #f85149);
             border: 1px solid rgba(248, 81, 73, 0.35);
         }
-
+        
         .rq-status-pill.rq-waiting {
             background: rgba(210, 153, 34, 0.12);
             color: #e3b341;
             border: 1px solid rgba(210, 153, 34, 0.3);
         }
-
+        
         .rq-status-pill.rq-info {
             background: var(--tint-blue-bg, rgba(96, 165, 250, 0.12));
             color: var(--blue-soft, #7db4e8);
             border: 1px solid var(--tint-blue-line, rgba(96, 165, 250, 0.25));
         }
-
+        
         .rq-status-pill.rq-neutral {
             background: rgba(255, 255, 255, 0.06);
             color: var(--text-dim, #93a4b3);
             border: 1px solid var(--line);
         }
-
         /* ---- Empty state ---- */
-
+        
         .rq-empty {
             display: grid;
             justify-items: center;
@@ -7590,19 +7666,18 @@
             border: 1px dashed var(--line);
             border-radius: 14px;
         }
-
+        
         .rq-empty-icon {
             display: inline-flex;
             color: var(--text-dim, #93a4b3);
         }
-
+        
         .rq-empty p {
             margin: 0;
             font-size: 0.8rem;
         }
-
         /* ---- Compact mini rows (Home family/history summaries) ---- */
-
+        
         .rq-mini-row {
             display: flex;
             align-items: center;
@@ -7617,16 +7692,16 @@
             color: inherit;
             text-align: left;
         }
-
+        
         button.rq-mini-row {
             cursor: pointer;
         }
-
+        
         button.rq-mini-row:hover {
             border-color: var(--tint-blue-line, rgba(96, 165, 250, 0.25));
             background: var(--tint-blue-bg, rgba(96, 165, 250, 0.07));
         }
-
+        
         .rq-mini-icon {
             display: inline-flex;
             align-items: center;
@@ -7638,14 +7713,14 @@
             background: rgba(255, 255, 255, 0.05);
             color: var(--text-dim, #93a4b3);
         }
-
+        
         .rq-mini-main {
             min-width: 0;
             flex: 1;
             display: grid;
             gap: 1px;
         }
-
+        
         .rq-mini-main strong {
             font-size: 0.84rem;
             font-weight: 700;
@@ -7653,7 +7728,7 @@
             overflow: hidden;
             text-overflow: ellipsis;
         }
-
+        
         .rq-mini-main small {
             font-size: 0.7rem;
             color: var(--text-dim, #93a4b3);
@@ -7661,21 +7736,20 @@
             overflow: hidden;
             text-overflow: ellipsis;
         }
-
         /* ---- Need Help placement: sits beside the Emergency hub heading,
            pushed toward the corner ---- */
-
+        
         .home-heading {
             display: flex;
             align-items: flex-end;
             gap: 12px;
         }
-
+        
         .home-heading .rq-card-actions {
             margin-left: auto;
             align-self: center;
         }
-
+        
         .rq-help-corner-btn {
             display: inline-flex;
             align-items: center;
@@ -7693,29 +7767,28 @@
             text-transform: uppercase;
             cursor: pointer;
         }
-
+        
         .rq-help-corner-btn:hover {
             background: linear-gradient(135deg, rgba(248, 81, 73, 0.28), rgba(248, 81, 73, 0.12));
         }
-
         /* ---- Hub link cards (Family / History) ---- */
-
+        
         .rq-hub-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 10px;
         }
-
+        
         .rq-hub-card {
             display: grid;
             gap: 10px;
         }
-
+        
         .rq-mini-list {
             display: grid;
             gap: 6px;
         }
-
+        
         @media (max-width: 560px) {
             .rq-hub-grid {
                 grid-template-columns: 1fr;
@@ -7725,8 +7798,8 @@
            UNIFORMITY LAYER — normalizes buttons, fields, chips, cards, text
            scale, page gutters, nav, and theme-aware surfaces. Last-wins.
            ===================================================================== */
-
-        :root {
+        
+         :root {
             --ctl-h: 44px;
             --ctl-pad-x: 14px;
             --ctl-radius: 12px;
@@ -7738,9 +7811,8 @@
             --fs-small: 0.78rem;
             --fs-label: 0.7rem;
         }
-
         /* ---- One button format everywhere ---- */
-
+        
         .btn-primary,
         .btn-secondary,
         .btn-ghost,
@@ -7765,8 +7837,8 @@
             box-sizing: border-box;
             line-height: 1.2;
         }
-
         /* The uniform ActionButton from components/ui.tsx */
+        
         .rq-action-btn {
             min-height: var(--ctl-h);
             padding: 0 var(--ctl-pad-x);
@@ -7780,13 +7852,12 @@
             cursor: pointer;
             border: 1px solid var(--line);
         }
-
+        
         .rq-action-btn.rq-full {
             width: 100%;
         }
-
         /* ---- One field format everywhere ---- */
-
+        
         input[type="text"],
         input[type="email"],
         input[type="password"],
@@ -7802,18 +7873,17 @@
             font-size: var(--fs-body);
             box-sizing: border-box;
         }
-
+        
         textarea {
             min-height: 0;
             line-height: 1.5;
         }
-
+        
         input[type="file"] {
             padding: 8px 10px;
         }
-
         /* ---- Chips: uniform secondary toggles ---- */
-
+        
         .chip {
             min-height: 38px !important;
             padding: 0 13px !important;
@@ -7825,9 +7895,8 @@
             justify-content: center;
             gap: 6px;
         }
-
         /* ---- Cards: one shape everywhere ---- */
-
+        
         .card,
         .network-status-card,
         .network-device-panel,
@@ -7842,84 +7911,94 @@
             border-radius: var(--card-radius) !important;
             border: 1px solid var(--line);
         }
-
+        
         .card {
             padding: 16px;
         }
-
         /* ---- Text scale: one hierarchy ---- */
-
+        
         h1 {
             font-size: var(--fs-h1) !important;
             line-height: 1.25;
+            text-transform: uppercase;
         }
-
+        
         h2 {
             font-size: var(--fs-h2) !important;
             line-height: 1.3;
+            text-transform: uppercase;
         }
-
+        
         h3 {
             font-size: var(--fs-h3) !important;
+            text-transform: uppercase;
         }
-
+        
+        h4 {
+            text-transform: uppercase;
+        }
+        
+        .rq-card-titles p,
+        .rq-page-head p,
+        .rq-field-hint {
+            font-size: var(--fs-small);
+        }
+        
         body,
         p,
         li,
         label {
             font-size: var(--fs-body);
         }
-
+        
         .small,
         .dim {
             font-size: var(--fs-small);
         }
-
+        
         .eyebrow,
         .telemetry-label {
             font-size: var(--fs-label) !important;
         }
-
+        
         .muted {
             font-size: var(--fs-body);
         }
-
+        
         button {
             font-size: var(--fs-body);
         }
-
         /* ---- Page gutters: nothing stuck to the frame border ---- */
-
+        
         .page-host {
             padding-inline: 16px;
         }
-
+        
         .page,
-        .page-host > div {
+        .page-host>div {
             padding-inline: 0;
             max-width: 860px;
             margin-inline: auto;
             width: 100%;
         }
-
-        .page-host > div {
+        
+        .page-host>div {
             padding-bottom: 96px;
         }
-
+        
         .hardware-settings {
             max-width: 860px;
             margin-inline: auto;
             width: 100%;
         }
-
+        
         .app.layout-mobile .page,
-        .app.layout-mobile .page-host > div,
+        .app.layout-mobile .page-host>div,
         .app.layout-mobile .hardware-settings {
             max-width: 100%;
         }
-
         /* ---- Layout switcher: icon-only, same size as other icon buttons ---- */
-
+        
         .layout-switcher {
             width: 44px;
             min-width: 44px;
@@ -7930,13 +8009,12 @@
             gap: 0;
             font-size: 0;
         }
-
+        
         .layout-switcher span {
             display: none !important;
         }
-
         /* ---- Footer nav: floating rounded bar, theme-aware, on all screens ---- */
-
+        
         .footer-nav {
             left: 50%;
             right: auto;
@@ -7951,90 +8029,87 @@
             box-shadow: var(--soft-shadow);
             gap: 4px;
         }
-
+        
         .app.layout-mobile .footer-nav {
             width: min(calc(100vw - 20px), 414px);
         }
-
+        
         .footer-nav a {
             min-width: 0;
             flex: 1;
             min-height: 46px;
             border-radius: 12px;
         }
-
         /* ---- Theme-aware surfaces (light mode fixes) ---- */
-
+        
         body {
             background: var(--bg-2);
         }
-
+        
         .topbar {
             background: color-mix(in srgb, var(--surface) 82%, transparent);
         }
-
+        
         .drawer {
             background: var(--surface);
         }
-
+        
         .scrim,
         .medical-id-scrim {
             background: rgba(4, 8, 12, 0.55);
         }
-
+        
         .tactical-status-strip,
         .disarmed-audit-row,
         .family-leaflet-map {
             background: var(--surface-soft);
         }
-
+        
         .demo-banner {
             background: var(--tint-amber-bg);
             border-color: var(--tint-amber-line);
             color: var(--tint-amber-fg);
         }
-
+        
         [data-theme="light"] .footer-nav a.active {
             color: #fff;
         }
-
+        
         [data-theme="light"] .rq-mini-row,
         [data-theme="light"] .rq-field input,
         [data-theme="light"] .rq-field select,
         [data-theme="light"] .rq-field textarea {
             background: rgba(255, 255, 255, 0.6);
         }
-
+        
         [data-theme="light"] .rq-scrim {
             background: rgba(30, 42, 56, 0.45);
         }
-
         /* ---- Table-ish meta rows keep readable spacing ---- */
-
+        
         .emergency-head {
             display: flex;
             flex-wrap: wrap;
             align-items: center;
             gap: 8px;
         }
-
         /* ---- PageHeader ---- */
-
+        
         .rq-page-head {
             display: flex;
             align-items: flex-start;
             gap: 12px;
             margin: 8px 0 14px;
         }
-
+        
         .rq-page-head h1 {
             margin: 2px 0 0;
         }
-
+        
         .rq-page-head p {
             margin: 4px 0 0;
         }
-
+        
         .rq-page-head-side {
             margin-left: auto;
             display: flex;
@@ -8042,16 +8117,15 @@
             gap: 8px;
             flex: 0 0 auto;
         }
-
         /* ---- Footer nav polish: no underline, tight labels, icon-first ---- */
-
+        
         .footer-nav a {
             text-decoration: none;
             color: var(--text-dim);
             padding: 4px 6px;
             gap: 3px;
         }
-
+        
         .footer-nav .nav-label {
             font-size: 0.62rem;
             letter-spacing: 0.02em;
@@ -8060,47 +8134,55 @@
             text-overflow: ellipsis;
             white-space: nowrap;
         }
-
+        
         .footer-nav a.active {
             color: var(--text);
         }
-
+        
         @media (max-width: 520px) {
             .footer-nav .nav-label {
                 display: none;
             }
-
             .footer-nav a {
                 min-height: 44px;
             }
         }
-
         /* ---- Light theme: rescue hardcoded dark surfaces via variables ---- */
-
+        
         .tactical-beacon-panel {
             background: var(--surface);
         }
-
+        
         [data-theme="light"] .tactical-beacon-panel,
         [data-theme="light"] .activated-sos-page section,
         [data-theme="light"] .disarmed-sos-page section {
             background: var(--surface);
         }
-
+        
         [data-theme="light"] .tactical-hint,
         [data-theme="light"] .beacon-caption {
             color: var(--text-dim);
         }
-
+        
         [data-theme="light"] .tactical-beacon {
             color: var(--text);
+            background: var(--surface-strong);
+            border-color: var(--line-strong);
         }
-
+        
+        [data-theme="light"] .tactical-beacon.is-activating {
+            background: radial-gradient(circle at 50% 42%, var(--tint-red-bg), var(--surface-strong) 62%);
+        }
+        
+        [data-theme="light"] .beacon-track {
+            stroke: var(--line-strong);
+        }
+        
         [data-theme="light"] .beacon-cross {
             color: var(--red);
         }
-
         /* Any element hardcoding #0b1015-style panels follows the theme. */
+        
         [data-theme="light"] .activated-relay-panel,
         [data-theme="light"] .activated-topology,
         [data-theme="light"] .activated-stat-grid div,
@@ -8112,7 +8194,7 @@
             background: var(--surface-soft);
             color: var(--text);
         }
-
+        
         [data-theme="light"] .activated-sos-header,
         [data-theme="light"] .activated-security-footer,
         [data-theme="light"] .disarmed-header,
@@ -8120,25 +8202,23 @@
             background: var(--surface);
             color: var(--text);
         }
-
+        
         [data-theme="light"] .activated-sos-page,
         [data-theme="light"] .disarmed-sos-page {
             color: var(--text);
         }
-
         /* Active nav icon must stay visible on the red pill in both themes. */
+        
         .footer-nav a.active svg,
         [data-theme="light"] .footer-nav a.active svg {
             color: #fff !important;
         }
-
         /* =====================================================================
            AI page: speaking animation, uniform alert/info/danger button
            variants, clean protocol steps.
            ===================================================================== */
-
         /* ---- Live speaking bars ---- */
-
+        
         .rq-voice-wave {
             display: flex;
             align-items: flex-end;
@@ -8151,7 +8231,7 @@
             background: var(--surface-soft);
             overflow: hidden;
         }
-
+        
         .rq-voice-wave i {
             width: 5px;
             border-radius: 3px;
@@ -8159,52 +8239,50 @@
             opacity: 0.5;
             transition: height 90ms linear;
         }
-
+        
         .rq-voice-wave.is-live i {
             background: var(--red);
             opacity: 1;
             box-shadow: 0 0 8px rgba(248, 81, 73, 0.45);
         }
-
         /* ---- Button variants: same shape as Need Help, color = purpose ----
            help (blue) = analyze/neutral action
            info  (teal/blue outline) = voice/communication
            alert (red outline) = active recording
            danger(red solid) = real SOS send
            primary/red gradient = confirm & save */
-
+        
         .rq-action-btn.rq-info {
             background: var(--tint-blue-bg);
             border-color: var(--tint-blue-line);
             color: var(--tint-blue-fg);
         }
-
+        
         .rq-action-btn.rq-info:not(:disabled):hover {
             filter: brightness(1.1);
         }
-
+        
         .rq-action-btn.rq-alert {
             background: var(--tint-red-bg);
             border-color: var(--tint-red-line);
             color: var(--tint-red-fg);
         }
-
+        
         .rq-action-btn.rq-alert:not(:disabled):hover {
             filter: brightness(1.1);
         }
-
+        
         .rq-action-btn.rq-danger {
             background: linear-gradient(180deg, #ff5f6d, #df2a4d);
             border-color: rgba(255, 122, 136, 0.75);
             color: #fff;
         }
-
+        
         .rq-action-btn.rq-danger:not(:disabled):hover {
             filter: brightness(1.08);
         }
-
         /* ---- Protocol steps: numbered, airy, readable ---- */
-
+        
         .rq-protocol-steps {
             margin: 0;
             padding: 0;
@@ -8212,7 +8290,7 @@
             display: grid;
             gap: 8px;
         }
-
+        
         .rq-protocol-steps li {
             display: flex;
             gap: 10px;
@@ -8220,7 +8298,7 @@
             line-height: 1.5;
             font-size: var(--fs-body);
         }
-
+        
         .rq-step-num {
             flex: 0 0 22px;
             height: 22px;

@@ -16,23 +16,23 @@ devices without depending on traditional network infrastructure.
 > synchronizes with responder infrastructure when a communication gateway becomes available.
 > It augments emergency response; it does not replace official emergency services.
 
-## 🏗️ 3-Mode Architecture
+## 3-Mode Architecture
 
 ResQNET operates in three distinct modes, adapting its behavior to the situation:
 
-### 🟢 Normal Mode
+### Normal Mode
 - Standard app usage with minimal resource consumption
 - Secure family circle and emergency profile storage
 - Periodic relay-readiness checks
 
-### 🔴 Emergency Mode
+### Emergency Mode
 - Triggered by **SOS button** or **AI detection** (fall, accident, distress signals)
 - Device-to-device mesh for multi-hop SOS alerts
 - Shares emergency profile + location with trusted contacts
 - Prioritizes critical alerts using local AI classification
 - Real-time black-box timeline of every action
 
-### 🟠 Disaster Mode
+### Disaster Mode
 - Activated when multiple emergencies detected in a region or disaster signals identified
 - **Community mesh expansion**: devices form a larger ad-hoc network for group coordination
 - **Resource mapping**: nearby hospitals, police stations, shelters, safe zones, water, and supply points from reviewed local data
@@ -41,7 +41,7 @@ ResQNET operates in three distinct modes, adapting its behavior to the situation
 - **Offline disaster bulletin**: updates propagate through mesh (e.g., "Bridge collapsed", "Shelter open at school")
 - **AI assistant**: guides basic first aid and evacuation steps; emergency-service feeds remain a production integration
 
-## ⚡ Quickstart
+## Quickstart
 
 ```bash
 # 1) install everything (npm workspaces: backend, frontend, shared)
@@ -63,7 +63,7 @@ npm run build -w shared && npm run build -w frontend
 Environment: copy `.env.example` to `.env`. Generate backend secrets with
 `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`.
 
-## 📁 Repository Layout
+## Repository Layout
 
 ```
 ResQNET/
@@ -80,7 +80,7 @@ ResQNET/
 └── implementation.md  ← live progress tracker (read this first)
 ```
 
-## 🔥 Core Features (Implemented)
+## Core Features (Implemented)
 
 ### 0. Accounts with Two-Step Email Verification
 Register with email + password (Argon2id-hashed in the backend SQLite DB) → a 6-digit code
@@ -105,8 +105,9 @@ Responders / Nearby helpers). Medical fields are **AES-256-GCM encrypted at rest
 
 ### 2. Family Circle
 Users create a family circle with contacts stored with name, relationship, phone, emergency
-priority. During emergency, the system prioritizes these contacts for fastest notification.
-Live *check-in statuses* (SAFE / AT RISK / NEEDS HELP) for linked accounts.
+priority (1-3, with 1 highest), and trusted-contact status. During an emergency, the system
+prioritizes these contacts for notification. Live check-in statuses (SAFE / AT RISK / NEEDS HELP)
+are available for linked accounts.
 
 ### 3. SOS Button
 The central emergency feature with 3-2-1 countdown and cancel. When activated:
@@ -164,7 +165,7 @@ Reception is never blocked.
 - Audit log: append-only, structured, with secret/medical redaction
 - Spam protection: duplicate checks, expiry, hop limits, rate limits
 
-## 📊 Honest Status
+## Honest Status
 
 | Capability | Status |
 |---|---|
@@ -180,9 +181,9 @@ Reception is never blocked.
 | Direct police/hospital integration | **Requires Production Integration** |
 | Responder dashboard, demo mode, network map, AI assist | **Implemented** |
 | Situations page (community bulletins + nearby resources) | **Implemented** |
-| Relay Hero ⚡ (iQOO backbone relay + hardware endurance tiers) | **Implemented [P]** — engine + Settings + Network UI |
+| Relay Hero (iQOO backbone relay + hardware endurance tiers) | **Implemented [P]** — engine + Settings + Network UI |
 
-## ☁️ Netlify + API deployment
+## Netlify + API deployment
 
 Netlify deploys the Vite PWA from `frontend/dist` using `netlify.toml`. Set the
 Netlify environment variable `VITE_API_URL` to the public HTTPS URL of the separately
@@ -195,13 +196,13 @@ volume. Netlify Functions are not a drop-in replacement for this backend because
 do not provide the required persistent SQLite process or reliable long-lived SSE path.
 See **docs/deployment.md** for the complete Netlify/Railway variable and provider guide.
 
-## 🛠️ Tech Stack (Free/Open-Source Only)
+## Tech Stack (Free/Open-Source Only)
 
 React 18 · Vite · TypeScript · Express · `node:sqlite` · Argon2id · JWT · WebCrypto HMAC ·
 Leaflet/OpenStreetMap · pino · zod · vitest · Netlify + Railway deployment. No paid APIs,
 services, models, or hosting anywhere in the dependency tree.
 
-## 📱 Optimized for iQOO
+## Optimized for iQOO
 
 ResQNET is designed to leverage iQOO hardware capabilities:
 - **Snapdragon processor**: powers on-device AI classification without cloud dependency
@@ -209,7 +210,7 @@ ResQNET is designed to leverage iQOO hardware capabilities:
 - **Vapour cooling**: prevents thermal throttling during sustained emergency mesh operations
 - **5G + Bluetooth**: dual connectivity for gateway sync and device-to-device mesh
 
-## 🤝 Contributing (For First-Timers)
+## Contributing (For First-Timers)
 
 We welcome contributions! If this is your first time contributing to an open-source project, follow these steps:
 
