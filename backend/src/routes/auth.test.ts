@@ -383,6 +383,11 @@ describe('auth + API smoke', () => {
     const family = await request(app).get('/api/family').set('Authorization', `Bearer ${token}`);
     expect(family.status).toBe(200);
     expect(family.body.members[0]).toMatchObject({ linked: false, checkInStatus: null, lastCheckInAt: null });
+    const { db } = await import('../db.js');
+    const stored = db.prepare('SELECT owner_user_id, name, relation, phone, priority, trusted FROM family_members WHERE id = ?')
+      .get(member.body.member.id) as { owner_user_id: string; name: string; relation: string; phone: string; priority: number; trusted: number };
+    const owner = db.prepare('SELECT id FROM users WHERE email = ?').get(email) as { id: string };
+    expect(stored).toMatchObject({ owner_user_id: owner.id, name: 'Family Node', relation: 'FRIEND', phone: '+911234567890', priority: 1, trusted: 1 });
 
     const created = await request(app).post('/api/emergencies')
       .set('Authorization', `Bearer ${token}`)

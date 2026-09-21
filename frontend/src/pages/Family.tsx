@@ -52,15 +52,15 @@ export default function Family() {
   const [testNote, setTestNote] = useState('');
   const [testOk, setTestOk] = useState(false);
 
-  const load = useCallback(() => {
+  const load = useCallback(async () => {
     if (!user) return;
     setError('');
-    apiFetch<{ members: Member[] }>('/family')
+    await apiFetch<{ members: Member[] }>('/family')
       .then((r) => setMembers(r.members))
       .catch((e: Error) => setError(e.message));
   }, [user]);
 
-  useEffect(load, [load]);
+  useEffect(() => { void load(); }, [load]);
 
   const safeCount = members.filter((member) => member.checkInStatus === 'SAFE').length;
 
@@ -71,7 +71,7 @@ export default function Family() {
       await apiFetch('/family', { method: 'POST', body: JSON.stringify(draft) });
       setAdding(false);
       setDraft({ name: '', relation: 'FATHER', phone: '', priority: 3, trusted: false });
-      load();
+      await load();
     } catch (e) { setError(e instanceof Error ? e.message : 'failed'); }
   }
 

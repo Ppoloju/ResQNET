@@ -7,21 +7,24 @@ import { encryptProfileFields, decryptProfileFields } from '../security/fieldCry
 
 export const profileRouter = Router();
 
+const nullableNumber = z.preprocess((value) => value === null ? undefined : value, z.number().int().min(0).max(120).optional());
+const nullableText = (max: number) => z.preprocess((value) => value === null ? undefined : value, z.string().max(max).optional());
+
 const profileSchema = z.object({
   name: z.string().min(1).max(80),
-  age: z.number().int().min(0).max(120).optional(),
-  gender: z.string().max(20).optional(),
-  bloodGroup: z.string().max(8).optional(),
-  medicalConditions: z.string().max(2000).optional(),
-  allergies: z.string().max(2000).optional(),
-  medications: z.string().max(2000).optional(),
-  emergencyNotes: z.string().max(2000).optional(),
-  phonePrimary: z.string().max(20).optional(),
-  phoneSecondary: z.string().max(20).optional(),
-  emergencyContactName: z.string().max(80).optional(),
-  emergencyContactPhone: z.string().max(20).optional(),
-  accessibilityNeeds: z.string().max(500).optional(),
-  photo: z.string().max(200_000).optional(), // data URL, size-limited
+  age: nullableNumber,
+  gender: nullableText(20),
+  bloodGroup: nullableText(8),
+  medicalConditions: nullableText(2000),
+  allergies: nullableText(2000),
+  medications: nullableText(2000),
+  emergencyNotes: nullableText(2000),
+  phonePrimary: nullableText(20),
+  phoneSecondary: nullableText(20),
+  emergencyContactName: nullableText(80),
+  emergencyContactPhone: nullableText(20),
+  accessibilityNeeds: nullableText(500),
+  photo: nullableText(200_000), // data URL, size-limited
   visibility: z.enum(['PRIVATE', 'FAMILY', 'RESPONDERS', 'NEARBY_HELPERS']).default('PRIVATE'),
   consentMedicalShare: z.boolean().default(false),
 });

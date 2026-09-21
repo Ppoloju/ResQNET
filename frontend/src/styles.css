@@ -7040,8 +7040,55 @@
             margin: 0;
         }
         
+        .medical-id-mobile-modal {
+            width: min(430px, calc(100vw - 16px));
+            height: min(760px, calc(100dvh - 80px));
+            max-height: calc(100dvh - 80px);
+            min-height: 0;
+            overflow-x: hidden;
+            overscroll-behavior: contain;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            box-sizing: border-box;
+        }
+        
+        .medical-id-mobile-modal>header {
+            position: sticky;
+            top: 0;
+            z-index: 1;
+            background: var(--surface-strong);
+        }
+        
+        .medical-id-mobile-modal .medical-id-content {
+            min-width: 0;
+            padding: 8px;
+        }
+        
+        .medical-id-mobile-modal .medical-id-content .medical-card {
+            width: 100%;
+            box-sizing: border-box;
+        }
+        
+        .medical-id-mobile-modal .medical-id-content .medical-card-body {
+            grid-template-columns: 1fr;
+            gap: 12px;
+            padding: 12px;
+        }
+        
+        .medical-id-mobile-modal .medical-id-content .medical-card-qr {
+            order: -1;
+            width: 100%;
+            padding-bottom: 4px;
+        }
+        
+        .medical-id-mobile-modal .medical-id-content .medical-card-qr canvas,
+        .medical-id-mobile-modal .medical-id-content .medical-card-qr-empty {
+            width: min(190px, 100%);
+        }
+        
         @media (max-width: 560px) {
-            .medical-id-modal {
+            .medical-id-modal:not(.medical-id-mobile-modal) {
                 width: calc(100vw - 16px);
                 top: auto;
                 bottom: 12px;
@@ -7121,6 +7168,10 @@
             max-width: 430px;
             min-width: 0;
             overflow: hidden;
+        }
+        
+        .app.layout-mobile .layout-switcher {
+            display: none;
         }
         
         .app.layout-mobile .layout-switcher button[aria-label="Use desktop layout"] {

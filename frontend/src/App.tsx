@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import { NavLink, useLocation } from 'react-router-dom';
 import {
   Bell, Brain, History, Home as HomeIcon, Map, MapPinned, Menu, Network as NetworkIcon,
@@ -104,13 +105,13 @@ function MedicalIdButton() {
     <button className="icon-btn medical-id-link" type="button" aria-label="Open Medical ID" title="Medical ID" aria-expanded={open} onClick={() => setOpen(true)}>
       <QrCode size={20} aria-hidden="true" />
     </button>
-    {open && <>
+    {open && createPortal(<>
       <button className="medical-id-scrim" type="button" aria-label="Close Medical ID" onClick={() => setOpen(false)} />
-      <aside ref={modalRef} className="medical-id-modal" role="dialog" aria-modal="true" aria-label="Medical ID quick access">
+      <aside ref={modalRef} className="medical-id-modal medical-id-mobile-modal" role="dialog" aria-modal="true" aria-label="Medical ID quick access">
         <header><strong>MEDICAL ID</strong><button className="medical-id-close" type="button" aria-label="Close Medical ID" onClick={() => setOpen(false)}><X size={18} /></button></header>
         <div className="medical-id-content"><MedicalCard info={medical} /></div>
       </aside>
-    </>}
+    </>, document.body)}
   </>;
 }
 

@@ -46,7 +46,7 @@ export default function Profile() {
       saveMedicalInfo(medicalFromProfile(p));
       setStatus('Saved ✓');
     } catch (e) {
-      setStatus(e instanceof Error ? e.message : 'save failed');
+      setStatus(e instanceof Error ? e.message : 'Could not save profile');
     }
   }
 
