@@ -52,6 +52,7 @@ export function TransportProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     manager.register(bluetooth);
     manager.register(lan);
+    void bluetooth.reconnectGrantedDevices().then(() => refresh());
     refresh();
     const t = setInterval(refresh, 10_000);
     return () => { clearInterval(t); void manager.stop(); };
