@@ -2,10 +2,12 @@
 // and resource APIs, while making the simulation boundary explicit.
 
 import { useState } from 'react';
+import { Play, RotateCcw } from 'lucide-react';
 import { apiFetch, useSession } from '../state/SessionContext';
 import { useStatus } from '../state/StatusContext';
 import DemoMap, { type DemoMapMarker } from '../components/DemoMap';
 import { useHighAccuracyLocation } from '../components/EmergencyMap';
+import { Card, CardHeader, PageHeader, ActionButton, StatusPill, EmptyState } from '../components/ui';
 
 interface Snapshot {
   disasterMode: boolean;
@@ -114,34 +116,37 @@ export default function DisasterDemo() {
   ] : [];
 
   return (
-    <div className="page disaster-demo-page">
-      <div className="banner demo-banner" role="note">
-        <strong>Disaster Mode Demo</strong> — simulated radio topology <span className="mono">[P]</span>; real local routing, bulletin, and resource API paths.
-      </div>
-      <div className="disaster-page-heading">
-        <span className="eyebrow">RESQNET / DISASTER WALKTHROUGH</span>
-        <h1>Coordinated response demo</h1>
-        <span className={`disaster-state ${active ? 'offline' : 'connected'}`}>{active ? 'SIMULATED DISASTER MODE ACTIVE' : 'SIMULATOR IN NORMAL MODE'}</span>
-      </div>
-      <p className="muted">This walkthrough demonstrates how a community mesh carries a critical SOS, shares a concise human bulletin, and surfaces locally reviewed resources. It does not issue an official public warning.</p>
+    <div className="page">
+      <PageHeader
+        eyebrow="RESQNET / DISASTER WALKTHROUGH [P]"
+        title="Coordinated response demo"
+        subtitle="How a community mesh carries a critical SOS, shares a concise human bulletin, and surfaces locally reviewed resources. Simulated radio topology; real routing, bulletin, and resource API paths. It does not issue an official public warning."
+        badge={active ? 'DISASTER MODE ACTIVE' : 'SIMULATOR NORMAL'}
+        badgeTone={active ? 'danger' : 'safe'}
+      />
 
-      {!user && <div className="card"><strong>Sign in required.</strong> The simulator and bulletin APIs are protected so the demo has an accountable owner.</div>}
-      {!online && <div className="card"><strong>Backend unavailable.</strong> The demo needs the local gateway connection; the production app still retains its offline SOS outbox.</div>}
+      {!user && <Card><EmptyState icon={<Play size={18} />} title="Sign in required" hint="The simulator and bulletin APIs are protected so the demo has an accountable owner." /></Card>}
+      {!online && <Card><EmptyState icon={<Play size={18} />} title="Backend unavailable" hint="The demo needs the local gateway connection; the production app still retains its offline SOS outbox." /></Card>}
 
       <div className="demo-progress" aria-label={`Disaster demo progress ${done.size} of ${STEPS.length}`}>
         <div className="readiness-bar"><div className="readiness-fill tier-high" style={{ width: `${(done.size / STEPS.length) * 100}%` }} /></div>
         <span className="small dim">{done.size}/{STEPS.length} stages</span>
       </div>
       <div className="row wrap">
-        <button className="btn-primary big" type="button" onClick={() => void run()} disabled={running || !user || !online || !fix}>{running ? 'Running response…' : '▶ Run Disaster Mode demo'}</button>
-        {active && <button className="btn-ghost" type="button" onClick={() => void restore()} disabled={running}>Restore Normal Mode</button>}
+        <ActionButton variant="primary" onClick={() => void run()} disabled={running || !user || !online || !fix}>
+          <Play size={17} /> {running ? 'Running response…' : 'Run Disaster Mode demo'}
+        </ActionButton>
+        {active && <ActionButton variant="ghost" onClick={() => void restore()} disabled={running}><RotateCcw size={16} /> Restore Normal Mode</ActionButton>}
       </div>
       {!fix && <p className="muted small" role="status">{locationState === 'denied' ? 'Location permission denied. Enable GPS to map nearby resources.' : 'Waiting for a live GPS fix before loading the disaster map…'}</p>}
       {note && <p className="muted mt" role="status">{note}</p>}
 
-      <ol className="demo-steps">
-        {STEPS.map(([key, label, hint]) => <li key={key} className={done.has(key) ? 'done' : ''}><span className="step-check" aria-hidden>{done.has(key) ? '✓' : '○'}</span><span className="step-label">{label}</span><span className="step-hint dim small">{hint}</span></li>)}
-      </ol>
+      <Card>
+        <CardHeader icon={<Play size={17} />} title="Walkthrough stages" />
+        <ol className="demo-steps">
+          {STEPS.map(([key, label, hint]) => <li key={key} className={done.has(key) ? 'done' : ''}><span className="step-check" aria-hidden>{done.has(key) ? '✓' : '○'}</span><span className="step-label">{label}</span><span className="step-hint dim small">{hint}</span></li>)}
+        </ol>
+      </Card>
 
       <DemoMap title="Community disaster relay" subtitle="Illustrative topology for this simulation. Packet paths and gateway receipts are generated by the mesh engine." markers={markers} paths={[['A', 'B'], ['B', 'C'], ['C', 'GATEWAY']]} />
 
@@ -152,7 +157,19 @@ export default function DisasterDemo() {
           markers={resources.slice(0, 12).map((resource): DemoMapMarker => ({ id: resource.id, label: resource.kind, latitude: resource.lat, longitude: resource.lon, tone: resource.kind === 'MEDICAL' ? 'primary' : 'tertiary', detail: `${resource.name} · ${Math.round(resource.distanceM)} m` }))}
           userLocation={fix}
         />
-        <section className="card"><h2>Resources returned by the demo</h2><ul className="event-list">{resources.slice(0, 5).map((resource) => <li key={resource.id}><strong>{resource.kind}: {resource.name}</strong><span className="dim small"> — {Math.round(resource.distanceM)} m · verified {resource.verifiedAt} · {resource.source}</span></li>)}</ul></section>
+        <Card>
+          <CardHeader icon={<StatusPill tone="info" />} title="Resources returned by the demo" />
+          <div className="rq-mini-list">
+            {resources.slice(0, 5).map((resource) => (
+              <div className="rq-mini-row" key={resource.id}>
+                <span className="rq-mini-main">
+                  <strong>{resource.kind}: {resource.name}</strong>
+                  <small>{Math.round(resource.distanceM)} m · verified {resource.verifiedAt} · {resource.source}</small>
+                </span>
+              </div>
+            ))}
+          </div>
+        </Card>
       </>}
     </div>
   );

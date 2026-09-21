@@ -1,7 +1,11 @@
 import { useEffect, useState } from 'react';
+import { Save, Eye, HeartPulse, QrCode, UserRound } from 'lucide-react';
 import { apiFetch, useSession } from '../state/SessionContext';
 import MedicalCard from '../components/MedicalCard';
 import { medicalFromProfile, saveMedicalInfo, type EmergencyProfilePayload } from '../state/medicalProfile';
+import {
+  Card, CardHeader, PageHeader, TextField, NumberField, SelectField, TextAreaField, ActionButton,
+} from '../components/ui';
 
 type ProfileData = EmergencyProfilePayload;
 
@@ -11,6 +15,8 @@ const VISIBILITY_HELP: Record<ProfileData['visibility'], string> = {
   RESPONDERS: 'Shared with verified responders at emergency gateways.',
   NEARBY_HELPERS: 'Shared with nearby ResQNET helpers during an active SOS.',
 };
+
+const GENDERS = ['', 'FEMALE', 'MALE', 'OTHER', 'PREFER_NOT_TO_SAY'] as const;
 
 export default function Profile() {
   const { user } = useSession();
@@ -25,16 +31,11 @@ export default function Profile() {
       .catch((e: Error) => setError(e.message));
   }, [user]);
 
-  if (!user) return <div className="card">Sign in to manage your emergency profile.</div>;
-  if (error) return <div className="card error-text">{error}</div>;
-  if (!p) return <div className="card">Loading profile…</div>;
+  if (!user) return <div className="page"><Card>Sign in to manage your emergency profile.</Card></div>;
+  if (error) return <div className="page"><Card><p className="error-text">{error}</p></Card></div>;
+  if (!p) return <div className="page"><Card>Loading profile…</Card></div>;
 
-  const set = (k: keyof ProfileData) => (e: { target: { value: string } }) => {
-    // HTML number inputs still emit strings. Preserve an empty field as
-    // undefined and send a number to the API's strict profile schema.
-    const value = k === 'age' && e.target.value !== '' ? Number(e.target.value)
-      : k === 'age' ? undefined
-        : e.target.value;
+  const set = (k: keyof ProfileData) => (value: string) => {
     setP({ ...p, [k]: value } as ProfileData);
   };
 
@@ -51,69 +52,63 @@ export default function Profile() {
   }
 
   return (
-    <div>
-      <h1>Emergency Profile</h1>
-      <div className="card">
-        <label htmlFor="pname">Name</label>
-        <input id="pname" value={p.name} onChange={set('name')} />
+    <div className="page">
+      <PageHeader
+        eyebrow="RESQNET / PROFILE"
+        title="Emergency profile"
+        subtitle="Responders see these details according to the visibility you choose."
+        badge={p.consentMedicalShare ? 'MEDICAL SHARING ON' : 'MEDICAL PRIVATE'}
+        badgeTone={p.consentMedicalShare ? 'safe' : 'neutral'}
+      />
 
-        <div className="grid2">
-          <div>
-            <label htmlFor="page">Age</label>
-            <input id="page" type="number" min={0} max={120} value={p.age ?? ''} onChange={set('age')} />
-          </div>
-          <div>
-            <label htmlFor="pgender">Gender</label>
-            <input id="pgender" value={p.gender ?? ''} onChange={set('gender')} />
-          </div>
-          <div>
-            <label htmlFor="pblood">Blood group</label>
-            <input id="pblood" value={p.bloodGroup ?? ''} onChange={set('bloodGroup')} placeholder="O+" />
-          </div>
-          <div>
-            <label htmlFor="pphone">Phone</label>
-            <input id="pphone" value={p.phonePrimary ?? ''} onChange={set('phonePrimary')} />
-          </div>
-          <div>
-            <label htmlFor="pphone2">Secondary phone</label>
-            <input id="pphone2" value={p.phoneSecondary ?? ''} onChange={set('phoneSecondary')} />
+      <Card>
+        <CardHeader icon={<UserRound size={17} />} title="Identity & contact" />
+        <div className="rq-modal-body">
+          <TextField label="Name" value={p.name} onChange={set('name')} />
+          <div className="grid2">
+            <NumberField label="Age" value={p.age} min={0} max={120} onChange={(age) => setP({ ...p, age })} />
+            <SelectField
+              label="Gender"
+              value={p.gender ?? ''}
+              onChange={(gender) => setP({ ...p, gender: gender || undefined })}
+              options={GENDERS.map((g) => ({ value: g, label: g || 'Select' }))}
+            />
+            <TextField label="Blood group" value={p.bloodGroup ?? ''} onChange={set('bloodGroup')} placeholder="O+" />
+            <TextField label="Phone" inputMode="tel" value={p.phonePrimary ?? ''} onChange={set('phonePrimary')} />
+            <TextField label="Secondary phone" inputMode="tel" value={p.phoneSecondary ?? ''} onChange={set('phoneSecondary')} />
           </div>
         </div>
+      </Card>
 
-        <label htmlFor="pconditions">Medical conditions</label>
-        <textarea id="pconditions" rows={2} value={p.medicalConditions ?? ''} onChange={set('medicalConditions')} />
-        <label htmlFor="pallergies">Allergies</label>
-        <textarea id="pallergies" rows={2} value={p.allergies ?? ''} onChange={set('allergies')} />
-        <label htmlFor="pmeds">Current medications</label>
-        <textarea id="pmeds" rows={2} value={p.medications ?? ''} onChange={set('medications')} />
-        <label htmlFor="pnotes">Emergency notes</label>
-        <textarea id="pnotes" rows={2} value={p.emergencyNotes ?? ''} onChange={set('emergencyNotes')} />
-        <label htmlFor="paccess">Accessibility requirements</label>
-        <textarea id="paccess" rows={2} value={p.accessibilityNeeds ?? ''} onChange={set('accessibilityNeeds')} />
-
-        <div className="grid2">
-          <div>
-            <label htmlFor="pecname">Emergency contact name</label>
-            <input id="pecname" value={p.emergencyContactName ?? ''} onChange={set('emergencyContactName')} />
-          </div>
-          <div>
-            <label htmlFor="pecphone">Emergency contact phone</label>
-            <input id="pecphone" value={p.emergencyContactPhone ?? ''} onChange={set('emergencyContactPhone')} />
+      <Card>
+        <CardHeader icon={<HeartPulse size={17} />} title="Medical details" subtitle="Encrypted at rest (AES-256-GCM)." />
+        <div className="rq-modal-body">
+          <TextAreaField label="Medical conditions" rows={2} value={p.medicalConditions ?? ''} onChange={set('medicalConditions')} />
+          <TextAreaField label="Allergies" rows={2} value={p.allergies ?? ''} onChange={set('allergies')} />
+          <TextAreaField label="Current medications" rows={2} value={p.medications ?? ''} onChange={set('medications')} />
+          <TextAreaField label="Emergency notes" rows={2} value={p.emergencyNotes ?? ''} onChange={set('emergencyNotes')} />
+          <TextAreaField label="Accessibility requirements" rows={2} value={p.accessibilityNeeds ?? ''} onChange={set('accessibilityNeeds')} />
+          <div className="grid2">
+            <TextField label="Emergency contact name" value={p.emergencyContactName ?? ''} onChange={set('emergencyContactName')} />
+            <TextField label="Emergency contact phone" inputMode="tel" value={p.emergencyContactPhone ?? ''} onChange={set('emergencyContactPhone')} />
           </div>
         </div>
-      </div>
+      </Card>
 
-      <div className="card">
-        <h2>Emergency Profile Visibility</h2>
-        <label htmlFor="pvis">Who may see this profile during an emergency?</label>
-        <select id="pvis" value={p.visibility} onChange={set('visibility')}>
-          <option value="PRIVATE">Private</option>
-          <option value="FAMILY">Family only</option>
-          <option value="RESPONDERS">Emergency responders</option>
-          <option value="NEARBY_HELPERS">Nearby helpers during SOS</option>
-        </select>
-        <p className="muted">{VISIBILITY_HELP[p.visibility]}</p>
-        <label style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+      <Card>
+        <CardHeader icon={<Eye size={17} />} title="Visibility" subtitle={VISIBILITY_HELP[p.visibility]} />
+        <SelectField
+          label="Who may see this profile during an emergency?"
+          value={p.visibility}
+          onChange={(visibility) => setP({ ...p, visibility })}
+          options={[
+            { value: 'PRIVATE', label: 'Private' },
+            { value: 'FAMILY', label: 'Family only' },
+            { value: 'RESPONDERS', label: 'Emergency responders' },
+            { value: 'NEARBY_HELPERS', label: 'Nearby helpers during SOS' },
+          ]}
+        />
+        <label style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 10 }}>
           <input
             type="checkbox"
             style={{ width: 20, height: 20 }}
@@ -125,17 +120,16 @@ export default function Profile() {
         {!p.consentMedicalShare && (
           <p className="muted">Medical details stay on this device unless you consent above.</p>
         )}
-      </div>
+      </Card>
 
-      <div className="card">
-        <h2>Medical card</h2>
-        <p className="muted">Show this card or QR to medical responders. The QR encodes your details as text so it works without internet.</p>
+      <Card>
+        <CardHeader icon={<QrCode size={17} />} title="Medical card" subtitle="Show this card or QR to medical responders. The QR encodes your details as text so it works without internet." />
         <MedicalCard info={medicalFromProfile(p)} />
-      </div>
+      </Card>
 
-      <button className="btn-primary" style={{ width: '100%' }} onClick={() => void save()}>
-        Save profile
-      </button>
+      <ActionButton variant="primary" full onClick={() => void save()}>
+        <Save size={17} /> Save profile
+      </ActionButton>
       {status && <p className={status.endsWith('✓') ? 'ok-text' : 'error-text'}>{status}</p>}
     </div>
   );

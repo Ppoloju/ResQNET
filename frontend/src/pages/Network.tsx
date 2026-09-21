@@ -5,6 +5,7 @@ import { useStatus } from '../state/StatusContext';
 import { useSettings } from '../state/SettingsContext';
 import { useTransports } from '../state/TransportContext';
 import { useMeshEvents } from '../state/RealtimeContext';
+import { PageHeader, ActionButton } from '../components/ui';
 
 function readable(value: string): string {
   return value.toLowerCase().replaceAll('_', ' ');
@@ -27,11 +28,13 @@ export default function Network() {
 
   return (
     <div className="page network-page">
-      <header className="network-page-head">
-        <span className="eyebrow">RESQNET / NETWORK</span>
-        <h1>Connection status</h1>
-        <p className="muted">Only live device and server state appears here. Radio mesh requires the native mobile client.</p>
-      </header>
+      <PageHeader
+        eyebrow="RESQNET / NETWORK"
+        title="Connection status"
+        subtitle="Only live device and server state appears here. Radio mesh requires the native mobile client."
+        badge={backendReachable ? 'BACKEND LIVE' : connected ? 'LIVE UPDATES' : 'OFFLINE'}
+        badgeTone={backendReachable ? 'safe' : connected ? 'info' : 'danger'}
+      />
 
       <section className="network-status-grid" aria-label="Current connection status">
         <article className={`network-status-card ${backendReachable ? 'is-ready' : 'is-muted'}`}>
@@ -64,9 +67,9 @@ export default function Network() {
         </div>
         {outboxCount > 0 && <p className="network-queue" role="status">{outboxCount} emergency item{outboxCount === 1 ? '' : 's'} waiting for a reachable backend.</p>}
         <div className="network-actions">
-          <button type="button" className="btn-secondary" disabled={requestingBluetooth || bluetooth?.availability === 'UNSUPPORTED'} onClick={() => void pairBluetooth()}>
+          <ActionButton variant="secondary" disabled={requestingBluetooth || bluetooth?.availability === 'UNSUPPORTED'} onClick={() => void pairBluetooth()}>
             <Bluetooth size={17} /> {requestingBluetooth ? 'Choosing peer…' : 'Connect foreground Bluetooth'}
-          </button>
+          </ActionButton>
           {note && <span className="muted" role="status">{note}</span>}
         </div>
       </section>

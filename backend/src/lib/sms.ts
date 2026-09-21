@@ -35,7 +35,12 @@ function e164(to: string): string {
 }
 
 export async function sendOtpSms(to: string, code: string, purpose: string): Promise<void> {
-  const body = `ResQNET code ${code}. Valid 10 min. Do not share it.`;
+  // `code` carries a 6-digit OTP for code purposes, but callers also pass a
+  // full sentence for notice messages (e.g. password-changed confirmations).
+  const isNotice = !/^\d{4,8}$/.test(code);
+  const body = isNotice
+    ? `ResQNET: ${code}`
+    : `ResQNET code ${code}. Valid 10 min. Do not share it.`;
   const provider = smsProvider();
 
   if (provider === 'twilio') {
@@ -51,6 +56,20 @@ export async function sendOtpSms(to: string, code: string, purpose: string): Pro
   }
 
   if (provider === 'fast2sms') {
+    if (isNotice) {
+      // Fast2SMS transactional route (non-OTP) for notice texts.
+      const url = new URL('https://www.fast2sms.com/dev/bulkV2');
+      url.searchParams.set('authorization', config.sms.fast2smsKey);
+      url.searchParams.set('route', 'q');
+      url.searchParams.set('message', body);
+      url.searchParams.set('numbers', indiaNumber(to));
+      url.searchParams.set('flash', '0');
+      const res = await fetch(url, { method: 'GET' });
+      const json = await res.json().catch(() => ({})) as { return?: boolean; message?: string };
+      if (!res.ok || json.return === false) throw new Error(`Fast2SMS: ${json.message ?? res.status}`);
+      logger.info({ to, purpose, provider }, 'notice sms sent');
+      return;
+    }
     const url = new URL('https://www.fast2sms.com/dev/bulkV2');
     url.searchParams.set('authorization', config.sms.fast2smsKey);
     url.searchParams.set('route', 'otp');
@@ -66,6 +85,16 @@ export async function sendOtpSms(to: string, code: string, purpose: string): Pro
 
   if (provider === 'twofactor') {
     const phone = e164(to).replace('+', '');
+    if (isNotice) {
+      // 2Factor transactional SMS API for notice texts.
+      const url = new URL(`https://2factor.in/API/V1/${config.sms.twoFactorKey}/ADD_TEMPLATE_SERVICES`);
+      const res = await fetch(`https://2factor.in/API/V1/${config.sms.twoFactorKey}/SMS/${phone}/${encodeURIComponent(body)}/AUTOGEN/TEMPLATE_NAME`);
+      if (!res.ok) throw new Error(`2Factor: HTTP ${res.status}`);
+      const json = await res.json().catch(() => ({})) as { Status?: string; Details?: string };
+      if (json.Status === 'Error') throw new Error(`2Factor: ${json.Details ?? res.status}`);
+      logger.info({ to, purpose, provider }, 'notice sms sent');
+      return;
+    }
     const otp = code.replace(/\D/g, '').slice(0, 6) || '000000';
     const res = await fetch(`https://2factor.in/API/V1/${config.sms.twoFactorKey}/SMS/${phone}/${otp}/OTP`);
     const json = await res.json().catch(() => ({})) as { Status?: string; Details?: string };

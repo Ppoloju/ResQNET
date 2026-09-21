@@ -3,8 +3,10 @@
 // backend; offline it degrades to the local outbox — the app stays usable (§30).
 
 import { useEffect, useState } from 'react';
+import { History as HistoryIcon, Clock3, Hourglass, Archive } from 'lucide-react';
 import { apiFetch, useSession } from '../state/SessionContext';
 import type { BlackBoxEntry } from '../state/MeshContext';
+import { Card, CardHeader, PageHeader, EmptyState, MiniRow, StatusPill } from '../components/ui';
 
 interface EmergencyRecord {
   id: string;
@@ -52,63 +54,59 @@ export default function History() {
       .finally(() => setLoading(false));
   }, [user]);
 
-  const fmt = (ts: number | string) => new Date(ts).toLocaleString();
-
   return (
     <div className="page">
-      <h2>Emergency History</h2>
+      <PageHeader
+        eyebrow="RESQNET / BLACK BOX"
+        title="Emergency history"
+        subtitle="Past emergencies with the on-device timeline for each activation."
+        badge={user ? `${records.length} RECORD${records.length === 1 ? '' : 'S'}` : 'LOCAL ONLY'}
+        badgeTone={user ? 'info' : 'waiting'}
+      />
 
       {outbox.length > 0 && (
-        <section className="card" aria-label="Pending offline emergency queue">
-          <h3>⏳ Queued for sync ({outbox.length})</h3>
-          <p className="dim small">These emergencies were created offline and will sync automatically when a connection is available.</p>
-          <ul className="event-list">
+        <Card>
+          <CardHeader icon={<Hourglass size={17} />} title={`Queued for sync (${outbox.length})`} subtitle="Created offline — they sync automatically when a connection is available." />
+          <div className="rq-mini-list">
             {outbox.map((o, i) => {
               const ev = (o.event ?? {}) as Record<string, unknown>;
               return (
-                <li key={i}>
-                  <span className="pill warn small">{String(ev.type ?? 'EMERGENCY')}</span>{' '}
-                  <span className="mono">{String(ev.id ?? '—')}</span>{' '}
-                  <span className="dim small">{ev.createdAt ? fmt(String(ev.createdAt)) : ''}</span>
-                </li>
+                <MiniRow
+                  key={i}
+                  icon={<Hourglass size={13} />}
+                  title={String(ev.type ?? 'EMERGENCY')}
+                  meta={`${String(ev.id ?? '—')}${ev.createdAt ? ` · ${new Date(String(ev.createdAt)).toLocaleString()}` : ''}`}
+                  pill={<StatusPill tone="waiting">QUEUED</StatusPill>}
+                />
               );
             })}
-          </ul>
-        </section>
+          </div>
+        </Card>
       )}
 
       {loading && <p className="dim">Loading…</p>}
-      {error && <p className="error" role="alert">{error}</p>}
-      {!user && <p className="dim">Sign in to see server-side history. Queued offline emergencies show above even without an account.</p>}
+      {error && <p className="error-text" role="alert">{error}</p>}
+      {!user && (
+        <Card>
+          <EmptyState icon={<HistoryIcon size={20} />} title="Sign in to see server-side history" hint="Queued offline emergencies show above even without an account." />
+        </Card>
+      )}
 
       {user && (
-        <section aria-label="Past emergencies">
-          <h3>Past emergencies</h3>
-          {records.length === 0 && !loading && <p className="dim">No emergencies recorded.</p>}
+        <Card>
+          <CardHeader icon={<Archive size={17} />} title="Past emergencies" subtitle={records.length === 0 && !loading ? 'No emergencies recorded.' : 'Tap an entry to expand its black-box timeline.'} />
           {records.map((r) => (
-            <article className="card" key={r.id}>
-              <header className="emergency-head">
-                <button
-                  className="btn link"
-                  onClick={() => setExpanded(expanded === r.id ? null : r.id)}
-                  aria-expanded={expanded === r.id}
-                  aria-controls={`timeline-${r.id}`}
-                >
-                  {expanded === r.id ? '▾' : '▸'} <strong className="mono">{r.id}</strong>
-                </button>
-                <span className={`pill ${r.severity === 'CRITICAL' ? 'off' : r.severity === 'HIGH' ? 'warn' : 'on'}`}>{r.severity}</span>
-                <span>{r.type}</span>
-                <span className={`pill ${r.status === 'ACTIVE' ? 'off' : r.status === 'RESOLVED' ? 'on' : ''}`}>{r.status}</span>
-              </header>
-              {r.message && <p className="small dim">“{r.message}”</p>}
-              <p className="small dim">
-                {fmt(r.createdAt)}
-                {r.category && <> · AI: {r.category}</>}
-                {r.resolvedHow && <> · resolved: {r.resolvedHow}</>}
-              </p>
+            <div className="rq-mini-list" key={r.id} style={{ marginBottom: 6 }}>
+              <MiniRow
+                icon={<Clock3 size={13} />}
+                title={`${r.type} · ${r.severity}`}
+                meta={`${new Date(r.createdAt).toLocaleString()} · ${r.id}${r.message ? ` · “${r.message}”` : ''}`}
+                onClick={() => setExpanded(expanded === r.id ? null : r.id)}
+                pill={<StatusPill tone={r.status === 'RESOLVED' ? 'safe' : r.status === 'ACTIVE' ? 'danger' : 'waiting'}>{r.status}</StatusPill>}
+              />
               {expanded === r.id && (
-                <div id={`timeline-${r.id}`} className="timeline-box">
-                  <h4 className="small">Timeline (black box)</h4>
+                <div className="timeline-box" style={{ padding: '8px 10px' }}>
+                  <h4 className="small" style={{ marginTop: 0 }}>Timeline (black box)</h4>
                   <ul className="event-list mono small">
                     {blackBox.length === 0 && <li className="dim">No timeline recorded on this device.</li>}
                     {blackBox.map((e, i) => (
@@ -117,9 +115,9 @@ export default function History() {
                   </ul>
                 </div>
               )}
-            </article>
+            </div>
           ))}
-        </section>
+        </Card>
       )}
     </div>
   );

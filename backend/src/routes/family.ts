@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { db } from '../db.js';
 import { audit } from '../middleware/audit.js';
 import { requireAuth, type AuthedRequest } from '../middleware/auth.js';
+import { broadcastEvent } from './realtime.js';
 
 export const familyRouter = Router();
 
@@ -112,4 +113,87 @@ familyRouter.delete('/:id', requireAuth, (req: AuthedRequest, res) => {
   }
   audit(req.user!.userId, 'family.remove', 'family_member', req.params.id);
   res.json({ ok: true });
+});
+
+// ---------------------------------------------------------------------------
+// Account linking: connect a family_member row to a ResQNET account by email
+// so live check-ins/locations from that account appear in the owner's circle.
+// ---------------------------------------------------------------------------
+
+/** Resolve a ResQNET account id from the registered email (for link flows). */
+familyRouter.get('/resolve-account', requireAuth, (req: AuthedRequest, res) => {
+  const email = String(req.query.email ?? '').trim().toLowerCase();
+  if (!email) {
+    res.status(400).json({ error: 'email query parameter required' });
+    return;
+  }
+  const user = db.prepare('SELECT id, display_name FROM users WHERE email = ?').get(email) as
+    | { id: string; display_name: string }
+    | undefined;
+  if (!user) {
+    res.status(404).json({ error: 'no ResQNET account found for that email' });
+    return;
+  }
+  res.json({ userId: user.id, displayName: user.display_name });
+});
+
+/** Link (or re-link) a member to an account id, then pull their latest status. */
+familyRouter.post('/:id/link', requireAuth, (req: AuthedRequest, res) => {
+  const schema = z.object({ iqooAccountId: z.string().min(1).max(64) });
+  const parsed = schema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: 'validation failed', issues: parsed.error.issues });
+    return;
+  }
+  const row = db.prepare('SELECT id FROM family_members WHERE id = ? AND owner_user_id = ?')
+    .get(req.params.id, req.user!.userId) as { id: string } | undefined;
+  if (!row) {
+    res.status(404).json({ error: 'member not found' });
+    return;
+  }
+  const account = db.prepare('SELECT id FROM users WHERE id = ?').get(parsed.data.iqooAccountId) as
+    | { id: string }
+    | undefined;
+  if (!account) {
+    res.status(404).json({ error: 'account not found' });
+    return;
+  }
+  db.prepare('UPDATE family_members SET iqoo_account_id = ?, status = ?, updated_at = ? WHERE id = ?')
+    .run(account.id, 'UNKNOWN', new Date().toISOString(), row.id);
+  audit(req.user!.userId, 'family.link_account', 'family_member', row.id);
+
+  // Nudge the linked account so fresh check-ins land on every open session.
+  broadcastEvent('family_safe_ping', {
+    emergencyId: null,
+    message: `Family circle updated: ${req.user!.userId === account.id ? 'your own card' : 'a contact'} was linked to your account.`,
+    notifiedCount: 1,
+    createdAt: new Date().toISOString(),
+  });
+  res.json({ ok: true, linked: account.id });
+});
+
+/** Unlink a member from any account (back to SMS fallback). */
+familyRouter.delete('/:id/link', requireAuth, (req: AuthedRequest, res) => {
+  const row = db.prepare('SELECT id FROM family_members WHERE id = ? AND owner_user_id = ?')
+    .get(req.params.id, req.user!.userId) as { id: string } | undefined;
+  if (!row) {
+    res.status(404).json({ error: 'member not found' });
+    return;
+  }
+  db.prepare('UPDATE family_members SET iqoo_account_id = NULL, updated_at = ? WHERE id = ?')
+    .run(new Date().toISOString(), row.id);
+  audit(req.user!.userId, 'family.unlink_account', 'family_member', row.id);
+  res.json({ ok: true });
+});
+
+/** Force a re-read of every linked member's latest check-in from the DB. */
+familyRouter.post('/resync', requireAuth, (req: AuthedRequest, res) => {
+  const rows = db.prepare(
+    `SELECT fm.id, ci.status, ci.created_at, ci.lat, ci.lon
+     FROM family_members fm
+     LEFT JOIN check_ins ci ON ci.user_id = fm.iqoo_account_id
+     WHERE fm.owner_user_id = ? AND fm.iqoo_account_id IS NOT NULL
+     ORDER BY ci.created_at DESC`,
+  ).all(req.user!.userId) as Array<{ id: string; status: string | null; created_at: string | null; lat: number | null; lon: number | null }>;
+  res.json({ ok: true, linked: rows.length, refreshedAt: new Date().toISOString() });
 });

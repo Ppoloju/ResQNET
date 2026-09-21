@@ -2,8 +2,8 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { NavLink, useLocation } from 'react-router-dom';
 import {
-  Bell, Brain, History, Home as HomeIcon, Map, MapPinned, Menu, Network as NetworkIcon,
-  Monitor, Play, QrCode, Settings as SettingsIcon, ShieldCheck, Smartphone, UserRound, UserSearch, Users, X,
+  Bell, Brain, History, Home as HomeIcon, Laptop, Map, MapPinned, Menu, Network as NetworkIcon,
+  Play, QrCode, Settings as SettingsIcon, ShieldCheck, Smartphone, UserRound, UserSearch, Users, X,
   type LucideIcon,
 } from 'lucide-react';
 import { Battery, BatteryCharging } from 'lucide-react';
@@ -115,52 +115,60 @@ function MedicalIdButton() {
   </>;
 }
 
-type LayoutMode = 'auto' | 'mobile' | 'desktop';
+type LayoutMode = 'mobile' | 'desktop';
 
 function LayoutModeToggle({ mode, onChange }: { mode: LayoutMode; onChange: (mode: LayoutMode) => void }) {
+  // One button that flips to the OTHER layout. Icon-only, same 44px footprint
+  // as the other topbar icon buttons: mobile shows a Laptop icon, desktop a
+  // Phone icon — always the view you will get after clicking.
+  const goMobile = mode === 'desktop';
+  const Icon = goMobile ? Smartphone : Laptop;
   return (
-    <div className="layout-switcher" aria-label="Layout preview">
-      <button
-        className={mode === 'mobile' ? 'active' : ''}
-        type="button"
-        aria-label="Use mobile layout"
-        aria-pressed={mode === 'mobile'}
-        title="Mobile layout"
-        onClick={() => onChange('mobile')}
-      >
-        <Smartphone size={16} aria-hidden="true" />
-      </button>
-      <button
-        className={mode === 'desktop' ? 'active' : ''}
-        type="button"
-        aria-label="Use desktop layout"
-        aria-pressed={mode === 'desktop'}
-        title="Desktop layout"
-        onClick={() => onChange('desktop')}
-      >
-        <Monitor size={16} aria-hidden="true" />
-      </button>
-    </div>
+    <button
+      className={`layout-switcher${goMobile ? ' active' : ''}`}
+      type="button"
+      aria-label={goMobile ? 'Switch to mobile layout' : 'Switch to desktop layout'}
+      title={goMobile ? 'Switch to mobile layout' : 'Switch to desktop layout'}
+      onClick={() => onChange(goMobile ? 'mobile' : 'desktop')}
+    >
+      <Icon size={20} aria-hidden="true" />
+    </button>
   );
 }
 
 export default function App({ children }: { children: ReactNode }) {
   const location = useLocation();
   const { phase, active, safePulse } = useMesh();
+  const { user } = useSession();
   const [menuOpen, setMenuOpen] = useState(false);
+  // Layout choice is remembered PER ACCOUNT (falls back to device-local).
+  // First visit on a narrow screen uses the phone layout; wide screens use
+  // the desktop layout.
+  const layoutKey = `resqnet.layoutMode:${user?.id ?? 'guest'}`;
   const [layoutMode, setLayoutMode] = useState<LayoutMode>(() => {
-    const saved = localStorage.getItem('resqnet.layoutMode');
-    return saved === 'desktop' ? 'desktop' : 'mobile';
+    const saved = localStorage.getItem('resqnet.layoutMode:guest');
+    if (saved === 'desktop' || saved === 'mobile') return saved;
+    return window.innerWidth <= 760 ? 'mobile' : 'desktop';
   });
+  const prevUserRef = useRef<string | null>(null);
+
+  // When a user signs in/out, adopt their saved choice (or a fresh viewport default).
+  useEffect(() => {
+    const prev = prevUserRef.current;
+    prevUserRef.current = user?.id ?? null;
+    if (prev === (user?.id ?? null)) return;
+    const saved = localStorage.getItem(layoutKey);
+    if (saved === 'desktop' || saved === 'mobile') { setLayoutMode(saved); return; }
+    setLayoutMode(window.innerWidth <= 760 ? 'mobile' : 'desktop');
+  }, [user, layoutKey]);
 
   useEffect(() => {
     setMenuOpen(false);
   }, [location.pathname]);
 
   useEffect(() => {
-    if (layoutMode === 'auto') localStorage.removeItem('resqnet.layoutMode');
-    else localStorage.setItem('resqnet.layoutMode', layoutMode);
-  }, [layoutMode]);
+    localStorage.setItem(layoutKey, layoutMode);
+  }, [layoutKey, layoutMode]);
 
   const navLinks = () =>
     NAV.map((n) => (

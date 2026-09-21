@@ -569,13 +569,32 @@
         .layout-switcher {
             display: inline-flex;
             align-items: center;
-            gap: 2px;
-            padding: 3px;
+            gap: 5px;
+            min-height: 34px;
+            padding: 0 10px;
             border: 1px solid var(--line);
-            border-radius: 12px;
+            border-radius: 10px;
             background: rgba(255, 255, 255, 0.035);
+            color: var(--text-dim);
+            cursor: pointer;
+            font: inherit;
+            font-size: 0.68rem;
+            font-weight: 800;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
         }
-        
+
+        .layout-switcher:hover {
+            color: var(--text);
+            background: var(--tint-blue-bg);
+        }
+
+        .layout-switcher.active {
+            color: var(--blue-soft);
+            background: var(--tint-blue-bg);
+            box-shadow: inset 0 0 0 1px var(--tint-blue-line);
+        }
+
         .layout-switcher button {
             display: inline-flex;
             align-items: center;
@@ -7110,8 +7129,13 @@
         }
         
         @media (max-width: 720px) {
-            .layout-switcher button span {
+            .layout-switcher span {
                 display: none;
+            }
+            .layout-switcher {
+                min-width: 34px;
+                justify-content: center;
+                padding: 0 6px;
             }
             .layout-switcher button {
                 width: 34px;
@@ -7171,11 +7195,7 @@
         }
         
         .app.layout-mobile .layout-switcher {
-            display: none;
-        }
-        
-        .app.layout-mobile .layout-switcher button[aria-label="Use desktop layout"] {
-            display: none;
+            display: inline-flex;
         }
         
         @media (max-width: 430px) {
@@ -7237,4 +7257,906 @@
         .app.layout-mobile .sos-global-frame,
         .app.layout-mobile .safe-global-frame {
             border-radius: 0;
+        }
+
+        /* =============================================================
+           Shared UI primitives (components/ui.tsx) — uniform look across
+           cards, dialogs, fields, status pills, and compact list rows.
+           ============================================================= */
+
+        .rq-card {
+            padding: 16px;
+            border-radius: 16px;
+        }
+
+        .rq-card-head {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+
+        .rq-card-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 34px;
+            height: 34px;
+            flex: 0 0 34px;
+            border-radius: 10px;
+            background: var(--tint-blue-bg, rgba(96, 165, 250, 0.12));
+            color: var(--blue-soft, #7db4e8);
+            border: 1px solid var(--tint-blue-line, rgba(96, 165, 250, 0.25));
+        }
+
+        .rq-card-head.tone-danger .rq-card-icon {
+            background: rgba(248, 81, 73, 0.12);
+            color: var(--red);
+            border-color: rgba(248, 81, 73, 0.3);
+        }
+
+        .rq-card-head.tone-ok .rq-card-icon {
+            background: rgba(63, 185, 80, 0.12);
+            color: #3fb950;
+            border-color: rgba(63, 185, 80, 0.3);
+        }
+
+        .rq-card-head.tone-warn .rq-card-icon {
+            background: rgba(210, 153, 34, 0.14);
+            color: #d29922;
+            border-color: rgba(210, 153, 34, 0.3);
+        }
+
+        .rq-card-titles {
+            min-width: 0;
+            flex: 1;
+        }
+
+        .rq-card-titles h2 {
+            margin: 0;
+            font-size: 0.98rem;
+            letter-spacing: 0.02em;
+        }
+
+        .rq-card-titles p {
+            margin: 2px 0 0;
+            font-size: 0.78rem;
+        }
+
+        .rq-card-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-left: auto;
+        }
+
+        /* ---- Modal dialog ---- */
+
+        .rq-scrim {
+            position: fixed;
+            inset: 0;
+            z-index: 140;
+            background: rgba(4, 8, 12, 0.62);
+            backdrop-filter: blur(3px);
+            border: 0;
+            padding: 0;
+            cursor: pointer;
+        }
+
+        .rq-modal {
+            position: fixed;
+            z-index: 150;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            width: min(94vw, 460px);
+            max-height: min(86dvh, 720px);
+            overflow-y: auto;
+            background: var(--surface, #10171d);
+            border: 1px solid var(--line);
+            border-radius: 18px;
+            box-shadow: 0 24px 70px rgba(0, 0, 0, 0.45);
+            padding: 18px;
+        }
+
+        .rq-modal-wide {
+            width: min(94vw, 640px);
+        }
+
+        .rq-modal-head {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            margin-bottom: 14px;
+        }
+
+        .rq-modal-head h2 {
+            margin: 0;
+            font-size: 1.05rem;
+        }
+
+        .rq-modal-head p {
+            margin: 3px 0 0;
+            font-size: 0.8rem;
+        }
+
+        .rq-modal-close {
+            margin-left: auto;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 36px;
+            height: 36px;
+            flex: 0 0 36px;
+            border-radius: 10px;
+            border: 1px solid var(--line);
+            background: rgba(255, 255, 255, 0.04);
+            color: var(--text);
+            cursor: pointer;
+        }
+
+        .rq-modal-close:hover {
+            background: rgba(248, 81, 73, 0.12);
+            color: var(--red);
+        }
+
+        .rq-modal-body {
+            display: grid;
+            gap: 12px;
+        }
+
+        /* ---- Uniform form fields ---- */
+
+        .rq-field {
+            display: grid;
+            gap: 5px;
+            margin: 0;
+        }
+
+        .rq-field-label {
+            font-size: 0.72rem;
+            font-weight: 800;
+            letter-spacing: 0.09em;
+            text-transform: uppercase;
+            color: var(--text-dim, #93a4b3);
+        }
+
+        .rq-field input,
+        .rq-field select,
+        .rq-field textarea {
+            width: 100%;
+            box-sizing: border-box;
+            min-height: 42px;
+            padding: 9px 12px;
+            border-radius: 10px;
+            border: 1px solid var(--line);
+            background: rgba(255, 255, 255, 0.04);
+            color: var(--text);
+            font: inherit;
+            font-size: 0.92rem;
+        }
+
+        .rq-field textarea {
+            resize: vertical;
+        }
+
+        .rq-field input:focus,
+        .rq-field select:focus,
+        .rq-field textarea:focus {
+            outline: none;
+            border-color: var(--blue-soft, #7db4e8);
+            box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.18);
+        }
+
+        .rq-field-hint {
+            font-size: 0.74rem;
+            color: var(--text-dim, #93a4b3);
+        }
+
+        /* ---- Status pills ---- */
+
+        .rq-status-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 3px 10px;
+            border-radius: 999px;
+            font-size: 0.66rem;
+            font-weight: 800;
+            letter-spacing: 0.08em;
+            white-space: nowrap;
+        }
+
+        .rq-status-pill i {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: currentColor;
+        }
+
+        .rq-status-pill.rq-safe {
+            background: rgba(63, 185, 80, 0.14);
+            color: #4ade80;
+            border: 1px solid rgba(63, 185, 80, 0.35);
+        }
+
+        .rq-status-pill.rq-danger {
+            background: rgba(248, 81, 73, 0.14);
+            color: var(--red, #f85149);
+            border: 1px solid rgba(248, 81, 73, 0.35);
+        }
+
+        .rq-status-pill.rq-waiting {
+            background: rgba(210, 153, 34, 0.12);
+            color: #e3b341;
+            border: 1px solid rgba(210, 153, 34, 0.3);
+        }
+
+        .rq-status-pill.rq-info {
+            background: var(--tint-blue-bg, rgba(96, 165, 250, 0.12));
+            color: var(--blue-soft, #7db4e8);
+            border: 1px solid var(--tint-blue-line, rgba(96, 165, 250, 0.25));
+        }
+
+        .rq-status-pill.rq-neutral {
+            background: rgba(255, 255, 255, 0.06);
+            color: var(--text-dim, #93a4b3);
+            border: 1px solid var(--line);
+        }
+
+        /* ---- Empty state ---- */
+
+        .rq-empty {
+            display: grid;
+            justify-items: center;
+            gap: 6px;
+            text-align: center;
+            padding: 18px 12px;
+            border: 1px dashed var(--line);
+            border-radius: 14px;
+        }
+
+        .rq-empty-icon {
+            display: inline-flex;
+            color: var(--text-dim, #93a4b3);
+        }
+
+        .rq-empty p {
+            margin: 0;
+            font-size: 0.8rem;
+        }
+
+        /* ---- Compact mini rows (Home family/history summaries) ---- */
+
+        .rq-mini-row {
+            display: flex;
+            align-items: center;
+            gap: 9px;
+            width: 100%;
+            box-sizing: border-box;
+            padding: 7px 9px;
+            border: 1px solid var(--line);
+            border-radius: 11px;
+            background: rgba(255, 255, 255, 0.025);
+            font: inherit;
+            color: inherit;
+            text-align: left;
+        }
+
+        button.rq-mini-row {
+            cursor: pointer;
+        }
+
+        button.rq-mini-row:hover {
+            border-color: var(--tint-blue-line, rgba(96, 165, 250, 0.25));
+            background: var(--tint-blue-bg, rgba(96, 165, 250, 0.07));
+        }
+
+        .rq-mini-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 26px;
+            height: 26px;
+            flex: 0 0 26px;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-dim, #93a4b3);
+        }
+
+        .rq-mini-main {
+            min-width: 0;
+            flex: 1;
+            display: grid;
+            gap: 1px;
+        }
+
+        .rq-mini-main strong {
+            font-size: 0.84rem;
+            font-weight: 700;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .rq-mini-main small {
+            font-size: 0.7rem;
+            color: var(--text-dim, #93a4b3);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        /* ---- Need Help placement: sits beside the Emergency hub heading,
+           pushed toward the corner ---- */
+
+        .home-heading {
+            display: flex;
+            align-items: flex-end;
+            gap: 12px;
+        }
+
+        .home-heading .rq-card-actions {
+            margin-left: auto;
+            align-self: center;
+        }
+
+        .rq-help-corner-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            min-height: 40px;
+            padding: 0 14px;
+            border-radius: 12px;
+            border: 1px solid rgba(248, 81, 73, 0.45);
+            background: linear-gradient(135deg, rgba(248, 81, 73, 0.16), rgba(248, 81, 73, 0.07));
+            color: var(--red, #f85149);
+            font: inherit;
+            font-size: 0.8rem;
+            font-weight: 800;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            cursor: pointer;
+        }
+
+        .rq-help-corner-btn:hover {
+            background: linear-gradient(135deg, rgba(248, 81, 73, 0.28), rgba(248, 81, 73, 0.12));
+        }
+
+        /* ---- Hub link cards (Family / History) ---- */
+
+        .rq-hub-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .rq-hub-card {
+            display: grid;
+            gap: 10px;
+        }
+
+        .rq-mini-list {
+            display: grid;
+            gap: 6px;
+        }
+
+        @media (max-width: 560px) {
+            .rq-hub-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        /* =====================================================================
+           UNIFORMITY LAYER — normalizes buttons, fields, chips, cards, text
+           scale, page gutters, nav, and theme-aware surfaces. Last-wins.
+           ===================================================================== */
+
+        :root {
+            --ctl-h: 44px;
+            --ctl-pad-x: 14px;
+            --ctl-radius: 12px;
+            --card-radius: 16px;
+            --fs-h1: 1.45rem;
+            --fs-h2: 1.02rem;
+            --fs-h3: 0.92rem;
+            --fs-body: 0.92rem;
+            --fs-small: 0.78rem;
+            --fs-label: 0.7rem;
+        }
+
+        /* ---- One button format everywhere ---- */
+
+        .btn-primary,
+        .btn-secondary,
+        .btn-ghost,
+        .btn-help,
+        .btn-safe,
+        .btn-ok,
+        button.btn,
+        .hardware-transport button,
+        .quick-help-action,
+        .activated-sitrep-form button,
+        .family-icon-action {
+            min-height: var(--ctl-h) !important;
+            padding: 0 var(--ctl-pad-x) !important;
+            border-radius: var(--ctl-radius) !important;
+            font-size: 0.88rem !important;
+            font-weight: 700 !important;
+            letter-spacing: 0.01em;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 7px;
+            box-sizing: border-box;
+            line-height: 1.2;
+        }
+
+        /* The uniform ActionButton from components/ui.tsx */
+        .rq-action-btn {
+            min-height: var(--ctl-h);
+            padding: 0 var(--ctl-pad-x);
+            border-radius: var(--ctl-radius);
+            font-size: 0.88rem;
+            font-weight: 700;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 7px;
+            cursor: pointer;
+            border: 1px solid var(--line);
+        }
+
+        .rq-action-btn.rq-full {
+            width: 100%;
+        }
+
+        /* ---- One field format everywhere ---- */
+
+        input[type="text"],
+        input[type="email"],
+        input[type="password"],
+        input[type="number"],
+        input[type="tel"],
+        input[type="datetime-local"],
+        input[type="file"],
+        textarea,
+        select {
+            min-height: var(--ctl-h);
+            padding: 9px 12px;
+            border-radius: var(--ctl-radius);
+            font-size: var(--fs-body);
+            box-sizing: border-box;
+        }
+
+        textarea {
+            min-height: 0;
+            line-height: 1.5;
+        }
+
+        input[type="file"] {
+            padding: 8px 10px;
+        }
+
+        /* ---- Chips: uniform secondary toggles ---- */
+
+        .chip {
+            min-height: 38px !important;
+            padding: 0 13px !important;
+            border-radius: 10px !important;
+            font-size: var(--fs-small) !important;
+            font-weight: 700 !important;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        /* ---- Cards: one shape everywhere ---- */
+
+        .card,
+        .network-status-card,
+        .network-device-panel,
+        .network-boundary,
+        .family-tool-card,
+        .family-member-card,
+        .hardware-section,
+        .protocol-card,
+        .emergency-item,
+        .demo-banner,
+        .rq-modal {
+            border-radius: var(--card-radius) !important;
+            border: 1px solid var(--line);
+        }
+
+        .card {
+            padding: 16px;
+        }
+
+        /* ---- Text scale: one hierarchy ---- */
+
+        h1 {
+            font-size: var(--fs-h1) !important;
+            line-height: 1.25;
+        }
+
+        h2 {
+            font-size: var(--fs-h2) !important;
+            line-height: 1.3;
+        }
+
+        h3 {
+            font-size: var(--fs-h3) !important;
+        }
+
+        body,
+        p,
+        li,
+        label {
+            font-size: var(--fs-body);
+        }
+
+        .small,
+        .dim {
+            font-size: var(--fs-small);
+        }
+
+        .eyebrow,
+        .telemetry-label {
+            font-size: var(--fs-label) !important;
+        }
+
+        .muted {
+            font-size: var(--fs-body);
+        }
+
+        button {
+            font-size: var(--fs-body);
+        }
+
+        /* ---- Page gutters: nothing stuck to the frame border ---- */
+
+        .page-host {
+            padding-inline: 16px;
+        }
+
+        .page,
+        .page-host > div {
+            padding-inline: 0;
+            max-width: 860px;
+            margin-inline: auto;
+            width: 100%;
+        }
+
+        .page-host > div {
+            padding-bottom: 96px;
+        }
+
+        .hardware-settings {
+            max-width: 860px;
+            margin-inline: auto;
+            width: 100%;
+        }
+
+        .app.layout-mobile .page,
+        .app.layout-mobile .page-host > div,
+        .app.layout-mobile .hardware-settings {
+            max-width: 100%;
+        }
+
+        /* ---- Layout switcher: icon-only, same size as other icon buttons ---- */
+
+        .layout-switcher {
+            width: 44px;
+            min-width: 44px;
+            height: 44px;
+            min-height: 44px;
+            padding: 0;
+            justify-content: center;
+            gap: 0;
+            font-size: 0;
+        }
+
+        .layout-switcher span {
+            display: none !important;
+        }
+
+        /* ---- Footer nav: floating rounded bar, theme-aware, on all screens ---- */
+
+        .footer-nav {
+            left: 50%;
+            right: auto;
+            transform: translateX(-50%);
+            width: min(calc(100vw - 20px), 560px);
+            bottom: calc(10px + env(safe-area-inset-bottom));
+            padding: 6px 10px;
+            border: 1px solid var(--line);
+            border-radius: 18px;
+            background: color-mix(in srgb, var(--surface) 90%, transparent);
+            backdrop-filter: blur(16px);
+            box-shadow: var(--soft-shadow);
+            gap: 4px;
+        }
+
+        .app.layout-mobile .footer-nav {
+            width: min(calc(100vw - 20px), 414px);
+        }
+
+        .footer-nav a {
+            min-width: 0;
+            flex: 1;
+            min-height: 46px;
+            border-radius: 12px;
+        }
+
+        /* ---- Theme-aware surfaces (light mode fixes) ---- */
+
+        body {
+            background: var(--bg-2);
+        }
+
+        .topbar {
+            background: color-mix(in srgb, var(--surface) 82%, transparent);
+        }
+
+        .drawer {
+            background: var(--surface);
+        }
+
+        .scrim,
+        .medical-id-scrim {
+            background: rgba(4, 8, 12, 0.55);
+        }
+
+        .tactical-status-strip,
+        .disarmed-audit-row,
+        .family-leaflet-map {
+            background: var(--surface-soft);
+        }
+
+        .demo-banner {
+            background: var(--tint-amber-bg);
+            border-color: var(--tint-amber-line);
+            color: var(--tint-amber-fg);
+        }
+
+        [data-theme="light"] .footer-nav a.active {
+            color: #fff;
+        }
+
+        [data-theme="light"] .rq-mini-row,
+        [data-theme="light"] .rq-field input,
+        [data-theme="light"] .rq-field select,
+        [data-theme="light"] .rq-field textarea {
+            background: rgba(255, 255, 255, 0.6);
+        }
+
+        [data-theme="light"] .rq-scrim {
+            background: rgba(30, 42, 56, 0.45);
+        }
+
+        /* ---- Table-ish meta rows keep readable spacing ---- */
+
+        .emergency-head {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* ---- PageHeader ---- */
+
+        .rq-page-head {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            margin: 8px 0 14px;
+        }
+
+        .rq-page-head h1 {
+            margin: 2px 0 0;
+        }
+
+        .rq-page-head p {
+            margin: 4px 0 0;
+        }
+
+        .rq-page-head-side {
+            margin-left: auto;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex: 0 0 auto;
+        }
+
+        /* ---- Footer nav polish: no underline, tight labels, icon-first ---- */
+
+        .footer-nav a {
+            text-decoration: none;
+            color: var(--text-dim);
+            padding: 4px 6px;
+            gap: 3px;
+        }
+
+        .footer-nav .nav-label {
+            font-size: 0.62rem;
+            letter-spacing: 0.02em;
+            max-width: 100%;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .footer-nav a.active {
+            color: var(--text);
+        }
+
+        @media (max-width: 520px) {
+            .footer-nav .nav-label {
+                display: none;
+            }
+
+            .footer-nav a {
+                min-height: 44px;
+            }
+        }
+
+        /* ---- Light theme: rescue hardcoded dark surfaces via variables ---- */
+
+        .tactical-beacon-panel {
+            background: var(--surface);
+        }
+
+        [data-theme="light"] .tactical-beacon-panel,
+        [data-theme="light"] .activated-sos-page section,
+        [data-theme="light"] .disarmed-sos-page section {
+            background: var(--surface);
+        }
+
+        [data-theme="light"] .tactical-hint,
+        [data-theme="light"] .beacon-caption {
+            color: var(--text-dim);
+        }
+
+        [data-theme="light"] .tactical-beacon {
+            color: var(--text);
+        }
+
+        [data-theme="light"] .beacon-cross {
+            color: var(--red);
+        }
+
+        /* Any element hardcoding #0b1015-style panels follows the theme. */
+        [data-theme="light"] .activated-relay-panel,
+        [data-theme="light"] .activated-topology,
+        [data-theme="light"] .activated-stat-grid div,
+        [data-theme="light"] .activated-family-card,
+        [data-theme="light"] .activated-sitrep,
+        [data-theme="light"] .disarmed-audit,
+        [data-theme="light"] .disarmed-control-panel,
+        [data-theme="light"] .tactical-status-strip {
+            background: var(--surface-soft);
+            color: var(--text);
+        }
+
+        [data-theme="light"] .activated-sos-header,
+        [data-theme="light"] .activated-security-footer,
+        [data-theme="light"] .disarmed-header,
+        [data-theme="light"] .disarmed-footer {
+            background: var(--surface);
+            color: var(--text);
+        }
+
+        [data-theme="light"] .activated-sos-page,
+        [data-theme="light"] .disarmed-sos-page {
+            color: var(--text);
+        }
+
+        /* Active nav icon must stay visible on the red pill in both themes. */
+        .footer-nav a.active svg,
+        [data-theme="light"] .footer-nav a.active svg {
+            color: #fff !important;
+        }
+
+        /* =====================================================================
+           AI page: speaking animation, uniform alert/info/danger button
+           variants, clean protocol steps.
+           ===================================================================== */
+
+        /* ---- Live speaking bars ---- */
+
+        .rq-voice-wave {
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            gap: 4px;
+            height: 44px;
+            padding: 6px 10px;
+            border: 1px solid var(--line);
+            border-radius: var(--ctl-radius);
+            background: var(--surface-soft);
+            overflow: hidden;
+        }
+
+        .rq-voice-wave i {
+            width: 5px;
+            border-radius: 3px;
+            background: var(--text-dim);
+            opacity: 0.5;
+            transition: height 90ms linear;
+        }
+
+        .rq-voice-wave.is-live i {
+            background: var(--red);
+            opacity: 1;
+            box-shadow: 0 0 8px rgba(248, 81, 73, 0.45);
+        }
+
+        /* ---- Button variants: same shape as Need Help, color = purpose ----
+           help (blue) = analyze/neutral action
+           info  (teal/blue outline) = voice/communication
+           alert (red outline) = active recording
+           danger(red solid) = real SOS send
+           primary/red gradient = confirm & save */
+
+        .rq-action-btn.rq-info {
+            background: var(--tint-blue-bg);
+            border-color: var(--tint-blue-line);
+            color: var(--tint-blue-fg);
+        }
+
+        .rq-action-btn.rq-info:not(:disabled):hover {
+            filter: brightness(1.1);
+        }
+
+        .rq-action-btn.rq-alert {
+            background: var(--tint-red-bg);
+            border-color: var(--tint-red-line);
+            color: var(--tint-red-fg);
+        }
+
+        .rq-action-btn.rq-alert:not(:disabled):hover {
+            filter: brightness(1.1);
+        }
+
+        .rq-action-btn.rq-danger {
+            background: linear-gradient(180deg, #ff5f6d, #df2a4d);
+            border-color: rgba(255, 122, 136, 0.75);
+            color: #fff;
+        }
+
+        .rq-action-btn.rq-danger:not(:disabled):hover {
+            filter: brightness(1.08);
+        }
+
+        /* ---- Protocol steps: numbered, airy, readable ---- */
+
+        .rq-protocol-steps {
+            margin: 0;
+            padding: 0;
+            list-style: none;
+            display: grid;
+            gap: 8px;
+        }
+
+        .rq-protocol-steps li {
+            display: flex;
+            gap: 10px;
+            align-items: flex-start;
+            line-height: 1.5;
+            font-size: var(--fs-body);
+        }
+
+        .rq-step-num {
+            flex: 0 0 22px;
+            height: 22px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            background: var(--tint-blue-bg);
+            color: var(--tint-blue-fg);
+            border: 1px solid var(--tint-blue-line);
+            font-size: 0.68rem;
+            font-weight: 800;
+            margin-top: 1px;
         }

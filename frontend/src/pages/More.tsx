@@ -2,59 +2,51 @@
 // thresholds live in Settings (§29/§37).
 
 import { Link } from 'react-router-dom';
+import {
+  Bell, History, Map, Play, Siren, UserRound, UserSearch, Network as NetworkIcon,
+} from 'lucide-react';
 import { useSession } from '../state/SessionContext';
+import { Card, CardHeader, PageHeader } from '../components/ui';
+
+const LINKS = [
+  { to: '/situations', icon: Bell, title: 'Alerts', subtitle: 'Community bulletins and resources' },
+  { to: '/profile', icon: UserRound, title: 'Profile', subtitle: 'Emergency card & medical info' },
+  { to: '/demo', icon: Play, title: 'Demo Mode', subtitle: 'Scripted mesh scenario [P]' },
+  { to: '/disaster-demo', icon: Map, title: 'Disaster Demo', subtitle: 'Community response walkthrough [P]' },
+  { to: '/responders', icon: Siren, title: 'Responders', subtitle: 'Responder dashboard (role-gated)' },
+  { to: '/network', icon: NetworkIcon, title: 'Message Map', subtitle: 'Live relay visualization' },
+  { to: '/history', icon: History, title: 'History', subtitle: 'Black-box and past emergencies' },
+  { to: '/missing', icon: UserSearch, title: 'Missing Person', subtitle: 'File & view reports' },
+];
 
 export default function More() {
   const { user } = useSession();
 
   return (
     <div className="page">
-      <h2>More</h2>
+      <PageHeader
+        eyebrow="RESQNET / MORE"
+        title="More"
+        subtitle={user ? `Signed in as ${user.displayName}` : 'All ResQNET destinations'}
+      />
 
-      <div className="grid2">
-        <Link to="/situations" className="card" style={{ textDecoration: 'none', color: 'inherit' }}>
-          <h2 style={{ margin: 0 }}>Alerts</h2>
-          <p className="muted" style={{ margin: '4px 0 0' }}>Community bulletins and resources</p>
-        </Link>
-        <Link to="/profile" className="card" style={{ textDecoration: 'none', color: 'inherit' }}>
-          <h2 style={{ margin: 0 }}>Profile</h2>
-          <p className="muted" style={{ margin: '4px 0 0' }}>Emergency card &amp; medical info</p>
-        </Link>
-        <Link to="/demo" className="card" style={{ textDecoration: 'none', color: 'inherit' }}>
-          <h2 style={{ margin: 0 }}>Demo Mode</h2>
-          <p className="muted" style={{ margin: '4px 0 0' }}>Scripted mesh scenario <span className="mono">[P]</span></p>
-        </Link>
-        <Link to="/disaster-demo" className="card" style={{ textDecoration: 'none', color: 'inherit' }}>
-          <h2 style={{ margin: 0 }}>Disaster Demo</h2>
-          <p className="muted" style={{ margin: '4px 0 0' }}>Community response walkthrough <span className="mono">[P]</span></p>
-        </Link>
-        <Link to="/responders" className="card" style={{ textDecoration: 'none', color: 'inherit' }}>
-          <h2 style={{ margin: 0 }}>Responders</h2>
-          <p className="muted" style={{ margin: '4px 0 0' }}>Responder dashboard (role-gated)</p>
-        </Link>
-        <Link to="/network" className="card" style={{ textDecoration: 'none', color: 'inherit' }}>
-          <h2 style={{ margin: 0 }}>Message Map</h2>
-          <p className="muted" style={{ margin: '4px 0 0' }}>Live relay visualization</p>
-        </Link>
-        <Link to="/history" className="card" style={{ textDecoration: 'none', color: 'inherit' }}>
-          <h2 style={{ margin: 0 }}>History</h2>
-          <p className="muted" style={{ margin: '4px 0 0' }}>Black-box and past emergencies</p>
-        </Link>
-        <Link to="/missing" className="card" style={{ textDecoration: 'none', color: 'inherit' }}>
-          <h2 style={{ margin: 0 }}>Missing Person</h2>
-          <p className="muted" style={{ margin: '4px 0 0' }}>File &amp; view reports</p>
-        </Link>
+      <div className="rq-hub-grid">
+        {LINKS.map((l) => (
+          <Link key={l.to} to={l.to} className="card rq-hub-card" style={{ textDecoration: 'none', color: 'inherit' }}>
+            <CardHeader icon={<l.icon size={17} />} title={l.title} subtitle={l.subtitle} />
+          </Link>
+        ))}
       </div>
 
-      <div className="card">
-        <h2>About this prototype</h2>
-        <p className="muted" style={{ fontSize: '0.85rem' }}>
+      <Card>
+        <CardHeader icon={<Siren size={17} />} title="About this prototype" />
+        <p className="muted">
           ResQNET is a hackathon prototype. Mesh links between phones are simulated in the demo
           (<span className="mono">[P]</span>) — real BLE transport requires native mobile support
           (<span className="mono">[R]</span>). ResQNET augments emergency response; it never replaces
           official emergency numbers (100/112/911).
         </p>
-      </div>
+      </Card>
     </div>
   );
 }

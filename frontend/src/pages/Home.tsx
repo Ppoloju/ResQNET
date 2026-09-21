@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { apiFetch, useSession } from '../state/SessionContext';
 import { useStatus } from '../state/StatusContext';
@@ -12,7 +12,15 @@ import { queueCheckIn } from '../state/checkInQueue';
 import { findGuidance, guidanceForCategory, triageHelp, type GuidanceTopic, type HelpTriage } from '@iqoo/shared';
 import { EMERGENCY_PROMPT_SUGGESTIONS } from '@iqoo/shared';
 import type { Severity } from '@iqoo/shared';
-import { Activity, BatteryCharging, Check, CheckCircle2, Clock3, LockKeyhole, MapPin, MapPinned, MessageSquare, Network, Radio, Route, Send, ShieldCheck, Signal, Siren, Users, Wifi } from 'lucide-react';
+import {
+  Activity, BatteryCharging, Check, CheckCircle2, Clock3, History as HistoryIcon, LifeBuoy, LockKeyhole, MapPin,
+  MapPinned, MessageSquare, Network, Radio, Route, ScanSearch, Send, ShieldCheck, Signal, Siren, Square, Mic, Users, Wifi,
+} from 'lucide-react';
+import {
+  Card, CardHeader, Modal, TextField, TextAreaField, StatusPill, toneForStatus, EmptyState, MiniRow,
+  ActionButton, Chip,
+} from '../components/ui';
+import { VoiceWave } from './AIAssistance';
 
 /** Disaster broadcast banner (§26): highest priority first, dismissible. */
 function BroadcastBanner() {
@@ -65,32 +73,30 @@ function LiveMapCard() {
     })) as Array<{ emergencyId: string; latitude: number; longitude: number; label?: string }>;
 
   return (
-    <div className="card" data-testid="live-map-card">
-      <div className="row spread" style={{ alignItems: 'baseline' }}>
-        <h2 style={{ margin: 0 }}>Live emergency map</h2>
-        <span className={`pill small ${connected ? 'on' : 'off'}`}>{connected ? 'LIVE' : 'RECONNECTING'}</span>
-      </div>
-      <EmergencyMap position={fix} others={others} height={240} />
+    <Card data-testid="live-map-card">
+      <CardHeader
+        icon={<MapPinned size={17} />}
+        title="Live emergency map"
+        actions={<span className={`pill small ${connected ? 'on' : 'off'}`}>{connected ? 'LIVE' : 'RECONNECTING'}</span>}
+      />
+      <EmergencyMap position={fix} others={others} height={220} />
       {state === 'denied' && (
-        <p className="muted small">Location permission denied — your SOS still works, but responders get no map pin.</p>
+        <p className="muted small" style={{ marginTop: 8 }}>Location permission denied — your SOS still works, but responders get no map pin.</p>
       )}
       {merged.length > 0 && (
-        <ul className="event-list mt">
-          {merged.slice(0, 6).map((e) => (
-            <li key={e.emergencyId}>
-              <span className={`sev-pill ${e.severity === 'CRITICAL' ? 'sev-critical' : e.severity === 'HIGH' ? 'sev-high' : 'sev-medium'}`}>{e.severity}</span>{' '}
-              <strong>{e.type}</strong>{e.message ? ` — ${e.message}` : ''}{' '}
-              <span className="dim small">{new Date(e.createdAt).toLocaleTimeString()}</span>{' '}
-              <span className="mono small">{e.emergencyId}</span>
-            </li>
+        <div className="rq-mini-list" style={{ marginTop: 10 }}>
+          {merged.slice(0, 5).map((e) => (
+            <MiniRow
+              key={e.emergencyId}
+              icon={<Siren size={14} />}
+              title={`${e.type} · ${e.severity}`}
+              meta={`${e.message ? `${e.message} — ` : ''}${new Date(e.createdAt).toLocaleTimeString()} · ${e.emergencyId}`}
+              pill={<span className={`sev-pill ${e.severity === 'CRITICAL' ? 'sev-critical' : e.severity === 'HIGH' ? 'sev-high' : 'sev-medium'}`}>{e.severity}</span>}
+            />
           ))}
-        </ul>
+        </div>
       )}
-      <p className="muted small" style={{ margin: '6px 2px 0' }}>
-        Red: you (exact GPS, ±{fix?.accuracyMeters != null ? Math.round(fix.accuracyMeters) : '…'} m).
-        Orange: other active emergencies nearby.
-      </p>
-    </div>
+    </Card>
   );
 }
 
@@ -100,6 +106,7 @@ function CheckInCard() {
   const { showSafePulse } = useMesh();
   const [last, setLast] = useState<{ status: string; createdAt: string } | null>(null);
   const [note, setNote] = useState('');
+  const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -107,37 +114,41 @@ function CheckInCard() {
       .then((r) => { if (r.checkins?.length) setLast(r.checkins[0]); })
       .catch(() => { /* offline — nothing fabricated */ });
   }, [user]);
-  const { online, battery } = useStatus();
+
   const checkIn = async (status: 'SAFE' | 'AT_RISK') => {
+    setBusy(true);
     setNote('');
     try {
       await apiFetch('/check-ins', { method: 'POST', body: JSON.stringify({ status, checkInId: crypto.randomUUID() }) });
       setLast({ status, createdAt: new Date().toISOString() });
-      setNote('✓ Recorded');
+      setNote('✓ Recorded — family sees your status when connectivity allows.');
       if (status === 'SAFE') showSafePulse();
     } catch {
       const queued = queueCheckIn({ status });
       setNote('Offline — will sync when connected');
       setLast({ status, createdAt: queued.createdAt });
       if (status === 'SAFE') showSafePulse();
+    } finally {
+      setBusy(false);
     }
   };
 
   return (
-    <div className="card">
-      <h2>Safety check-in</h2>
+    <Card>
+      <CardHeader
+        icon={<ShieldCheck size={17} />}
+        title="Safety check-in"
+        subtitle={last
+          ? `Last check-in: ${last.status} · ${new Date(last.createdAt).toLocaleString()}`
+          : 'No check-in recorded yet'}
+        actions={<StatusPill tone={toneForStatus(last?.status)}>{last?.status ?? 'NO STATUS'}</StatusPill>}
+      />
       <div className="row wrap">
-        <button className="btn-safe btn-ok" onClick={() => void checkIn('SAFE')}>I'm Safe</button>
-        <button className="btn-ghost" onClick={() => void checkIn('AT_RISK')}>At risk</button>
+        <button className="btn-safe btn-ok" onClick={() => void checkIn('SAFE')} disabled={busy}>I'm Safe</button>
+        <button className="btn-ghost" onClick={() => void checkIn('AT_RISK')} disabled={busy}>At risk</button>
       </div>
-      {note && <p className="muted" style={{ fontSize: '0.8rem', margin: '6px 0 0' }}>{note}</p>}
-      {last && (
-        <p className="muted mt" style={{ fontSize: '0.85rem' }}>
-          Last check-in: <strong>{last.status}</strong> · {new Date(last.createdAt).toLocaleString()}
-        </p>
-      )}
-      <p className="muted" style={{ fontSize: '0.8rem' }}>Family sees your status when connectivity allows.</p>
-    </div>
+      {note && <p className="muted" style={{ fontSize: '0.8rem', margin: '8px 0 0' }}>{note}</p>}
+    </Card>
   );
 }
 
@@ -148,7 +159,7 @@ function NearbyCard() {
   const [nearby, setNearby] = useState<Array<{ alias: string; distanceLabel: string; isResponder: boolean; bearing: string }>>([]);
   const [state, setState] = useState<'idle' | 'locating' | 'loaded' | 'denied' | 'offline'>('idle');
 
-  const load = () => {
+  const load = useCallback(() => {
     if (!online || !user) { setState('offline'); return; }
     setState('locating');
     navigator.geolocation?.getCurrentPosition(
@@ -160,36 +171,42 @@ function NearbyCard() {
       () => setState('denied'),
       { timeout: 6000 },
     );
-  };
+  }, [online, user]);
 
-  if (state === 'offline' || !user) {
-    return (
-      <div className="card">
-        <h2>Nearby</h2>
-        <p className="muted">{!user ? 'Sign in to see nearby ResQNET devices.' : 'Offline — device discovery resumes when connectivity returns.'}</p>
-      </div>
-    );
-  }
+  useEffect(() => { load(); }, [load]);
 
   return (
-    <div className="card">
-      <h2>Nearby</h2>
+    <Card>
+      <CardHeader
+        icon={<Radio size={17} />}
+        title="Nearby devices"
+        subtitle="Server-side discovery for the prototype; on phones this list comes from BLE."
+        actions={<button className="btn-ghost" onClick={load} style={{ minHeight: 36 }}>Refresh</button>}
+      />
       {state === 'locating' && <p className="muted">Locating…</p>}
       {state === 'denied' && <p className="muted">Location permission denied — enable it to see nearby devices.</p>}
+      {(state === 'offline' || !user) && (
+        <EmptyState icon={<Radio size={18} />} title={user ? 'Offline' : 'Sign in to see nearby devices'}
+          hint={user ? 'Device discovery resumes when connectivity returns.' : 'Family sync needs an account; SOS works without one.'} />
+      )}
       {state === 'loaded' && (
         nearby.length === 0
-          ? <p className="muted">No ResQNET devices reported nearby in the last 24h. <span className="mono">[R: full discovery is BLE-based]</span></p>
+          ? <EmptyState icon={<Radio size={18} />} title="No devices reported nearby in the last 24h" hint="Full discovery is BLE-based on phones." />
           : (
-            <ul className="event-list">
+            <div className="rq-mini-list">
               {nearby.slice(0, 5).map((n) => (
-                <li key={n.alias}><span className="mono">{n.alias}</span> — {n.distanceLabel} ({n.bearing}){n.isResponder && <span className="sev-pill sev-cat">RESPONDER</span>}</li>
+                <MiniRow
+                  key={n.alias}
+                  icon={<Wifi size={14} />}
+                  title={n.alias}
+                  meta={`${n.distanceLabel} (${n.bearing})`}
+                  pill={n.isResponder ? <span className="sev-pill sev-cat">RESPONDER</span> : undefined}
+                />
               ))}
-            </ul>
+            </div>
           )
       )}
-      <button className="btn-ghost" onClick={load} style={{ minHeight: 44 }}>Refresh nearby</button>
-      <p className="muted" style={{ fontSize: '0.78rem' }}>Server-side discovery for the prototype; on phones this list comes from BLE advertisements.</p>
-    </div>
+    </Card>
   );
 }
 
@@ -220,46 +237,38 @@ function AIAssist() {
   const { startSos, phase } = useMesh();
   const [text, setText] = useState('');
 
+  useEffect(() => { ai.setBatterySource(battery); }, [battery, ai]);
   useEffect(() => { if (ai.transcript) setText(ai.transcript); }, [ai.transcript]);
 
   if (phase === 'ACTIVE') return null;
 
-  const runClassify = (t: string) => {
-    const trimmed = t.trim();
-    if (!trimmed) return;
-    ai.classify(trimmed, { battery });
-  };
+  const recording = ai.voiceState === 'RECORDING';
 
   return (
-    <div className="card" data-testid="ai-assist">
-      <h2>Describe your emergency <span className="muted">(optional)</span></h2>
-      <p className="muted">
-        Runs entirely on this device — no internet, no cloud. AI helps classify severity; it is an
-        assistance signal, never a diagnosis.
-      </p>
-      <label htmlFor="ai-text">What is happening?</label>
-      <textarea
-        id="ai-text"
-        rows={2}
-        maxLength={500}
-        value={text}
-        placeholder='e.g. "I fell down and cannot move"'
-        onChange={(e) => setText(e.target.value)}
+    <Card data-testid="ai-assist">
+      <CardHeader
+        icon={<Mic size={17} />}
+        title="Describe your emergency (optional)"
+        subtitle="Voice or text — classified on this device. An assistance signal, never a diagnosis."
+        actions={<StatusPill tone={recording ? 'danger' : ai.result ? 'safe' : 'info'}>
+          {recording ? 'LISTENING' : ai.voiceState === 'PROCESSING' ? 'ANALYZING' : ai.result ? 'ANALYZED' : 'READY'}
+        </StatusPill>}
       />
+      <VoiceWave active={recording} />
+      <TextField label="What is happening?" value={text} onChange={setText} maxLength={500} placeholder='Speak with the mic button, or type here…' />
       <div className="row wrap mt">
         {ai.speechSupported && (
-          <button
-            className="btn-ghost"
-            onClick={() => void ai.startVoice()}
-            disabled={ai.voiceState === 'RECORDING'}
-            aria-label="Speak your emergency"
+          <ActionButton
+            variant={recording ? 'alert' : 'info'}
+            onClick={() => (recording ? ai.stopVoice() : void ai.startVoice())}
+            ariaLabel={recording ? 'Stop recording' : 'Start recording'}
           >
-            {ai.voiceState === 'RECORDING' ? 'Listening…' : 'Speak'}
-          </button>
+            {recording ? <Square size={16} /> : <Mic size={16} />} {recording ? 'Stop' : 'Speak'}
+          </ActionButton>
         )}
-        <button className="btn-primary" onClick={() => runClassify(text)} disabled={!text.trim()}>
-          Analyze on device
-        </button>
+        <ActionButton variant="help" onClick={() => { const t = text.trim(); if (t) ai.classify(t, { battery }); }} disabled={!text.trim() || recording}>
+          <ScanSearch size={16} /> Analyze
+        </ActionButton>
       </div>
       {ai.micError && <p className="error-text mt">{ai.micError}</p>}
       {ai.voiceState === 'UNSUPPORTED' && (
@@ -271,41 +280,37 @@ function AIAssist() {
           <div className="row wrap spread">
             <span className={`sev-pill ${SEVERITY_CLASS[ai.result.severity]}`}>{ai.result.severity}</span>
             <span className="sev-pill sev-cat">{ai.result.category}</span>
-            <span className="muted mono">confidence {Math.round(ai.result.confidence * 100)}%</span>
+            <span className="muted mono small">confidence {Math.round(ai.result.confidence * 100)}%</span>
           </div>
           <p className="muted" style={{ margin: '8px 0 0' }}>
             Suggested action: <strong>{ai.result.recommendedAction}</strong>
           </p>
           {ai.result.matched.length > 0 && (
-            <p className="muted mono" style={{ fontSize: '0.78rem', margin: '4px 0 0' }}>
+            <p className="muted mono small" style={{ margin: '4px 0 0' }}>
               signals: {ai.result.matched.join(', ')}
             </p>
           )}
-          <p className="muted" style={{ fontSize: '0.8rem' }}>{ai.disclaimer}</p>
-          <div className="row wrap">
-            <button
-              className="btn-help"
-              style={{ width: 'auto', minHeight: 56 }}
-              onClick={() => { const t = text.trim(); ai.reset(); setText(''); startSos(t, ai.result ?? undefined); }}
-            >
-              Send as SOS with this info
-            </button>
-            <button className="btn-ghost" onClick={() => { ai.reset(); setText(''); }}>Dismiss</button>
+          <p className="muted small" style={{ margin: '6px 0 0' }}>{ai.disclaimer}</p>
+          <div className="row wrap" style={{ marginTop: 10 }}>
+            <ActionButton variant="danger" onClick={() => { const t = text.trim(); ai.reset(); setText(''); startSos(t, ai.result ?? undefined); }}>
+              <Siren size={16} /> Send as SOS
+            </ActionButton>
+            <ActionButton variant="ghost" onClick={() => { ai.reset(); setText(''); }}>Dismiss</ActionButton>
           </div>
         </div>
       )}
 
       {!ai.result && (
         <details className="mt">
-          <summary className="muted">Example phrases</summary>
+          <summary className="muted small">Example phrases</summary>
           <div className="row wrap mt">
             {EMERGENCY_PROMPT_SUGGESTIONS.slice(0, 4).map((s) => (
-              <button key={s} className="chip" onClick={() => setText(s)}>{s}</button>
+              <Chip key={s} onClick={() => setText(s)}>{s}</Chip>
             ))}
           </div>
         </details>
       )}
-    </div>
+    </Card>
   );
 }
 
@@ -320,11 +325,12 @@ function GuidanceCard() {
   const topic = manual ?? auto ?? (ask.trim() ? findGuidance(ask) : null);
 
   return (
-    <div className="card" data-testid="guidance-card">
-      <h2>Offline assistance</h2>
-      <p className="muted" style={{ margin: '4px 0 8px' }}>
-        Curated steps on this device — no internet needed. Not a replacement for professional care.
-      </p>
+    <Card data-testid="guidance-card">
+      <CardHeader
+        icon={<CheckCircle2 size={17} />}
+        title="Offline assistance"
+        subtitle="Curated steps on this device — no internet needed. Not a replacement for professional care."
+      />
       <div className="row wrap">
         {['bleeding', 'broken arm', 'burn', 'trapped', 'evacuate'].map((q) => (
           <button key={q} className="chip" onClick={() => { setManual(null); setAsk(q); }}>{q}</button>
@@ -344,7 +350,7 @@ function GuidanceCard() {
       ) : (
         ask.trim() !== '' && <p className="muted" style={{ marginTop: 8 }}>No matching topic — try "bleeding", "burn", or "evacuate".</p>
       )}
-    </div>
+    </Card>
   );
 }
 
@@ -490,8 +496,8 @@ function EmergencyMode() {
       <section className="activated-family-section"><div className="activated-list-heading"><h2><Users size={19} /> Circle nodes ({family.length})</h2><span>{safeCount}/{family.length || 0} VERIFIED SAFE</span></div>{family.length === 0 ? <div className="activated-empty"><Users size={18} /> Family status will appear when linked nodes sync.</div> : family.map((node, index) => <article className="activated-family-card" key={node.id}><div className="activated-family-head"><div className={`activated-family-avatar tone-${index % 2 ? 'green' : 'blue'}`}><Users size={19} /><small>{node.name.slice(0, 2).toUpperCase()}</small></div><div><h3>{node.name}</h3><p>{node.linked ? 'LINKED RESQNET NODE' : 'SMS FALLBACK'} <i /> {node.lastCheckInAt ? new Date(node.lastCheckInAt).toLocaleTimeString() : 'AWAITING SYNC'}</p></div><span className={`activated-node-status ${node.checkInStatus === 'SAFE' ? 'safe' : node.checkInStatus === 'NEEDS_HELP' ? 'danger' : 'waiting'}`}>{node.checkInStatus === 'SAFE' ? <CheckCircle2 size={14} /> : <Activity size={14} />} {node.checkInStatus || 'WAITING'}</span></div><div className="activated-family-meta"><span><Signal size={14} /> {node.linked ? '-64 dBm' : '--'}</span><span><Route size={14} /> {index + 1} HOP{index ? 'S' : ''}</span><button type="button" onClick={() => setSitrepNote(`Ping queued for ${node.name}.`)}><Send size={14} /> PING</button></div></article>)}</section>
 
       {myAcks.length > 0 && (
-        <div className="card" role="status" data-testid="responder-acks">
-          <h2>Responder acknowledgements</h2>
+        <Card role="status" data-testid="responder-acks">
+          <CardHeader icon={<ShieldCheck size={17} />} title="Responder acknowledgements" />
           <ul className="event-list">
             {myAcks.map((a, i) => (
               <li key={`${a.ack.id}-${i}`}>
@@ -501,12 +507,12 @@ function EmergencyMode() {
               </li>
             ))}
           </ul>
-        </div>
+        </Card>
       )}
 
       {active.location && active.location.state !== 'LOCATION_UNAVAILABLE' && (
-        <div className="card">
-          <h2>Your location — shared with the network</h2>
+        <Card>
+          <CardHeader icon={<MapPin size={17} />} title="Your location — shared with the network" />
           <EmergencyMap
             position={{
               latitude: active.location.latitude,
@@ -521,12 +527,12 @@ function EmergencyMode() {
             {active.location.accuracyMeters != null ? ` · ±${Math.round(active.location.accuracyMeters)} m` : ''}
             {' '}- exact GPS from this device, attached to your signed packet.
           </p>
-        </div>
+        </Card>
       )}
 
       {active.ai && (
-        <div className="card" data-testid="emergency-ai">
-          <h2>Local AI assessment</h2>
+        <Card data-testid="emergency-ai">
+          <CardHeader icon={<Activity size={17} />} title="Local AI assessment" />
           <div className="row wrap">
             <span className={`sev-pill ${SEVERITY_CLASS[active.ai.severity]}`}>{active.ai.severity}</span>
             <span className="sev-pill sev-cat">{active.ai.category}</span>
@@ -536,21 +542,21 @@ function EmergencyMode() {
           <p className="muted" style={{ fontSize: '0.8rem' }}>
             Assistance signal only — not a diagnosis. Classified on-device, worked offline.
           </p>
-        </div>
+        </Card>
       )}
 
       <section className="activated-map-snapshot"><div className="activated-section-heading"><span><MapPin size={16} /> CACHED OFFLINE LOCATION SNAPSHOT</span><strong>{active.location?.state === 'LOCATION_UNAVAILABLE' ? 'NO FIX' : 'LOCATION VERIFIED'}</strong></div><div className="activated-map"><span className="map-grid" /><span className="map-ring map-ring-one" /><span className="map-ring map-ring-two" /><span className="map-marker"><MapPin size={18} /><small>{active.location?.state === 'LOCATION_UNAVAILABLE' ? 'LOCATION UNAVAILABLE' : `${active.location?.latitude.toFixed(4)}, ${active.location?.longitude.toFixed(4)}`}</small></span><span className="map-corner">RELIEF RADIAL / 500M</span></div></section>
 
       <section className="activated-sitrep"><button type="button" className="activated-sitrep-toggle" onClick={() => setSitrepOpen((open) => !open)}><MessageSquare size={17} /> ENCRYPTED FAMILY SITREP NOTE <span>{sitrepOpen ? 'CLOSE' : 'OPEN'}</span></button>{sitrepOpen && <div className="activated-sitrep-form"><textarea maxLength={280} rows={3} value={sitrepText} onChange={(event) => setSitrepText(event.target.value)} placeholder="Add a short field update for your family circle..." /><div><small>{sitrepText.length}/280 · stored encrypted at rest</small><button type="button" onClick={() => void sendSitrep()} disabled={!sitrepText.trim() || !online || !user}><Send size={15} /> SEND NOTE</button></div></div>}</section>
 
-      <div className="card">
-        <h2>Emergency timeline (black box)</h2>
+      <Card>
+        <CardHeader icon={<Clock3 size={17} />} title="Emergency timeline (black box)" />
         <ul className="timeline">
           {recent.map((e, i) => (
             <li key={i}><span className="t">{new Date(e.ts).toLocaleTimeString()}</span>{e.event}{e.detail ? ` — ${e.detail}` : ''}</li>
           ))}
         </ul>
-      </div>
+      </Card>
 
       <section className="activated-security-footer"><span><span className="security-dot" /> HMAC-SHA256: VALID</span><span>ED25519 VERIFIED BY DEVICE KEY</span></section>
       <HoldToResolveButton onComplete={() => void resolveActive()} />
@@ -604,10 +610,6 @@ function TacticalBeacon({ countdown, startSos, cancelCountdown }: { countdown: n
   return (
     <section className="tactical-home" aria-label="ResQNET SOS control">
       <div className="tactical-beacon-panel">
-        <div className="tactical-coordinates">
-          <span>TX_PWR: STANDBY</span>
-          <span>MODE: FLOOD_ROUTING</span>
-        </div>
         <div className="beacon-wrap">
           <div className="beacon-grid" aria-hidden="true" />
           <div className="beacon-rings" aria-hidden="true"><i /><i /><i /></div>
@@ -625,7 +627,8 @@ function TacticalBeacon({ countdown, startSos, cancelCountdown }: { countdown: n
   );
 }
 
-function QuickHelpCard({ onClose }: { onClose: () => void }) {
+/** Need Help quick-triage content, rendered inside the dialog. */
+function NeedHelpDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { user } = useSession();
   const { online, battery } = useStatus();
   const { startSos } = useMesh();
@@ -634,6 +637,10 @@ function QuickHelpCard({ onClose }: { onClose: () => void }) {
   const [selectedMessage, setSelectedMessage] = useState('');
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState('');
+
+  useEffect(() => {
+    if (open) { setPlan(null); setNote(''); setSelectedMessage(''); }
+  }, [open]);
 
   async function triage(message: string) {
     setBusy(true); setNote('');
@@ -664,11 +671,7 @@ function QuickHelpCard({ onClose }: { onClose: () => void }) {
   ];
 
   return (
-    <div className="card quick-help-card">
-      <div className="row spread wrap">
-        <div><h2>Need Help</h2><p className="muted">Choose a quick action. ResQNET will open the right help.</p></div>
-        <button className="btn-ghost" type="button" onClick={onClose}>Close</button>
-      </div>
+    <Modal open={open} onClose={onClose} title="Need Help?" subtitle="Choose a quick action — ResQNET opens the right help." wide>
       <div className="quick-help-actions" aria-label="Quick help actions">
         {quickActions.map((message) => <button key={message} className="quick-help-action" type="button" onClick={() => void triage(message)} disabled={busy}>{message}</button>)}
       </div>
@@ -677,17 +680,100 @@ function QuickHelpCard({ onClose }: { onClose: () => void }) {
         <div className={`quick-help-result action-${plan.action.toLowerCase()}`} role="status">
           <div className="row wrap spread"><strong>{plan.action === 'SOS' ? 'SOS recommended' : plan.action === 'OFFLINE_MAP' ? 'Map help recommended' : 'Assistant recommended'}</strong><span className={`sev-pill ${SEVERITY_CLASS[plan.severity]}`}>{plan.severity}</span></div>
           <p>{plan.reason}</p>
-          {plan.action === 'SOS' && <button className="btn-help" type="button" onClick={() => startSos(selectedMessage, plan)}><Siren size={17} /> Activate SOS</button>}
-          {plan.action === 'OFFLINE_MAP' && <button className="btn-secondary" type="button" onClick={() => navigate('/family-map')}><MapPinned size={17} /> Open map and nearby resources</button>}
+          {plan.action === 'SOS' && <button className="btn-help" type="button" onClick={() => { onClose(); startSos(selectedMessage, plan); }}><Siren size={17} /> Activate SOS</button>}
+          {plan.action === 'OFFLINE_MAP' && <button className="btn-secondary" type="button" onClick={() => { onClose(); navigate('/family-map'); }}><MapPinned size={17} /> Open map and nearby resources</button>}
           {plan.action === 'CHAT' && (
             <div className="quick-help-chat">
               <p className="muted">No SOS is needed for this quick request. Open AI Assistance for detailed guidance.</p>
-              <button className="btn-secondary" type="button" onClick={() => navigate('/ai-assistance')}>Open AI Assistance</button>
+              <button className="btn-secondary" type="button" onClick={() => { onClose(); navigate('/ai-assistance'); }}>Open AI Assistance</button>
             </div>
           )}
         </div>
       )}
-    </div>
+    </Modal>
+  );
+}
+
+/** Family summary: live statuses from the backend, compact mini rows. */
+function FamilyMiniCard() {
+  const { user } = useSession();
+  const [members, setMembers] = useState<Array<{ id: string; name: string; relation: string; checkInStatus: string | null; lastCheckInAt: string | null; linked: boolean }>>([]);
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    if (!user) { setLoaded(true); return; }
+    apiFetch<{ members: NonNullable<typeof members> }>('/check-ins/family-status')
+      .then((r) => { setMembers(r.members); setLoaded(true); })
+      .catch(() => setLoaded(true));
+  }, [user]);
+
+  return (
+    <Link to="/family" className="card rq-hub-card" style={{ textDecoration: 'none', color: 'inherit' }}>
+      <CardHeader
+        icon={<Users size={17} />}
+        title="Family"
+        subtitle={user ? `${members.length} contact${members.length === 1 ? '' : 's'} · live circle status` : 'Sign in to sync your circle'}
+      />
+      {!loaded && <p className="muted small">Loading…</p>}
+      {loaded && members.length === 0 && (
+        <EmptyState icon={<Users size={18} />} title="No contacts yet" hint="Add family so they are notified during your emergency." />
+      )}
+      {loaded && members.length > 0 && (
+        <div className="rq-mini-list">
+          {members.slice(0, 3).map((m) => (
+            <MiniRow
+              key={m.id}
+              icon={<Users size={13} />}
+              title={m.name}
+              meta={m.linked ? (m.lastCheckInAt ? `check-in ${new Date(m.lastCheckInAt).toLocaleTimeString()}` : 'linked · awaiting sync') : 'not linked · SMS fallback'}
+              pill={<StatusPill tone={toneForStatus(m.checkInStatus)}>{m.checkInStatus ?? 'WAITING'}</StatusPill>}
+            />
+          ))}
+          {members.length > 3 && <p className="muted small" style={{ margin: 0 }}>+{members.length - 3} more — open Family</p>}
+        </div>
+      )}
+    </Link>
+  );
+}
+
+/** History summary: recent emergencies from the backend, compact mini rows. */
+function HistoryMiniCard() {
+  const { user } = useSession();
+  const [records, setRecords] = useState<Array<{ id: string; type: string; status: string; severity: string; createdAt: string }>>([]);
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    if (!user) { setLoaded(true); return; }
+    apiFetch<{ emergencies: NonNullable<typeof records> }>('/emergencies?limit=5')
+      .then((r) => { setRecords(r.emergencies ?? []); setLoaded(true); })
+      .catch(() => setLoaded(true));
+  }, [user]);
+
+  return (
+    <Link to="/history" className="card rq-hub-card" style={{ textDecoration: 'none', color: 'inherit' }}>
+      <CardHeader
+        icon={<HistoryIcon size={17} />}
+        title="History"
+        subtitle={user ? 'Black box & past events' : 'Sign in to see server history'}
+      />
+      {!loaded && <p className="muted small">Loading…</p>}
+      {loaded && records.length === 0 && (
+        <EmptyState icon={<HistoryIcon size={18} />} title="No emergencies recorded" hint="Activated SOS events appear here." />
+      )}
+      {loaded && records.length > 0 && (
+        <div className="rq-mini-list">
+          {records.slice(0, 3).map((r) => (
+            <MiniRow
+              key={r.id}
+              icon={<Siren size={13} />}
+              title={`${r.type} · ${r.severity}`}
+              meta={`${new Date(r.createdAt).toLocaleString()} · ${r.id}`}
+              pill={<span className={`pill small ${r.status === 'ACTIVE' ? 'off' : r.status === 'RESOLVED' ? 'on' : ''}`}>{r.status}</span>}
+            />
+          ))}
+        </div>
+      )}
+    </Link>
   );
 }
 
@@ -711,13 +797,18 @@ export default function Home() {
       ) : (
         <>
           <div className="home-heading">
-            <span className="eyebrow">RESQNET / SOS HUB</span>
-            <h1>Emergency hub</h1>
+            <div>
+              <span className="eyebrow">RESQNET / SOS HUB</span>
+              <h1>Emergency hub</h1>
+            </div>
+            <div className="rq-card-actions">
+              <button className="rq-help-corner-btn" type="button" onClick={() => setQuickHelpOpen(true)}>
+                <LifeBuoy size={16} /> Need Help
+              </button>
+            </div>
           </div>
 
           <TacticalBeacon countdown={phase === 'COUNTDOWN' ? countdown : null} startSos={() => startSos('', undefined, { skipCountdown: true })} cancelCountdown={cancelCountdown} />
-
-          {quickHelpOpen ? <QuickHelpCard onClose={() => setQuickHelpOpen(false)} /> : <div className="card"><button className="btn-help" onClick={() => setQuickHelpOpen(true)}>Need Help</button></div>}
 
           <CheckInCard />
 
@@ -725,23 +816,19 @@ export default function Home() {
 
           <NearbyCard />
 
-          <div className="grid2">
-            <Link to="/family" className="card" style={{ textDecoration: 'none', color: 'inherit' }}>
-              <h2 style={{ margin: 0 }}>Family</h2>
-              <p className="muted" style={{ margin: '4px 0 0' }}>Circle &amp; statuses</p>
-            </Link>
-            <Link to="/history" className="card" style={{ textDecoration: 'none', color: 'inherit' }}>
-              <h2 style={{ margin: 0 }}>History</h2>
-              <p className="muted" style={{ margin: '4px 0 0' }}>Black-box &amp; past events</p>
-            </Link>
+          <div className="rq-hub-grid">
+            <FamilyMiniCard />
+            <HistoryMiniCard />
           </div>
 
           {!user && (
-            <div className="card center">
-              <p>You're not signed in. SOS still works locally, but family sync needs an account.</p>
-              <Link to="/login"><button className="btn-primary">Sign in / Register</button></Link>
-            </div>
+            <Card>
+              <p style={{ margin: 0 }}>You're not signed in. SOS still works locally, but family sync needs an account.</p>
+              <Link to="/login"><button className="btn-primary" style={{ marginTop: 10 }}>Sign in / Register</button></Link>
+            </Card>
           )}
+
+          <NeedHelpDialog open={quickHelpOpen} onClose={() => setQuickHelpOpen(false)} />
         </>
       )}
     </div>

@@ -1,17 +1,21 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
-  Activity, CheckCircle2, ChevronUp, CircleHelp, HeartPulse, MessageSquare, Plus, RefreshCw, ShieldCheck, Star, Trash2,
+  Activity, CheckCircle2, ChevronUp, CircleHelp, HeartPulse, Link2, MessageSquare, Plus, RefreshCw, ShieldCheck, Star, Trash2,
   UserRound, Users, X,
 } from 'lucide-react';
 import { apiFetch, useSession } from '../state/SessionContext';
 import { useStatus } from '../state/StatusContext';
 import { queueCheckIn } from '../state/checkInQueue';
+import {
+  Card, CardHeader, Modal, TextField, SelectField, StatusPill, toneForStatus, EmptyState, ActionButton,
+} from '../components/ui';
 
 interface Member {
   id: string;
   name: string;
   relation: string;
   phone: string;
+  iqooAccountId: string | null;
   priority: number;
   trusted: boolean;
   status: string;
@@ -21,7 +25,7 @@ interface Member {
   lastCheckInAt: string | null;
 }
 
-const RELATIONS = ['FATHER', 'MOTHER', 'BROTHER', 'SISTER', 'PARTNER', 'FRIEND', 'GUARDIAN', 'OTHER'];
+const RELATIONS = ['FATHER', 'MOTHER', 'BROTHER', 'SISTER', 'PARTNER', 'FRIEND', 'GUARDIAN', 'OTHER'] as const;
 
 function timeAgo(value: string | null): string {
   if (!value) return 'awaiting sync';
@@ -41,16 +45,21 @@ function iconFor(relation: string) {
   return UserRound;
 }
 
+const EMPTY_DRAFT = { name: '', relation: 'FATHER' as (typeof RELATIONS)[number], phone: '', iqooAccountId: '', priority: 3, trusted: false };
+
 export default function Family() {
   const { user } = useSession();
   const { online } = useStatus();
   const [members, setMembers] = useState<Member[]>([]);
   const [error, setError] = useState('');
   const [adding, setAdding] = useState(false);
-  const [draft, setDraft] = useState({ name: '', relation: 'FATHER', phone: '', priority: 3, trusted: false });
+  const [draft, setDraft] = useState(EMPTY_DRAFT);
   const [testing, setTesting] = useState(false);
   const [testNote, setTestNote] = useState('');
   const [testOk, setTestOk] = useState(false);
+  const [linkTarget, setLinkTarget] = useState<Member | null>(null);
+  const [linkEmail, setLinkEmail] = useState('');
+  const [linkNote, setLinkNote] = useState('');
 
   const load = useCallback(async () => {
     if (!user) return;
@@ -63,14 +72,15 @@ export default function Family() {
   useEffect(() => { void load(); }, [load]);
 
   const safeCount = members.filter((member) => member.checkInStatus === 'SAFE').length;
+  const linkedCount = members.filter((member) => member.linked).length;
 
   if (!user) return <div className="card">Sign in to manage your family circle.</div>;
 
   async function addMember() {
     try {
-      await apiFetch('/family', { method: 'POST', body: JSON.stringify(draft) });
+      await apiFetch('/family', { method: 'POST', body: JSON.stringify({ ...draft, iqooAccountId: draft.iqooAccountId.trim() || undefined }) });
       setAdding(false);
-      setDraft({ name: '', relation: 'FATHER', phone: '', priority: 3, trusted: false });
+      setDraft(EMPTY_DRAFT);
       await load();
     } catch (e) { setError(e instanceof Error ? e.message : 'failed'); }
   }
@@ -83,6 +93,35 @@ export default function Family() {
   async function remove(id: string) {
     try { await apiFetch(`/family/${id}`, { method: 'DELETE' }); load(); }
     catch (e) { setError(e instanceof Error ? e.message : 'remove failed'); }
+  }
+
+  async function unlink(id: string) {
+    await update(id, { iqooAccountId: null } as unknown as Partial<Member>);
+    load();
+  }
+
+  function openLink(member: Member) {
+    setLinkTarget(member);
+    setLinkEmail(member.iqooAccountId ?? '');
+    setLinkNote('');
+  }
+
+  async function saveLink() {
+    if (!linkTarget) return;
+    const email = linkEmail.trim().toLowerCase();
+    try {
+      // Resolve the account id from the backend, then link + resync in one call.
+      const lookup = await apiFetch<{ userId: string }>(`/family/resolve-account?email=${encodeURIComponent(email)}`);
+      await apiFetch(`/family/${linkTarget.id}/link`, {
+        method: 'POST',
+        body: JSON.stringify({ iqooAccountId: lookup.userId }),
+      });
+      setLinkNote('');
+      setLinkTarget(null);
+      await load();
+    } catch (e) {
+      setLinkNote(e instanceof Error ? e.message : 'Could not link this account');
+    }
   }
 
   async function testCommunication() {
@@ -114,22 +153,46 @@ export default function Family() {
 
       <section className="family-summary" aria-live="polite">
         <span><CheckCircle2 size={16} /> {safeCount}/{members.length} marked safe</span>
-        <span>{members.filter((member) => member.linked).length} linked account{members.filter((member) => member.linked).length === 1 ? '' : 's'}</span>
+        <span>{linkedCount} linked account{linkedCount === 1 ? '' : 's'}</span>
         <button className="family-icon-action" type="button" aria-label="Refresh family status" title="Refresh family status" onClick={load}><RefreshCw size={18} /></button>
       </section>
 
       <section className="family-members-section">
         <div className="family-list-heading"><h2><Users size={20} /> Emergency contacts ({members.length})</h2></div>
         {error && <p className="error-text">{error}</p>}
-        {members.length === 0 && <div className="card family-empty"><CircleHelp size={24} /><div><strong>No circle nodes yet</strong><p className="muted">Add the people who must know during your emergency.</p></div></div>}
+        {members.length === 0 && (
+          <Card>
+            <EmptyState icon={<CircleHelp size={24} />} title="No circle nodes yet" hint="Add the people who must know during your emergency." />
+          </Card>
+        )}
         {members.map((member) => {
           const Icon = iconFor(member.relation);
-          const safe = member.checkInStatus === 'SAFE';
           return <article className="family-member-card" key={member.id}>
-            <div className="family-member-head"><div className="family-member-identity"><div className="family-member-avatar"><Icon size={21} /><span>{initials(member.name)}</span></div><div><div className="family-member-name"><h3>{member.name}</h3><span>{member.relation}</span>{member.trusted && <Star size={13} fill="currentColor" />}</div><p>{member.linked ? `Last check-in ${timeAgo(member.lastCheckInAt)}` : 'Not linked to a ResQNET account'}</p></div></div><span className={`family-status ${safe ? 'safe' : member.checkInStatus === 'NEEDS_HELP' ? 'danger' : 'waiting'}`}>{safe ? <CheckCircle2 size={15} /> : <Activity size={15} />}{safe ? 'SAFE' : member.checkInStatus || 'WAITING'}</span></div>
-            <div className="family-location-row"><span>{member.linked ? 'LINKED RESQNET ACCOUNT' : 'SMS FALLBACK / NOT LINKED'}</span></div>
-            <div className="family-telemetry"><div><small>PRIORITY</small><b>P{member.priority}</b></div><div><small>PHONE</small><b>{member.phone}</b></div><div><small>ACCOUNT</small><b>{member.linked ? 'LINKED' : 'SMS'}</b></div></div>
-            <div className="family-member-actions"><button type="button" aria-label={`Toggle trusted for ${member.name}`} onClick={() => void update(member.id, { trusted: !member.trusted })}><Star size={16} fill={member.trusted ? 'currentColor' : 'none'} /> {member.trusted ? 'TRUSTED' : 'TRUST'}</button><button type="button" aria-label={`Raise priority for ${member.name}`} onClick={() => void update(member.id, { priority: Math.max(1, member.priority - 1) })}><ChevronUp size={16} /> PRIORITY</button><button className="danger-action" type="button" aria-label={`Remove ${member.name}`} onClick={() => void remove(member.id)}><Trash2 size={16} /> REMOVE</button></div>
+            <div className="family-member-head">
+              <div className="family-member-identity">
+                <div className="family-member-avatar"><Icon size={21} /><span>{initials(member.name)}</span></div>
+                <div>
+                  <div className="family-member-name"><h3>{member.name}</h3><span>{member.relation}</span>{member.trusted && <Star size={13} fill="currentColor" />}</div>
+                  <p>{member.linked ? `Last check-in ${timeAgo(member.lastCheckInAt)}` : 'Not linked to a ResQNET account'}</p>
+                </div>
+              </div>
+              <StatusPill tone={toneForStatus(member.checkInStatus)}>{member.checkInStatus ?? 'WAITING'}</StatusPill>
+            </div>
+            <div className="family-location-row">
+              <span>{member.linked ? `LINKED · ${member.iqooAccountId}` : 'SMS FALLBACK / NOT LINKED'}</span>
+            </div>
+            <div className="family-telemetry">
+              <div><small>PRIORITY</small><b>P{member.priority}</b></div>
+              <div><small>PHONE</small><b>{member.phone}</b></div>
+              <div><small>ACCOUNT</small><b>{member.linked ? 'LINKED' : 'SMS'}</b></div>
+            </div>
+            <div className="family-member-actions">
+              <button type="button" aria-label={`Toggle trusted for ${member.name}`} onClick={() => void update(member.id, { trusted: !member.trusted })}><Star size={16} fill={member.trusted ? 'currentColor' : 'none'} /> {member.trusted ? 'TRUSTED' : 'TRUST'}</button>
+              <button type="button" aria-label={`Raise priority for ${member.name}`} onClick={() => void update(member.id, { priority: Math.max(1, member.priority - 1) })}><ChevronUp size={16} /> PRIORITY</button>
+              <button type="button" aria-label={`Link ResQNET account for ${member.name}`} onClick={() => openLink(member)}><Link2 size={16} /> {member.linked ? 'EDIT LINK' : 'LINK ACCOUNT'}</button>
+              {member.linked && <button type="button" aria-label={`Unlink account for ${member.name}`} onClick={() => void unlink(member.id)}><X size={16} /> UNLINK</button>}
+              <button className="danger-action" type="button" aria-label={`Remove ${member.name}`} onClick={() => void remove(member.id)}><Trash2 size={16} /> REMOVE</button>
+            </div>
           </article>;
         })}
       </section>
@@ -139,7 +202,49 @@ export default function Family() {
         <div className="family-tool-card family-add-card"><div><span className="eyebrow">CIRCLE ADMIN</span><h2>Add a trusted node</h2><p className="muted">Invite someone who should receive emergency updates.</p></div><button className="btn-primary" type="button" onClick={() => setAdding((value) => !value)}>{adding ? <X size={18} /> : <Plus size={18} />} {adding ? 'Close form' : 'Add member'}</button></div>
       </section>
 
-      {adding && <section className="card family-form"><h2>New circle node</h2><label htmlFor="fname">Name</label><input id="fname" value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} placeholder="Full name" /><div className="grid2"><div><label htmlFor="frel">Relation</label><select id="frel" value={draft.relation} onChange={(e) => setDraft({ ...draft, relation: e.target.value })}>{RELATIONS.map((relation) => <option key={relation} value={relation}>{relation}</option>)}</select></div><div><label htmlFor="fprio">Priority</label><input id="fprio" type="number" min={1} max={9} value={draft.priority} onChange={(e) => setDraft({ ...draft, priority: Number(e.target.value) })} /></div></div><label htmlFor="fphone">Phone</label><input id="fphone" value={draft.phone} onChange={(e) => setDraft({ ...draft, phone: e.target.value })} placeholder="+91 ..." /><label className="family-check-label"><input type="checkbox" checked={draft.trusted} onChange={(e) => setDraft({ ...draft, trusted: e.target.checked })} /> Trusted contact</label><div className="row mt"><button className="btn-primary" type="button" onClick={() => void addMember()} disabled={!draft.name || !draft.phone}>Add node</button><button className="btn-ghost" type="button" onClick={() => setAdding(false)}>Cancel</button></div></section>}
+      {adding && (
+        <Card>
+          <CardHeader icon={<Plus size={17} />} title="New circle node" subtitle="Their email links their ResQNET account so live status flows in." />
+          <div className="rq-modal-body" style={{ display: 'grid', gap: 12 }}>
+            <TextField label="Name" value={draft.name} onChange={(name) => setDraft({ ...draft, name })} placeholder="Full name" />
+            <div className="grid2">
+              <SelectField label="Relation" value={draft.relation} onChange={(relation) => setDraft({ ...draft, relation })} options={RELATIONS.map((r) => ({ value: r, label: r }))} />
+              <TextField label="Priority (1 = highest)" value={String(draft.priority)} inputMode="numeric" onChange={(v) => setDraft({ ...draft, priority: Math.max(1, Math.min(9, Number(v) || 1)) })} />
+            </div>
+            <TextField label="Phone" value={draft.phone} onChange={(phone) => setDraft({ ...draft, phone })} placeholder="+91 ..." inputMode="tel" />
+            <TextField
+              label="ResQNET account email (optional)"
+              hint="Exactly the email they registered with — their live check-ins then appear here."
+              value={draft.iqooAccountId}
+              onChange={(iqooAccountId) => setDraft({ ...draft, iqooAccountId })}
+              placeholder="family@student.gitam.edu"
+              inputMode="email"
+            />
+            <label className="family-check-label"><input type="checkbox" checked={draft.trusted} onChange={(e) => setDraft({ ...draft, trusted: e.target.checked })} /> Trusted contact</label>
+            <div className="row mt">
+              <ActionButton variant="primary" onClick={() => void addMember()} disabled={!draft.name || !draft.phone}>Add node</ActionButton>
+              <ActionButton variant="ghost" onClick={() => setAdding(false)}>Cancel</ActionButton>
+            </div>
+          </div>
+        </Card>
+      )}
+
+      <Modal
+        open={linkTarget !== null}
+        onClose={() => setLinkTarget(null)}
+        title={linkTarget ? `Link account — ${linkTarget.name}` : 'Link account'}
+        subtitle="Enter the email their ResQNET account was registered with."
+      >
+        <TextField label="Account email" value={linkEmail} onChange={setLinkEmail} inputMode="email" placeholder="family@student.gitam.edu" />
+        {linkNote && <p className="error-text" role="alert">{linkNote}</p>}
+        <div className="row wrap">
+          <ActionButton variant="primary" onClick={() => void saveLink()} disabled={!linkEmail.trim()}>Link & sync now</ActionButton>
+          <ActionButton variant="ghost" onClick={() => setLinkTarget(null)}>Cancel</ActionButton>
+        </div>
+        <p className="muted small" style={{ margin: 0 }}>
+          Linking stores their account id on this contact and immediately pulls their latest check-in and location from the database.
+        </p>
+      </Modal>
 
       {!online && <p className="muted small">Offline: changes will retry when the connection returns.</p>}
     </div>

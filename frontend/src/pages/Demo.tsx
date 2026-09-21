@@ -5,9 +5,11 @@
 // gateway sync into the backend are genuine code paths.
 
 import { useEffect, useRef, useState } from 'react';
+import { Play, Zap, CircleCheck } from 'lucide-react';
 import { apiFetch } from '../state/SessionContext';
 import { useStatus } from '../state/StatusContext';
 import { useMeshEvents, type MeshEvent } from '../state/RealtimeContext';
+import { Card, CardHeader, PageHeader, ActionButton, StatusPill } from '../components/ui';
 
 interface Step {
   key: string;
@@ -152,44 +154,45 @@ export default function Demo() {
 
   return (
     <div className="page">
-      <div className="banner demo-banner" role="note">
-        <strong>Hackathon Demo Mode</strong> — runs the real mesh engine with <strong>simulated radio links</strong> <span className="mono">[P]</span>.
-        Every packet, hop, ACK, TTL decision and the gateway sync into the backend are genuine code paths.
-      </div>
-
-      <h2>Scripted scenario: SOS without internet</h2>
-      <p className="dim">A trekker is injured where there is no signal. Nearby ResQNET phones carry the emergency hop-by-hop to a gateway, which syncs it to responders and family.</p>
+      <PageHeader
+        eyebrow="RESQNET / DEMO MODE [P]"
+        title="Scripted scenario: SOS without internet"
+        subtitle="A trekker is injured where there is no signal. Nearby ResQNET phones carry the emergency hop-by-hop to a gateway, which syncs it to responders and family. Simulated radio links; every packet, hop, ACK, TTL decision and the gateway sync are genuine code paths."
+        badge={`${complete}/${total} STEPS`}
+        badgeTone={complete === total ? 'safe' : 'info'}
+      />
 
       <div className="demo-progress" aria-label={`Demo progress ${complete} of ${total}`}>
         <div className="readiness-bar"><div className="readiness-fill tier-high" style={{ width: `${(complete / total) * 100}%` }} /></div>
-        <span className="small dim">{complete}/{total} steps</span>
       </div>
 
-      <button className="btn-primary big" onClick={runScenario} disabled={running}>
-        {running ? 'Scenario running…' : '▶ Run demo scenario'}
-      </button>
+      <ActionButton variant="primary" full onClick={() => void runScenario()} disabled={running}>
+        <Play size={17} /> {running ? 'Scenario running…' : 'Run demo scenario'}
+      </ActionButton>
       {note && <p className="muted mt">{note}</p>}
       {emergencyId && <p className="small">Emergency ID: <strong className="mono">{emergencyId}</strong> — watch it live on the Network page.</p>}
 
-      <ol className="demo-steps">
-        {STEPS.map((s) => (
-          <li key={s.key} className={done.has(s.key) ? 'done' : ''} aria-current={done.has(s.key) ? 'step' : undefined}>
-            <span className="step-check" aria-hidden>{done.has(s.key) ? '✓' : '○'}</span>
-            <span className="step-label">{s.label}</span>
-            <span className="step-hint dim small">{s.hint}</span>
-          </li>
-        ))}
-      </ol>
+      <Card>
+        <CardHeader icon={<CircleCheck size={17} />} title="Scenario steps" />
+        <ol className="demo-steps">
+          {STEPS.map((s) => (
+            <li key={s.key} className={done.has(s.key) ? 'done' : ''} aria-current={done.has(s.key) ? 'step' : undefined}>
+              <span className="step-check" aria-hidden>{done.has(s.key) ? '✓' : '○'}</span>
+              <span className="step-label">{s.label}</span>
+              <span className="step-hint dim small">{s.hint}</span>
+            </li>
+          ))}
+        </ol>
+      </Card>
 
-      <section className="card" aria-label="Chaos controls">
-        <h3>Chaos controls (optional)</h3>
-        <p className="muted small">Break a link, watch store-and-forward hold the packet, restore it and watch the flush.</p>
+      <Card>
+        <CardHeader icon={<Zap size={17} />} title="Chaos controls (optional)" subtitle="Break a link, watch store-and-forward hold the packet, restore it and watch the flush." />
         <div className="row wrap">
           {LINK_DOWN_STEPS.map((s, i) => (
-            <button key={s.label} className="btn-secondary" onClick={() => void chaos(i)} disabled={!online}>{s.label}</button>
+            <ActionButton key={s.label} variant="secondary" onClick={() => void chaos(i)} disabled={!online}>{s.label}</ActionButton>
           ))}
         </div>
-      </section>
+      </Card>
     </div>
   );
 }

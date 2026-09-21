@@ -80,9 +80,9 @@ export class WebBluetoothTransport implements Transport {
 
   async statusDetail(): Promise<string> {
     if (!this.api) return this.unsupportedReason;
-    if (this.devices.size === 0) return 'Pair a native ResQNET BLE peer; browser tabs cannot advertise as BLE servers [P]';
+    if (this.devices.size === 0) return 'No BLE peer paired yet. Tap “Pair device” to connect a nearby ResQNET phone.';
     const names = [...this.devices.values()].map((device) => device.name ?? device.id.slice(0, 8));
-    return `Paired with ${names.join(', ')} [P]`;
+    return `Paired with ${names.join(', ')}`;
   }
 
   /** Ask the user to pick a peer device (must be called from a user gesture). */

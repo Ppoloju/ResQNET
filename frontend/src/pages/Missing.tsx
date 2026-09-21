@@ -3,8 +3,12 @@
 // by humans who read the description. Photo only shared via the alert payload.
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { UserSearch, Camera, Send, MapPin } from 'lucide-react';
 import { apiFetch, useSession } from '../state/SessionContext';
 import { useStatus } from '../state/StatusContext';
+import {
+  Card, CardHeader, PageHeader, TextField, TextAreaField, ActionButton, EmptyState, StatusPill,
+} from '../components/ui';
 
 interface Report {
   id: string;
@@ -148,97 +152,96 @@ export default function Missing() {
     }
   };
 
-  if (!user) return <div className="card">Sign in to file or view missing person reports.</div>;
+  if (!user) return <div className="page"><Card><EmptyState icon={<UserSearch size={20} />} title="Sign in to file or view missing person reports" /></Card></div>;
 
   return (
-    <div>
-      <h1>Missing Person</h1>
-      <p className="muted">
-        File a report when someone cannot be located. Alerts carry only the minimal
-        description — never automatic facial recognition; people match people. [R: full
-        mesh alert propagation needs the native client]
-      </p>
+    <div className="page">
+      <PageHeader
+        eyebrow="RESQNET / MISSING PERSON"
+        title="Missing person"
+        subtitle="File a report when someone cannot be located. Alerts carry only the minimal description — never automatic facial recognition; people match people. [R: full mesh alert propagation needs the native client]"
+      />
       {error && <p className="error-text" role="alert">{error}</p>}
       {note && <p className="ok-text" role="status">{note}</p>}
 
-      <div className="card">
-        <h2>File a report</h2>
-        <label htmlFor="mp-name">Person's name</label>
-        <input id="mp-name" value={form.personName} onChange={(e) => setForm({ ...form, personName: e.target.value })} />
+      <Card>
+        <CardHeader icon={<UserSearch size={17} />} title="File a report" />
+        <div className="rq-modal-body">
+          <TextField label="Person's name" value={form.personName} onChange={(personName) => setForm({ ...form, personName })} />
+          <div className="grid2">
+            <TextField label="Last seen (date & time)" type="datetime-local" value={form.lastSeenAt} onChange={(lastSeenAt) => setForm({ ...form, lastSeenAt })} />
+            <TextField label="Contact phone" inputMode="tel" value={form.contactPhone} onChange={(contactPhone) => setForm({ ...form, contactPhone })} />
+          </div>
+          <TextAreaField label="Description" rows={2} maxLength={2000} value={form.description} placeholder="Age, build, language spoken, distinguishing details…" onChange={(description) => setForm({ ...form, description })} />
+          <TextField label="Clothing" value={form.clothing} onChange={(clothing) => setForm({ ...form, clothing })} />
+          <TextField label="Photo (optional, ≤150 KB)" type="file" value="" onChange={() => undefined} />
+          <input
+            id="mp-photo"
+            type="file"
+            accept="image/*"
+            aria-label="Upload photo"
+            onChange={(e) => onPhoto(e.target.files?.[0])}
+            style={{ display: 'none' }}
+          />
+          <ActionButton variant="secondary" full onClick={() => document.getElementById('mp-photo')?.click()}>
+            <Camera size={16} /> Upload photo
+          </ActionButton>
+          {!cameraOn ? (
+            <ActionButton variant="secondary" full onClick={() => void startCamera()}>
+              <Camera size={16} /> Take photo with camera [P]
+            </ActionButton>
+          ) : (
+            <div className="rq-modal-body">
+              <video ref={videoRef} style={{ width: '100%', borderRadius: 12 }} muted playsInline aria-label="Camera preview" />
+              <div className="row">
+                <ActionButton variant="primary" onClick={capturePhoto}>Capture</ActionButton>
+                <ActionButton variant="ghost" onClick={stopCamera}>Cancel</ActionButton>
+              </div>
+            </div>
+          )}
+          {photo && <p className="ok-text small" style={{ margin: 0 }}>Photo attached ✓</p>}
 
-        <div className="grid2">
-          <div>
-            <label htmlFor="mp-seen">Last seen (date & time)</label>
-            <input id="mp-seen" type="datetime-local" value={form.lastSeenAt}
-              onChange={(e) => setForm({ ...form, lastSeenAt: e.target.value })} />
-          </div>
-          <div>
-            <label htmlFor="mp-phone">Contact phone</label>
-            <input id="mp-phone" value={form.contactPhone} onChange={(e) => setForm({ ...form, contactPhone: e.target.value })} />
-          </div>
+          <label style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <input type="checkbox" style={{ width: 20, height: 20 }} checked={useLocation}
+              onChange={(e) => { setUseLocation(e.target.checked); if (e.target.checked) grabLocation(); }} />
+            Include last-known location (from this device)
+          </label>
+          {useLocation && coords && (
+            <p className="muted mono small" style={{ margin: 0 }}>{coords.lat.toFixed(5)}, {coords.lon.toFixed(5)}</p>
+          )}
+
+          <ActionButton variant="primary" full onClick={() => void submit()}
+            disabled={busy || !form.personName || !form.lastSeenAt || !form.contactPhone}>
+            <Send size={16} /> {busy ? 'Filing…' : 'File missing person report'}
+          </ActionButton>
+          {!online && <p className="muted small" style={{ margin: 0 }}>Offline — the report will queue and sync when connectivity returns.</p>}
         </div>
+      </Card>
 
-        <label htmlFor="mp-desc">Description</label>
-        <textarea id="mp-desc" rows={2} maxLength={2000} value={form.description}
-          placeholder="Age, build, language spoken, distinguishing details…"
-          onChange={(e) => setForm({ ...form, description: e.target.value })} />
-
-        <label htmlFor="mp-cloth">Clothing</label>
-        <input id="mp-cloth" value={form.clothing} onChange={(e) => setForm({ ...form, clothing: e.target.value })} />
-
-        <label htmlFor="mp-photo" style={{ marginTop: 8 }}>Photo (optional, ≤150 KB)</label>
-        <input id="mp-photo" type="file" accept="image/*" onChange={(e) => onPhoto(e.target.files?.[0])} />
-
-        {!cameraOn ? (
-          <button className="btn-secondary" style={{ width: '100%', marginTop: 8 }} onClick={() => void startCamera()}>
-            Take photo with camera [P]
-          </button>
-        ) : (
-          <div className="mt">
-            <video ref={videoRef} style={{ width: '100%', borderRadius: 12 }} muted playsInline aria-label="Camera preview" />
-            <div className="row mt">
-              <button className="btn-primary" onClick={capturePhoto}>Capture</button>
-              <button className="btn-ghost" onClick={stopCamera}>Cancel</button>
+      <Card>
+        <CardHeader icon={<MapPin size={17} />} title="Open reports" subtitle={reports.length === 0 ? 'No open reports.' : `${reports.length} active report${reports.length === 1 ? '' : 's'}`} />
+        {reports.map((r) => (
+          <div key={r.id} className="rq-mini-list" style={{ marginBottom: 8 }}>
+            <div className="rq-mini-row">
+              <span className="rq-mini-main">
+                <strong>{r.personName}</strong>
+                <small>last seen {new Date(r.lastSeenAt).toLocaleString()}</small>
+                {r.description && <small>{r.description}</small>}
+                {r.clothing && <small>Clothing: {r.clothing}</small>}
+                {r.lastLat != null && r.lastLon != null && (
+                  <small className="mono">last location: {r.lastLat.toFixed(5)}, {r.lastLon.toFixed(5)}</small>
+                )}
+                <small className="mono">contact: {r.contactPhone}</small>
+              </span>
+              <span style={{ display: 'grid', gap: 6, justifyItems: 'end' }}>
+                <StatusPill tone="waiting">{r.status}</StatusPill>
+                <ActionButton variant="ghost" onClick={() => void close(r.id, 'FOUND')}>Found</ActionButton>
+                <ActionButton variant="ghost" onClick={() => void close(r.id, 'CANCELLED')}>Cancel</ActionButton>
+              </span>
             </div>
           </div>
-        )}
-        {photo && <p className="ok-text" style={{ fontSize: '0.8rem' }}>Photo attached ✓</p>}
-
-        <label style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 8 }}>
-          <input type="checkbox" style={{ width: 20, height: 20 }} checked={useLocation}
-            onChange={(e) => { setUseLocation(e.target.checked); if (e.target.checked) grabLocation(); }} />
-          Include last-known location (from this device)
-        </label>
-        {useLocation && coords && (
-          <p className="muted mono" style={{ fontSize: '0.8rem' }}>{coords.lat.toFixed(5)}, {coords.lon.toFixed(5)}</p>
-        )}
-
-        <button className="btn-primary" style={{ width: '100%', marginTop: 10 }}
-          onClick={() => void submit()}
-          disabled={busy || !form.personName || !form.lastSeenAt || !form.contactPhone}>
-          {busy ? 'Filing…' : 'File missing person report'}
-        </button>
-        {!online && <p className="muted" style={{ fontSize: '0.8rem' }}>Offline — the report will queue and sync when connectivity returns.</p>}
-      </div>
-
-      <h2>Open reports</h2>
-      {reports.length === 0 && <p className="muted">No open reports.</p>}
-      {reports.map((r) => (
-        <div key={r.id} className="card" style={{ borderLeft: '4px solid #e0a12b' }}>
-          <div className="row spread" style={{ alignItems: 'baseline', flexWrap: 'wrap', gap: 8 }}>
-            <strong>{r.personName}</strong>
-            <span className="muted" style={{ fontSize: '0.8rem' }}>last seen {new Date(r.lastSeenAt).toLocaleString()}</span>
-          </div>
-          {r.description && <p className="muted" style={{ margin: '6px 0 0' }}>{r.description}</p>}
-          {r.clothing && <p className="muted" style={{ margin: '4px 0 0', fontSize: '0.9rem' }}>Clothing: {r.clothing}</p>}
-          {r.lastLat != null && r.lastLon != null && (
-            <p className="muted mono" style={{ margin: '4px 0 0', fontSize: '0.8rem' }}>
-              last location: {r.lastLat.toFixed(5)}, {r.lastLon.toFixed(5)}
-            </p>
-          )}
-          <p className="muted mono" style={{ margin: '4px 0 0', fontSize: '0.85rem' }}>contact: {r.contactPhone}</p>
-        </div>
-      ))}
+        ))}
+      </Card>
     </div>
   );
 }

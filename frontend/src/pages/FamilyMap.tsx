@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Cross, LocateFixed, MapPinned, RefreshCw, Users } from 'lucide-react';
+import { PageHeader, StatusPill } from '../components/ui';
 import { CircleMarker, MapContainer, Marker, Popup, TileLayer, useMap } from 'react-leaflet';
 import L, { type LatLngBoundsExpression, type LatLngExpression } from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { apiFetch, useSession } from '../state/SessionContext';
 import { useStatus } from '../state/StatusContext';
+import { Card, EmptyState } from '../components/ui';
 
 interface FamilyMember {
   id: string;
@@ -151,14 +153,20 @@ export default function FamilyMap() {
     ? points.map((point) => [point.latitude, point.longitude] as [number, number])
     : null;
 
-  if (!user) return <div className="page family-map-page"><div className="card">Sign in to view your family map.</div></div>;
+  if (!user) return <div className="page family-map-page"><Card><EmptyState icon={<Users size={20} />} title="Sign in to view your family map" /></Card></div>;
 
   return (
     <div className="page family-map-page">
-      <section className="family-map-heading">
-        <div><span className="eyebrow">RESQNET / FAMILY MAP</span><h1>Circle locations</h1><p className="muted">Opt-in location view refreshed every 15 seconds. Unlinked contacts never appear on the map.</p></div>
-        <button className="family-icon-action" type="button" onClick={() => { load(); locate(); }} aria-label="Refresh family map" title="Refresh family map"><RefreshCw size={18} /></button>
-      </section>
+      <PageHeader
+        eyebrow="RESQNET / FAMILY MAP"
+        title="Circle locations"
+        subtitle="Opt-in location view refreshed every 15 seconds. Unlinked contacts never appear on the map."
+        badge={online ? 'SYNC LINKED' : 'OFFLINE'}
+        badgeTone={online ? 'safe' : 'waiting'}
+        actions={
+          <button className="family-icon-action" type="button" onClick={() => { load(); locate(); }} aria-label="Refresh family map" title="Refresh family map"><RefreshCw size={18} /></button>
+        }
+      />
 
       <section className="family-map-status" role="status"><span className={online ? 'is-live' : 'is-muted'}><span className="pulse-dot" /> {online ? 'SYNC LINKED' : 'OFFLINE'}</span><span><Users size={15} /> {points.length} visible location{points.length === 1 ? '' : 's'}</span><span><LocateFixed size={15} /> {locationNote}</span></section>
       {error && <p className="error-text">{error}</p>}
