@@ -32,9 +32,9 @@ beforeAll(async () => {
 function makePacket(overrides: Partial<EmergencyPacket> = {}): EmergencyPacket {
   return {
     id: `msg_${crypto.randomUUID()}`,
-    emergencyId: `IQ${Math.random().toString(36).slice(2, 8).toUpperCase()}`,
+    emergencyId: `RQ-${Math.random().toString(36).slice(2, 8).toUpperCase()}`,
     senderId: 'sim_A',
-    senderPublicId: 'IQOO_NODE_A',
+    senderPublicId: 'RQ_NODE_A',
     type: 'SOS',
     priority: 'CRITICAL',
     timestamp: Date.now(),
@@ -62,8 +62,9 @@ describe('gateway sync + responders + broadcasts (Phases 7/12)', () => {
       .send({ email: `admin${Date.now()}@test.io`, password: 'Str0ngPass!x', displayName: 'Admin' });
     // Promote to admin directly in the (in-memory) DB, then RE-LOGIN so the JWT
     // carries the new role (the registration token still says role=user).
+    // 2FA is disabled for this fixture so the login returns a token directly.
     const { db } = await import('../db.js');
-    db.prepare("UPDATE users SET role = 'admin' WHERE id = ?").run(adm.body.user.id);
+    db.prepare("UPDATE users SET role = 'admin', two_factor_enabled = 0 WHERE id = ?").run(adm.body.user.id);
     const login = await request(app).post('/api/auth/login')
       .send({ email: adm.body.user.email, password: 'Str0ngPass!x' });
     adminToken = login.body.token;
@@ -200,7 +201,7 @@ describe('gateway sync + responders + broadcasts (Phases 7/12)', () => {
       .set('Authorization', `Bearer ${userToken}`)
       .send({
         from: 'A',
-        emergencyId: `IQ-${Math.random().toString(36).slice(2, 8).toUpperCase()}`,
+        emergencyId: `RQ-${Math.random().toString(36).slice(2, 8).toUpperCase()}`,
         message: 'e2e mesh test',
         priority: 'CRITICAL',
       });

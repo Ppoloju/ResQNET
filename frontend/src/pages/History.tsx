@@ -31,7 +31,7 @@ export default function History() {
 
   useEffect(() => {
     try {
-      const raw = localStorage.getItem('iqoo.blackbox');
+      const raw = localStorage.getItem('resqnet.blackbox');
       if (raw) setBlackBox(JSON.parse(raw) as BlackBoxEntry[]);
     } catch { /* ignore */ }
   }, []);
@@ -39,7 +39,7 @@ export default function History() {
   useEffect(() => {
     // Local outbox always visible (offline-first, §30).
     try {
-      const raw = localStorage.getItem('iqoo.outbox');
+      const raw = localStorage.getItem('resqnet.outbox');
       if (raw) setOutbox(JSON.parse(raw) as Array<Record<string, unknown>>);
     } catch { /* ignore */ }
   }, []);

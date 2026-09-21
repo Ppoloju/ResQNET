@@ -25,6 +25,72 @@ function BroadcastBanner() {
   );
 }
 
+/**
+ * Live emergency map (§18): my exact GPS + other people's active emergencies
+ * from the real-time feed. Public safety info — no login required to SEE.
+ */
+function LiveMapCard() {
+  const { fix, state } = useHighAccuracyLocation();
+  const { liveEmergencies, connected } = useMeshEvents();
+
+  // Feed the freshest fix to the SOS flow so packets carry the exact position.
+  useEffect(() => {
+    if (fix) setLatestFix(fix);
+  }, [fix]);
+
+  // Load the initial public feed once (updates arrive via SSE).
+  const [initial, setInitial] = useState<LiveEmergency[]>([]);
+  useEffect(() => {
+    apiFetch<{ emergencies: Array<LiveEmergency & { id?: string }> }>('/emergencies/feed/public')
+      .then((r) => setInitial(r.emergencies.map((e) => ({ ...e, emergencyId: e.emergencyId ?? e.id ?? '' }))))
+      .catch(() => { /* offline — SSE will catch us up when a link exists */ });
+  }, []);
+
+  const merged = useMemo(() => {
+    const byId = new Map<string, LiveEmergency>();
+    for (const e of [...initial, ...liveEmergencies]) byId.set(e.emergencyId, e);
+    return [...byId.values()];
+  }, [initial, liveEmergencies]);
+
+  const others = merged
+    .filter((e) => e.location)
+    .map((e) => ({
+      emergencyId: e.emergencyId,
+      latitude: e.location!.latitude,
+      longitude: e.location!.longitude,
+      label: `${e.type} · ${e.severity}`,
+    })) as Array<{ emergencyId: string; latitude: number; longitude: number; label?: string }>;
+
+  return (
+    <div className="card" data-testid="live-map-card">
+      <div className="row spread" style={{ alignItems: 'baseline' }}>
+        <h2 style={{ margin: 0 }}>Live emergency map</h2>
+        <span className={`pill small ${connected ? 'on' : 'off'}`}>{connected ? 'LIVE' : 'RECONNECTING'}</span>
+      </div>
+      <EmergencyMap position={fix} others={others} height={240} />
+      {state === 'denied' && (
+        <p className="muted small">Location permission denied — your SOS still works, but responders get no map pin.</p>
+      )}
+      {merged.length > 0 && (
+        <ul className="event-list mt">
+          {merged.slice(0, 6).map((e) => (
+            <li key={e.emergencyId}>
+              <span className={`sev-pill ${e.severity === 'CRITICAL' ? 'sev-critical' : e.severity === 'HIGH' ? 'sev-high' : 'sev-medium'}`}>{e.severity}</span>{' '}
+              <strong>{e.type}</strong>{e.message ? ` — ${e.message}` : ''}{' '}
+              <span className="dim small">{new Date(e.createdAt).toLocaleTimeString()}</span>{' '}
+              <span className="mono small">{e.emergencyId}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+      <p className="muted small" style={{ margin: '6px 2px 0' }}>
+        Red: you (exact GPS, ±{fix?.accuracyMeters != null ? Math.round(fix.accuracyMeters) : '…'} m).
+        Orange: other active emergencies nearby.
+      </p>
+    </div>
+  );
+}
+
 /** Safety check-in (§25): send + show own last status with timestamp. */
 function CheckInCard() {
   const { user } = useSession();
@@ -433,6 +499,26 @@ function EmergencyMode() {
         </div>
       )}
 
+      {active.location && active.location.state !== 'LOCATION_UNAVAILABLE' && (
+        <div className="card">
+          <h2>Your location — shared with the network</h2>
+          <EmergencyMap
+            position={{
+              latitude: active.location.latitude,
+              longitude: active.location.longitude,
+              accuracyMeters: active.location.accuracyMeters,
+            }}
+            height={220}
+            zoom={17}
+          />
+          <p className="muted small" style={{ margin: '6px 2px 0' }}>
+            {active.location.latitude.toFixed(5)}, {active.location.longitude.toFixed(5)}
+            {active.location.accuracyMeters != null ? ` · ±${Math.round(active.location.accuracyMeters)} m` : ''}
+            {' '}- exact GPS from this device, attached to your signed packet.
+          </p>
+        </div>
+      )}
+
       {active.ai && (
         <div className="card" data-testid="emergency-ai">
           <h2>Local AI assessment</h2>
@@ -629,6 +715,8 @@ export default function Home() {
           {quickHelpOpen ? <QuickHelpCard onClose={() => setQuickHelpOpen(false)} /> : <div className="card"><button className="btn-help" onClick={() => setQuickHelpOpen(true)}>Need Help</button></div>}
 
           <CheckInCard />
+
+          <LiveMapCard />
 
           <NearbyCard />
 

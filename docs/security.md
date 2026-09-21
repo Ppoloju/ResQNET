@@ -1,4 +1,4 @@
-# IQOO Security Model
+# ResQNET Security Model
 
 ## Threats addressed
 
@@ -12,7 +12,7 @@
 | Medical data exposure | AES-256-GCM field encryption at rest + consent gate + visibility tiers + log redaction | ✅ |
 | Malicious relay | Signature verification and battery-tier relay gating in the simulator; native relay verification remains required | [P/R] |
 | Privilege escalation | RBAC (`user`/`responder`/`admin`) enforced per-route | ✅ |
-| Privacy leak over radio | Anonymous `IQOO_NODE_XXXX` aliases, rotation-ready (§34) | ✅ |
+| Privacy leak over radio | Anonymous `RQ_NODE_XXXX` aliases, rotation-ready (§34) | ✅ |
 | Tamper evidence | Append-only audit log with per-actor rows | ✅ |
 
 ## Keys and secrets

@@ -223,6 +223,19 @@ The frontend is a web PWA. Browser Bluetooth cannot do background BLE mesh; iOS/
 - [x] Disaster Mode - Offline disaster bulletin: Updates propagate through mesh (e.g., "Bridge collapsed ahead", "Shelter open at school") — sitreps flow like packets (shared format + validation), STALE flag after 6 h, live feed + post UI on /situations
 - [x] Disaster Mode - AI assistant: deterministic offline guidance and triage are implemented on the dedicated `/ai-assistance` page; disclaimer + escalation criteria are shown for each topic
 
+# Phase 14 — Real-Time + Accounts + Live Map — **COMPLETE 2026-09-19**
+
+- [x] Rebrand to ResQNET — every UI surface, storage keys (`resqnet.*`), emergency IDs `RQ-XXXXXXXX`, device aliases `RQ_NODE_XXXX`, PWA manifest, docs; the npm scope `@iqoo/shared` remains an internal package name only
+- [x] Email infrastructure — nodemailer + SMTP config (env: SMTP_HOST/PORT/SECURE/USER/PASS/FROM); branded HTML mail templates; honest dev fallback: with SMTP unconfigured, codes are printed to the server console AND echoed as `devCode` in the API response (never when SMTP is on)
+- [x] Two-step account security — `email_codes` table (sha256-hashed 6-digit codes, single-use, 10-min expiry); register → VERIFY_ACCOUNT email → /auth/verify-email; login → LOGIN_2FA email → /auth/login/verify-2fa (masked address returned, no account enumeration anywhere); forgot/reset password by email code; in-app change-password (current password + emailed code) with confirmation email; idempotent users-table migration in db.ts
+- [x] Real-time cross-device emergencies — POST /api/emergencies + resolve now `broadcastEvent('emergency'|'emergency_resolved')` to ALL SSE clients; /realtime/stream is public (public-safety feed) with optional token auth; GET /api/emergencies/feed/public (ACTIVE ≤ 2 h, no identity, coarse location only)
+- [x] Frontend live layer — RealtimeContext subscribes logged-in AND logged-out, tracks liveEmergencies (add on `emergency`, remove on `emergency_resolved`); SessionContext extended with verify2fa/resend2fa/verifyEmail/forgotPassword/resetPassword/sendChangeCode/changePassword; Login page rewritten (verify2fa / verifyEmail / forgot / reset flows, code-input UI); Settings gains AccountSecurity card
+- [x] Exact location + live map — EmergencyMap (Leaflet + OpenStreetMap, no API key): me-marker with ±accuracy circle, orange markers for other live emergencies; useHighAccuracyLocation() watchPosition feeds locationStore so SOS packets reuse the freshest exact fix (<15 s); SOS screen shows the shared map; LiveMapCard shows the live feed list
+- [x] Two-phone LAN readiness — vite server.host: true (phones on same Wi-Fi open http://<PC-IP>:5173); verified E2E: phone B SOS (±8 m GPS) appeared on phone A's stream instantly, fresh SOS appeared in the open UI with a new map marker without reload
+- [x] Real bugs found & fixed: (1) express compression gzipped the SSE stream on browsers → EventSource silently starved (curl looked fine) — realtime paths excluded from compression; (2) sandbox PORT=0 env broke server binding — portFromEnv() hardening; (3) tests updated for 2FA (mailer mocked, rate limit raised, admin fixture disables 2FA)
+
+Verification: 88 tests passing (28 shared · 56 backend · 4 frontend), zero type errors, all builds green; live servers: backend :4000 (tsx watch), frontend :5173 (vite, LAN-exposed); E2E run through the real API: register → devCode → verify-email → login-2FA (masked email) → verify-2fa → token → SOS from phone B → instant SSE delivery to phone A.
+
 ---
 
 ## Blocker log

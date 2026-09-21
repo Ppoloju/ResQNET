@@ -79,7 +79,7 @@ describe('SOS flow', () => {
 
       const box = JSON.parse(localStorage.getItem('iqoo.outbox') ?? '[]') as Array<{ event: { id: string } }>;
       expect(box).toHaveLength(1);
-      expect(box[0].event.id).toMatch(/^IQ-/);
+      expect(box[0].event.id).toMatch(/^RQ-/);
     } finally {
       Reflect.deleteProperty(navigator, 'vibrate');
       vi.useRealTimers();

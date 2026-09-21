@@ -57,7 +57,7 @@ const engineSchema = z.object({
 
 const injectSchema = z.object({
   from: z.string().min(1),
-  emergencyId: z.string().regex(/^IQ-[0-9A-Z]{6,12}$/),
+  emergencyId: z.string().regex(/^RQ-[0-9A-Z]{6,12}$/),
   message: z.string().max(1024).default('SOS from simulator'),
   priority: z.enum(['CRITICAL', 'HIGH', 'MEDIUM', 'LOW']).default('CRITICAL'),
   location: z.object({
@@ -97,7 +97,7 @@ simRouter.post('/inject', requireAuth, async (req: AuthedRequest, res) => {
     id: `msg_${crypto.randomUUID()}`,
     emergencyId: input.emergencyId,
     senderId: `sim_${input.from}`,
-    senderPublicId: `IQOO_NODE_${input.from}`,
+    senderPublicId: `RQ_NODE_${input.from}`,
     type: 'SOS' as const,
     priority: input.priority,
     timestamp: Date.now(),

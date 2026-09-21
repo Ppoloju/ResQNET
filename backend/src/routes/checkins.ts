@@ -44,7 +44,7 @@ checkinsRouter.get('/', requireAuth, (req: AuthedRequest, res) => {
   });
 });
 
-/** Latest check-in per family member's linked IQOO account (§25). */
+/** Latest check-in per family member's linked ResQNET account (§25). */
 checkinsRouter.get('/family-status', requireAuth, (req: AuthedRequest, res) => {
   const members = db.prepare(
     `SELECT id, name, iqoo_account_id FROM family_members WHERE owner_user_id = ? ORDER BY priority ASC`,

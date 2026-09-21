@@ -31,6 +31,16 @@ export interface BroadcastEvent {
   expiresAt: string;
 }
 
+export interface LiveEmergency {
+  emergencyId: string;
+  type: string;
+  severity: string;
+  category?: string | null;
+  message: string;
+  location: { latitude: number; longitude: number; accuracyMeters?: number | null } | null;
+  createdAt: string;
+}
+
 type Handler = (data: unknown) => void;
 
 export function useRealtime(handlers: Record<string, Handler> = {}) {
@@ -39,11 +49,14 @@ export function useRealtime(handlers: Record<string, Handler> = {}) {
   handlersRef.current = handlers;
 
   useEffect(() => {
-    const token = localStorage.getItem('iqoo.token');
-    if (!token) return; // SSE requires auth; logged-out demo devices don't subscribe
+    // The live emergency stream is public safety information: subscribe with or
+    // without a token (identity-gated events arrive only on the authed stream).
     if (typeof EventSource === 'undefined') return; // e.g. jsdom test environment
-
-    const es = new EventSource(`${API_BASE}/realtime/stream?token=${encodeURIComponent(token)}`);
+    const token = localStorage.getItem('resqnet.token');
+    const url = token
+      ? `${API_BASE}/realtime/stream?token=${encodeURIComponent(token)}`
+      : `${API_BASE}/realtime/stream`;
+    const es = new EventSource(url);
     es.onopen = () => setConnected(true);
     es.onerror = () => setConnected(false); // EventSource retries automatically
 
@@ -75,13 +88,22 @@ export function useMeshEvents() {
   const [events, setEvents] = useState<MeshEvent[]>([]);
   const [acks, setAcks] = useState<ResponderAckEvent[]>([]);
   const [broadcast, setBroadcast] = useState<BroadcastEvent | null>(null);
+  const [liveEmergencies, setLiveEmergencies] = useState<LiveEmergency[]>([]);
 
   const { connected } = useRealtime({
     mesh_event: (data) => setEvents((e) => [...e, data as MeshEvent].slice(-100)),
     responder_ack: (data) => setAcks((a) => [...a, data as ResponderAckEvent].slice(-50)),
     disaster_broadcast: (data) => setBroadcast(data as BroadcastEvent),
+    emergency: (data) => {
+      const e = data as LiveEmergency;
+      setLiveEmergencies((list) => [e, ...list.filter((x) => x.emergencyId !== e.emergencyId)].slice(0, 25));
+    },
+    emergency_resolved: (data) => {
+      const { emergencyId } = data as { emergencyId: string };
+      setLiveEmergencies((list) => list.filter((x) => x.emergencyId !== emergencyId));
+    },
   });
 
   const clearBroadcast = () => setBroadcast(null);
-  return { events, acks, broadcast, clearBroadcast, connected };
+  return { events, acks, broadcast, liveEmergencies, clearBroadcast, connected };
 }

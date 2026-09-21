@@ -14,6 +14,8 @@ CREATE TABLE IF NOT EXISTS users (
   display_name  TEXT NOT NULL,
   password_hash TEXT NOT NULL,                   -- argon2id
   role          TEXT NOT NULL DEFAULT 'user' CHECK (role IN ('user','responder','admin')),
+  email_verified     INTEGER NOT NULL DEFAULT 0, -- two-step account activation
+  two_factor_enabled INTEGER NOT NULL DEFAULT 1, -- emailed login codes on by default
   created_at    TEXT NOT NULL,
   updated_at    TEXT NOT NULL
 );
@@ -293,3 +295,18 @@ CREATE TABLE IF NOT EXISTS sitreps (
   created_at  TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_sitreps_created ON sitreps(created_at DESC);
+
+-- ------------------------------------------------------------
+-- Account security: email verification + two-step login + password reset.
+-- Codes are 6 digits, hashed (sha256), single-use, expire in 10 minutes.
+-- ------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS email_codes (
+  id          TEXT PRIMARY KEY,
+  user_id     TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  purpose     TEXT NOT NULL CHECK (purpose IN ('VERIFY_ACCOUNT','LOGIN_2FA','PASSWORD_RESET')),
+  code_hash   TEXT NOT NULL,
+  expires_at  TEXT NOT NULL,
+  consumed_at TEXT,
+  created_at  TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_email_codes_user ON email_codes(user_id, purpose, created_at DESC);

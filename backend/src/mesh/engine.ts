@@ -1,4 +1,4 @@
-// IQOO Mesh Engine — deterministic store-and-forward simulation core (§13, §42).
+// ResQNET Mesh Engine — deterministic store-and-forward simulation core (§13, §42).
 // PROTOTYPE/SIMULATION: this models radio links in software so the routing logic
 // (dedupe, TTL, hops, ACK, retry, battery tiers) can be tested and demoed without
 // physical BLE hardware. Real radios plug into the same interface later.

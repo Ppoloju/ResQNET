@@ -1,5 +1,5 @@
 // LocalNetworkTransport (§35): the "internet" transport made explicit.
-// Talks to an IQOO backend reachable on the same LAN (home wifi, hotspot) via
+// Talks to an ResQNET backend reachable on the same LAN (home wifi, hotspot) via
 // REST + SSE. Availability is PROBED, not guessed: navigator.onLine is never
 // treated as proof (§44). LAN discovery via mDNS is a native-client capability
 // [R]; here the base URL is user-configurable in Settings/through VITE_API_URL.
@@ -57,7 +57,7 @@ export class LocalNetworkTransport implements Transport {
         method: 'POST',
         headers: {
           'content-type': 'application/json',
-          ...(localStorage.getItem('iqoo.token') ? { authorization: `Bearer ${localStorage.getItem('iqoo.token')}` } : {}),
+          ...(localStorage.getItem('resqnet.token') ? { authorization: `Bearer ${localStorage.getItem('resqnet.token')}` } : {}),
         },
         body: JSON.stringify({
           emergencyId: packet.emergencyId,

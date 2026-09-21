@@ -166,7 +166,7 @@ respondersRouter.post('/seed', requireAuth, (req: AuthedRequest, res) => {
       .run(uid, d.email, d.name, now, now);
     db.prepare(`INSERT INTO devices (id, user_id, name, platform, public_id, secret, last_seen_at, created_at)
                 VALUES (?, ?, ?, 'web', ?, ?, ?, ?)`)
-      .run(`dev_${randomUUID()}`, uid, `${d.name} console`, `IQOO_NODE_${randomUUID().slice(0, 4).toUpperCase()}`,
+      .run(`dev_${randomUUID()}`, uid, `${d.name} console`, `RQ_NODE_${randomUUID().slice(0, 4).toUpperCase()}`,
            randomUUID().replace(/-/g, ''), now, now);
     created.push(uid);
   }

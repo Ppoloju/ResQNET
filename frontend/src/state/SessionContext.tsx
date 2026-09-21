@@ -6,6 +6,7 @@ export interface SessionUser {
   phone?: string | null;
   displayName: string;
   role: string;
+  emailVerified?: boolean;
 }
 
 export interface DeviceInfo {
@@ -15,12 +16,28 @@ export interface DeviceInfo {
   secret?: string;
 }
 
+export interface LoginResult {
+  ok: boolean;
+  twoFactorRequired?: boolean;
+  maskedEmail?: string;
+}
+
 interface SessionState {
   user: SessionUser | null;
   device: DeviceInfo | null;
   loading: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  /** Step 1: password check. Resolves with whether a 2FA code is now required. */
+  login: (email: string, password: string) => Promise<LoginResult>;
+  /** Step 2: consume the emailed 6-digit code and open the session. */
+  verify2fa: (email: string, code: string) => Promise<void>;
+  resend2fa: (email: string) => Promise<void>;
   register: (email: string, password: string, displayName: string) => Promise<void>;
+  verifyEmail: (email: string, code: string) => Promise<void>;
+  resendVerification: (email: string) => Promise<void>;
+  forgotPassword: (email: string) => Promise<void>;
+  resetPassword: (email: string, code: string, newPassword: string) => Promise<void>;
+  sendChangeCode: () => Promise<void>;
+  changePassword: (currentPassword: string, code: string, newPassword: string) => Promise<void>;
   logout: () => void;
 }
 
@@ -98,7 +115,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     device,
     loading,
     async login(email, password) {
-      const r = await apiFetch<{ token: string; user: SessionUser; device: DeviceInfo | null }>('/auth/login', {
+      const r = await apiFetch<{ token?: string; twoFactorRequired?: boolean; email?: string; user?: SessionUser; device?: DeviceInfo | null }>('/auth/login', {
         method: 'POST',
         body: JSON.stringify({ email: email.trim(), password }),
       });
@@ -112,13 +129,30 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         setDevice(null);
         localStorage.removeItem(DEVICE_KEY);
       }
+      if (!r.token || !r.user) throw new Error('login failed');
+      persistSession({ token: r.token, user: r.user, device: r.device });
+      setUser(r.user);
+      if (r.device) setDevice(r.device);
+      return { ok: true };
+    },
+    async verify2fa(email, code) {
+      const r = await apiFetch<{ token: string; user: SessionUser; device: DeviceInfo | null }>('/auth/login/verify-2fa', {
+        method: 'POST',
+        body: JSON.stringify({ email, code }),
+      });
+      persistSession({ token: r.token, user: r.user, device: r.device });
+      setUser(r.user);
+      if (r.device) setDevice(r.device);
+    },
+    async resend2fa(email) {
+      await apiFetch('/auth/login/resend-2fa', { method: 'POST', body: JSON.stringify({ email }) });
     },
     async register(email, password, displayName) {
       const r = await apiFetch<{ token: string; user: SessionUser; device: DeviceInfo }>('/auth/register', {
         method: 'POST',
         body: JSON.stringify({ email: email.trim(), password, displayName: displayName.trim() }),
       });
-      localStorage.setItem(TOKEN_KEY, r.token);
+      persistSession({ token: r.token, user: r.user, device: r.device });
       setUser(r.user);
       setDevice(r.device);
       localStorage.setItem(USER_KEY, JSON.stringify(r.user));

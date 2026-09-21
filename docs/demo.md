@@ -1,8 +1,8 @@
-# IQOO Demo Guide
+# ResQNET Demo Guide
 
 ## What the demo shows (§52, §63)
 
-**Story:** a trekker is injured where there is no signal. Nearby IQOO phones
+**Story:** a trekker is injured where there is no signal. Nearby ResQNET phones
 relay the emergency hop-by-hop until it reaches a gateway, which syncs it to
 responder infrastructure and notifies family. When connectivity exists, the
 same data lands in the backend dashboard.
@@ -56,7 +56,7 @@ Docker alternative: `docker compose -f docker/docker-compose.yml up --build`.
 - **Is the Bluetooth real?** No — `[P]` simulated links. The routing layer
   (dedupe/TTL/ACK/retry/battery tiers/store-and-forward) is the production
   code path and is fully unit-tested. Real BLE needs a native client `[R]`.
-- **Does it call the police?** No. IQOO augments emergency response and
+- **Does it call the police?** No. ResQNET augments emergency response and
   synchronizes with responder infrastructure when a gateway is available; it
   never replaces 100/112/911.
 - **Where does medical data go?** Encrypted at rest (AES-256-GCM), only shared

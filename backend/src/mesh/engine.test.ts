@@ -7,9 +7,9 @@ const SECRET = 'test-secret-abcdef0123456789';
 function makePacket(overrides: Partial<Parameters<typeof signPacket>[0]> = {}) {
   return signPacket({
     id: 'msg_test-0001',
-    emergencyId: 'IQ-TEST0001',
+    emergencyId: 'RQ-TEST0001',
     senderId: 'dev-A',
-    senderPublicId: 'IQOO_NODE_AA',
+    senderPublicId: 'RQ_NODE_AA',
     type: 'SOS' as const,
     priority: 'CRITICAL' as const,
     timestamp: Date.now(),
@@ -168,10 +168,10 @@ describe('mesh engine — store-and-forward scenarios', () => {
     eng.setBattery('HERO', 12);
     eng.setBattery('OTHER', 12);
     eng.setRelayHero('HERO');
-    const crit = await makePacket({ id: 'msg_hero_crit', emergencyId: 'IQ-HEROC001', priority: 'CRITICAL' });
+    const crit = await makePacket({ id: 'msg_hero_crit', emergencyId: 'RQ-HEROC001', priority: 'CRITICAL' });
     await eng.inject('SRC', crit);
     // Same battery on a non-hero node still gates MEDIUM onward relay.
-    const medium = await makePacket({ id: 'msg_hero_med', emergencyId: 'IQ-HEROM001', priority: 'MEDIUM' });
+    const medium = await makePacket({ id: 'msg_hero_med', emergencyId: 'RQ-HEROM001', priority: 'MEDIUM' });
     await eng.inject('SRC2', medium);
     await eng.settle();
     const snap = eng.getSnapshot();

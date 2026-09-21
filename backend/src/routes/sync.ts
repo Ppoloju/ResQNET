@@ -10,13 +10,13 @@ export const syncRouter = Router();
 
 /**
  * Push offline-created events/messages from the device outbox (§47).
- * Idempotency: emergency id is client-generated (IQ-XXXXXXXX), so re-pushing
+ * Idempotency: emergency id is client-generated (RQ-XXXXXXXX), so re-pushing
  * the same event is a no-op via INSERT OR IGNORE; the response tells the
  * client the authoritative state so the outbox can be safely cleared.
  */
 const pushSchema = z.object({
   events: z.array(z.object({
-    id: z.string().regex(/^IQ-[0-9A-Z]{6,12}$/),
+    id: z.string().regex(/^RQ-[0-9A-Z]{6,12}$/),
     type: z.enum(['SOS', 'QUICK_HELP', 'CHECK_IN', 'DISASTER_BROADCAST']),
     severity: z.enum(['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']),
     category: z.string().max(40).optional(),

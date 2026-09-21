@@ -1,4 +1,4 @@
-// IQOO core domain types (§10, §12, §20)
+// ResQNET core domain types (§10, §12, §20)
 // Shared by backend, frontend, and the mesh simulator.
 
 export type Priority = 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW';
@@ -45,7 +45,7 @@ export interface GeoLocation {
 export interface EmergencyPacket {
   /** Unique packet id: msg_<random> — NOT the emergency id (one emergency → many packets). */
   id: string;
-  /** Emergency id: IQ-XXXXXXXX */
+  /** Emergency id: RQ-XXXXXXXX */
   emergencyId: string;
   senderId: string;
   senderPublicId: string;

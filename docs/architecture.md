@@ -1,4 +1,4 @@
-# IQOO Architecture
+# ResQNET Architecture
 
 ## System overview
 
@@ -37,7 +37,7 @@
 
 ### 1. SOS (online)
 1. User holds SOS → 3-2-1 countdown → activate.
-2. On-device: anonymous identity `IQOO_NODE_XXXX` (§34), geolocation (graceful
+2. On-device: anonymous identity `RQ_NODE_XXXX` (§34), geolocation (graceful
    `LOCATION_UNAVAILABLE` fallback), battery read (null if API absent — never fabricated).
 3. Packet built (`EmergencyPacket`), signed HMAC-SHA256 with the device secret,
    validated against shared rules (TTL ≤ 6h, ≤ 8 hops, ±5 min clock skew).

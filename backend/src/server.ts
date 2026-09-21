@@ -27,7 +27,13 @@ import { startNotificationDeliveryWorker } from './notifications.js';
 
 const app = express();
 app.set('trust proxy', 1);
-app.use(compression());
+// gzip would buffer the SSE event stream on browsers — never compress realtime.
+app.use(compression({
+  filter: (req, res) => {
+    if (req.path.includes('/realtime/stream') || req.headers.accept === 'text/event-stream') return false;
+    return compression.filter(req, res);
+  },
+}));
 app.use(cors({ origin: config.frontendOrigin, credentials: true }));
 app.use(express.json({ limit: '1mb' }));
 

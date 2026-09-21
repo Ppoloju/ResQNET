@@ -26,9 +26,9 @@ describe('mode derivation (§13)', () => {
   });
 
   it('rises to DISASTER from crowd-sourced clustering only at threshold', () => {
-    const ids = Array.from({ length: DISASTER_CLUSTER_THRESHOLD - 1 }, (_, i) => `IQ-C${i}`);
+    const ids = Array.from({ length: DISASTER_CLUSTER_THRESHOLD - 1 }, (_, i) => `RQ-C${i}`);
     expect(deriveMode({ activeEmergency: true, disasterBroadcast: false, nearbyEmergencyIds: ids }).mode).toBe('EMERGENCY');
-    ids.push('IQ-CLUSTER');
+    ids.push('RQ-CLUSTER');
     const d = deriveMode({ activeEmergency: false, disasterBroadcast: false, nearbyEmergencyIds: ids });
     expect(d.mode).toBe('DISASTER');
     expect(d.reason).toContain('distinct emergencies');

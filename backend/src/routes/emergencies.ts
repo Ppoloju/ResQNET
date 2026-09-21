@@ -65,13 +65,13 @@ const publicIdByUser = (userId: string): string => {
   const row = db.prepare('SELECT public_id FROM devices WHERE user_id = ? ORDER BY created_at LIMIT 1').get(userId) as
     | { public_id: string }
     | undefined;
-  return row?.public_id ?? 'IQOO_NODE_UNKNOWN';
+  return row?.public_id ?? 'RQ_NODE_UNKNOWN';
 };
 
 function newEmergencyId(): string {
-  // IQ-XXXXXXXX (§21 example format)
+  // RQ-XXXXXXXX (human-quotable emergency reference)
   const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-  let id = 'IQ-';
+  let id = 'RQ-';
   for (let i = 0; i < 8; i++) id += alphabet[randomInt(alphabet.length)];
   return id;
 }
@@ -277,6 +277,35 @@ emergenciesRouter.get('/:id/sitreps', requireAuth, (req: AuthedRequest, res) => 
   const rows = db.prepare('SELECT id, note_encrypted, created_at FROM emergency_sitreps WHERE emergency_id = ? ORDER BY created_at DESC')
     .all(owned.id) as Array<{ id: string; note_encrypted: string; created_at: string }>;
   res.json({ sitreps: rows.map((row) => ({ id: row.id, text: decryptIfEncrypted(row.note_encrypted), createdAt: row.created_at })) });
+});
+
+/**
+ * Public live feed (§18 nearby-helper view): ACTIVE emergencies from the last
+ * 2 hours, newest first. Public safety information — emergency id, type,
+ * severity, message, coarse location. No user identity, no medical data.
+ * Used for initial load; updates arrive via the SSE `emergency` event.
+ */
+emergenciesRouter.get('/feed/public', (_req, res) => {
+  const since = new Date(Date.now() - 2 * 3600_000).toISOString();
+  const rows = db.prepare(
+    `SELECT id, type, severity, category, message, lat, lon, location_state, location_accuracy_m, created_at
+     FROM emergency_events
+     WHERE status = 'ACTIVE' AND created_at > ?
+     ORDER BY created_at DESC LIMIT 25`,
+  ).all(since) as Array<Record<string, unknown>>;
+  res.json({
+    emergencies: rows.map((r) => ({
+      id: r.id,
+      type: r.type,
+      severity: r.severity,
+      category: r.category,
+      message: r.message,
+      location: (r.lat != null && r.lon != null && r.location_state !== 'LOCATION_UNAVAILABLE')
+        ? { latitude: r.lat, longitude: r.lon, accuracyMeters: r.location_accuracy_m }
+        : null,
+      createdAt: r.created_at,
+    })),
+  });
 });
 
 /** List own emergencies (emergency history / black box seed). */
